@@ -1,0 +1,59 @@
+# Bytecode y entornos
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Herramientas
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# --- Salidas regenerables -------------------------------------------------
+# Las mallas exportadas son grandes (spinodoide.apdl son 25 MB) y se producen
+# con un boton. Versionarlas hincharia el historial sin anadir informacion:
+# lo que hay que poder reproducir son los PARAMETROS, y esos viajan en el JSON
+# de sesion.
+spinodoide.apdl
+spinodoide.inp
+spinodoide.vtu
+spinodoide.stl
+*.node
+*.face
+*.ele
+
+# Lotes con marca de tiempo: se generan en cada corrida
+resultados/lote_*_20*.csv
+
+# Pilas TIFF para BoneJ: derivadas de los VOIs con un comando. El
+# `manifiesto.csv` y `bonej_resultados.csv` SI se versionan — son las medidas,
+# que es lo que hay que poder contrastar despues.
+comparativa_bonej/tif/*.tif
+
+# --- Lo que SI se versiona, y por que -------------------------------------
+# `resultados/*.json` NO esta ignorado a proposito. Son las salidas de
+# referencia del lado MATLAB (referencia_matlab, ajuste_matlab, error_matlab,
+# elastico_matlab...) contra las que se contrasta el port. No se pueden
+# regenerar sin MATLAB, GIBBON y el arnes de Validacion_Anexo, asi que son
+# datos primarios de la validacion, no artefactos. Pesan menos de 1 MB en
+# total.
+# `figs/*.png` tampoco: son las figuras del contraste ya publicado.
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# El Markdown intermedio del manual se genera; el PDF si se versiona, para
+# que quien clone el repositorio tenga la documentacion sin ejecutar nada.
+docs/MANUAL.md
+
+# --- Borradores del articulo -----------------------------------------------
+# `paper/` lleva el manuscrito en preparacion. No se publica hasta que se
+# decida enviarlo (JOSS lo revisa dentro del repositorio). Nada del paquete lo
+# lee en tiempo de ejecucion.
+paper/

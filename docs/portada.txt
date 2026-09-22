@@ -1,0 +1,17 @@
+Carlos Gonzalez-Torres
+Universidad de Valparaiso
+
+spinpy — nucleo voxel-primero para hueso trabecular
+Port a Python de la mitad numerica de AppFinal_V2.m
+
+Documento generado automaticamente a partir de los docstrings del codigo
+fuente. No se edita a mano: se regenera con
+
+    python docs/generar_manual.py
+---
+Licencia MIT. La interfaz grafica importa PyQt5 (GPL v3 o comercial);
+el nucleo spinpy no depende de Qt. Ver LICENSE.
+
+Este manual documenta el software, no valida los resultados obtenidos con el.
+La verificacion numerica contra soluciones manufacturadas esta en
+validar_analitico.py y en el anexo de validacion del proyecto.

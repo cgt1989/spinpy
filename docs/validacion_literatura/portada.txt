@@ -1,0 +1,14 @@
+Carlos Gonzalez-Torres
+Universidad de Valparaiso
+
+Verificacion de spinpy contra invariantes, definiciones publicadas,
+soluciones cerradas y cotas universales
+
+Generado por tests/ (pytest) y docs/informe_validacion.py.
+Las tolerancias estan escritas en cada modulo de pruebas, con su
+justificacion, ANTES de ejecutarlas. No se ajustan para que pasen.
+---
+Una comprobacion fuera de tolerancia no es un fallo de la suite: es un
+hallazgo sobre el codigo o sobre su documentacion, y se lista primero.
+Este documento complementa, no sustituye, el anexo de validacion del lado
+MATLAB y la comparacion con BoneJ.

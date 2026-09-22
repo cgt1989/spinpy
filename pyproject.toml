@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spinpy"
+version = "0.2.0"
+description = "Ajuste de microestructuras espinodales a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Carlos Gonzalez-Torres", email = "carlos_gonzz@hotmail.es" },
+    { name = "David Ortiz-Puerta" },
+    { name = "Mauricio A. Sarabia-Vallejos" },
+]
+keywords = [
+    "hueso trabecular", "microtomografia", "espinodal", "spinodoid",
+    "morfometria osea", "homogeneizacion", "elementos finitos",
+    "trabecular bone", "micro-CT", "bone morphometry",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+# NUCLEO: sin Qt y sin nada con copyleft. Es deliberado — `spinpy` se puede
+# importar desde un script, un cuaderno o una tuberia sin arrastrar la
+# interfaz ni sus obligaciones de licencia.
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "scikit-image>=0.21",
+    "pyvista>=0.42",
+]
+
+[project.optional-dependencies]
+# pyamg no es opcional "de verdad": sin el, la homogeneizacion y el ensayo
+# caen a CG con Jacobi, que con el contraste 1e-6 entre hueso y vacio NO
+# converge (medido: 2294 s a 32^3 sin alcanzar la tolerancia). Se separa
+# porque el resto del paquete —generador y morfometria— funciona sin el.
+elastico = ["pyamg>=4.2"]
+
+# Mallado TET10 para exportar solidos con superficie lisa.
+malla = ["pymeshfix>=0.16", "tetgen>=0.6"]
+
+# Lote y estadistica: descomposicion de varianza, ICC, TOST.
+lote = ["pandas>=2.0", "joblib>=1.3"]
+
+# INTERFAZ GRAFICA — ojo con la licencia.
+# PyQt5 es GPL v3 o comercial: quien redistribuya la app junto con el queda
+# sujeto a la GPL sobre la obra combinada, aunque este codigo sea MIT. Ver
+# LICENSE. Migrar a PySide6 (LGPL) esta pendiente y es casi mecanico.
+gui = [
+    "PyQt5>=5.15",
+    "pyvistaqt>=0.11",
+    "matplotlib>=3.7",
+]
+
+test = ["pytest>=7.4"]
+
+# Informe para publicacion: PDF (reportlab) y figuras (matplotlib). Sin ellos el
+# informe se escribe igual en Markdown y avisa de lo que falta.
+informe = ["reportlab>=4.0", "matplotlib>=3.7"]
+
+todo = ["spinpy[elastico,malla,lote,gui,test,informe]"]
+
+[project.urls]
+Repositorio = "https://github.com/cgt1989/spinpy"
+
+[project.scripts]
+spinpy-lote = "spinpy.cli:main_lote"
+spinpy-informe = "spinpy.informe:main"
+
+[tool.setuptools]
+packages = ["spinpy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Las pruebas del nucleo numerico tardan: hay homogeneizaciones y ensayos de
+# elementos finitos completos. `-m "not lento"` deja solo las rapidas.
+markers = [
+    "lento: tarda mas de ~30 s (homogeneizacion, ensayo FE, ajuste completo)",
+]

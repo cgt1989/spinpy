@@ -1,0 +1,60 @@
+# Entorno EXACTO con el que se construye el ejecutable de Windows.
+#
+# POR QUE VA FIJADO A UNA VERSION Y NO A UN MINIMO
+# ------------------------------------------------
+# `requirements.txt` declara minimos, que es lo correcto para quien instala la
+# biblioteca y la usa desde un cuaderno. Aqui NO sirve. Todo el valor de este
+# trabajo esta en que los numeros estan verificados contra soluciones cerradas
+# y contra la app de MATLAB, y esa verificacion se hizo con ESTAS versiones.
+# Un ejecutable construido sobre otras podria dar numeros distintos sin que
+# nadie se entere: quien lo recibe no tiene Python y no puede comprobarlo.
+#
+# Al montar el entorno con `pip install` sin fijar nada salieron numpy 2.5.2,
+# pandas 3.0.5 y matplotlib 3.11.1 -pandas 3.0 trae cambios que rompen- frente
+# a las 2.1.3 / 2.2.3 / 3.10.0 con las que se valido. De ahi este archivo.
+#
+# Uso:
+#     python -m venv venv
+#     venv\Scripts\python -m pip install -r requisitos_build.txt
+
+# --- nucleo ---------------------------------------------------------------
+numpy==2.1.3
+scipy==1.15.3
+scikit-image==0.25.0
+networkx==3.4.2
+
+# --- geometria y render ---------------------------------------------------
+pyvista==0.48.4
+vtk==9.6.2
+imageio==2.37.0
+pillow==11.3.0
+
+# --- solver ---------------------------------------------------------------
+# Sin pyamg la homogeneizacion cae a CG con Jacobi, que con el contraste 1e-6
+# entre hueso y vacio NO converge. No es opcional.
+pyamg==5.3.0
+
+# --- mallado TET10 --------------------------------------------------------
+pymeshfix==0.18.1
+tetgen==0.8.4
+
+# --- lote y estadistica ---------------------------------------------------
+pandas==2.2.3
+joblib==1.4.2
+
+# --- interfaz -------------------------------------------------------------
+# OJO: PyQt5 es GPL v3. El codigo fuente es MIT, pero el EJECUTABLE que lo
+# incluye se distribuye bajo GPL-3.0. Ver instalador/LICENCIA_BINARIO.txt.
+PyQt5==5.15.10
+PyQt5-Qt5==5.15.2
+pyvistaqt==0.12.0
+matplotlib==3.10.0
+
+# --- informe para publicacion ---------------------------------------------
+# Compone los PDF del informe (spinpy/md2pdf.py). Sin el, el ejecutable escribe
+# el informe solo en Markdown y avisa. Misma version que en el entorno anaconda
+# con el que se probo (2026-09-15).
+reportlab==5.0.0
+
+# --- solo para construir, no viaja dentro del ejecutable ------------------
+pyinstaller==6.22.2

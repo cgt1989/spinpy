@@ -1,0 +1,100 @@
+{
+  "casos": [
+    {
+      "archivo": "VOI_proximal_cubico.vtk",
+      "matlab": {
+        "error": 0.004886472521610433,
+        "densidad": 0.2822810031632359,
+        "wave": 15.0,
+        "thetas": [
+          15.0,
+          15.0,
+          15.0
+        ]
+      },
+      "python": {
+        "error": 0.0028337386506138464,
+        "densidad": 0.2604317417081474,
+        "wave_number_pi": 15.0,
+        "thetas": [
+          15.0,
+          15.0,
+          30.0
+        ]
+      },
+      "k2": {
+        "n_elegibles": 1,
+        "cos_ganador": 0.012531771660214321,
+        "cos_min_err": 0.012531771660214321,
+        "aplicado": false,
+        "activo": true
+      },
+      "n_eval": 53,
+      "tiempo_s": 298.6732189655304
+    },
+    {
+      "archivo": "VOI_medio_cubico.vtk",
+      "matlab": {
+        "error": 0.005832950900571561,
+        "densidad": 0.5429578830534046,
+        "wave": 11.0,
+        "thetas": [
+          15.0,
+          15.0,
+          60.0
+        ]
+      },
+      "python": {
+        "error": 0.004347026873490326,
+        "densidad": 0.5429578830534046,
+        "wave_number_pi": 11.0,
+        "thetas": [
+          15.0,
+          60.0,
+          15.0
+        ]
+      },
+      "k2": {
+        "n_elegibles": 1,
+        "cos_ganador": 0.05689534875332797,
+        "cos_min_err": 0.05689534875332797,
+        "aplicado": false,
+        "activo": true
+      },
+      "n_eval": 53,
+      "tiempo_s": 304.5374593734741
+    },
+    {
+      "archivo": "VOI_distal_cubico.vtk",
+      "matlab": {
+        "error": 0.006193377679590329,
+        "densidad": 0.7339051336020678,
+        "wave": 11.0,
+        "thetas": [
+          20.0,
+          20.0,
+          20.0
+        ]
+      },
+      "python": {
+        "error": 0.006468866651388269,
+        "densidad": 0.7339051336020678,
+        "wave_number_pi": 11.0,
+        "thetas": [
+          15.0,
+          60.0,
+          15.0
+        ]
+      },
+      "k2": {
+        "n_elegibles": 1,
+        "cos_ganador": 0.9371017581443537,
+        "cos_min_err": 0.9371017581443537,
+        "aplicado": false,
+        "activo": true
+      },
+      "n_eval": 53,
+      "tiempo_s": 325.1750957965851
+    }
+  ]
+}

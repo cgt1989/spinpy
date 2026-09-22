@@ -1,0 +1,53 @@
+spinpy
+======
+Ajuste de microestructuras espinodales a VOIs de hueso trabecular.
+Carlos Gonzalez-Torres - Universidad de Valparaiso
+
+
+PRIMEROS PASOS
+--------------
+1. Abre spinpy desde el menu de inicio.
+2. Pulsa "Generar" para ver un spinodoide con los parametros por defecto.
+3. "Cargar VOI (.vtk)" para traer un volumen de hueso real.
+4. "Medir" calcula la morfometria de los dos y llena la tabla de abajo.
+5. "Ajustar al VOI" busca el spinodoide que mejor reproduce esa morfometria.
+
+Todo lo que guardes va a Documentos\spinpy.
+
+
+DOS RESOLUCIONES, Y LA DIFERENCIA IMPORTA
+-----------------------------------------
+  Resolucion de VISTA   se recalcula al mover un deslizador. Sirve para
+                        explorar la forma; a 32 voxeles es casi instantanea.
+  Resolucion de MEDIDA  solo se usa al pulsar "Medir". Es la que produce
+                        numeros comparables con el VOI y ES LA QUE HAY QUE
+                        CITAR.
+
+El coste crece con el CUBO del lado: generar y medir tarda ~5 s a 64 voxeles y
+~260 s a 256. Por encima de 96 conviene desmarcar "Actualizar vista
+automaticamente".
+
+
+LO QUE LA APLICACION NO HACE
+----------------------------
+No reproduce la RIGIDEZ del hueso, solo su arquitectura. Un spinodoide
+ajustado puede igualar BV/TV, Tb.Th y DA del hueso y ser un orden de magnitud
+mas blando, por dos razones medidas: la orientacion del eje rigido y el hecho
+de que el spinodoide escala como densidad^4 mientras el hueso escala como
+densidad^2. Esta documentado en el repositorio. Conviene saberlo antes de
+sacar conclusiones mecanicas.
+
+
+SI ALGO FALLA
+-------------
+Menu de inicio -> "spinpy - autocomprobacion". Deja un informe en
+Documentos\spinpy\autocomprobacion.txt con el resultado de cada calculo en
+este equipo. Ese archivo es lo que hay que enviar.
+
+
+LICENCIA
+--------
+Codigo fuente: MIT.  Este ejecutable: GPL-3.0, porque incluye PyQt5.
+Ver LICENCIA_BINARIO.txt en la carpeta de instalacion.
+
+Codigo y documentacion: https://github.com/carlosgonzalezt/spinpy

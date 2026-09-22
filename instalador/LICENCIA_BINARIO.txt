@@ -1,0 +1,66 @@
+LICENCIA DE ESTE EJECUTABLE
+===========================
+
+Resumen en una linea
+--------------------
+El CODIGO FUENTE de spinpy es MIT. Este EJECUTABLE se distribuye bajo la
+GNU General Public License version 3 (GPL-3.0), porque incluye PyQt5.
+
+
+Por que
+-------
+spinpy usa PyQt5 para su interfaz grafica. PyQt5 se ofrece bajo dos licencias:
+GPL v3 o una licencia comercial de Riverbank Computing. Este proyecto usa la
+version GPL. La GPL exige que cualquier obra que se distribuya ENLAZADA con
+codigo GPL se distribuya tambien bajo la GPL.
+
+Un ejecutable creado con PyInstaller contiene PyQt5 dentro. Por tanto:
+
+  * El codigo fuente de spinpy sigue siendo MIT y se puede usar, copiar,
+    modificar y redistribuir con esa licencia, incluido en trabajo comercial.
+    Quien solo importe el paquete `spinpy` desde un script o un cuaderno NO
+    arrastra ninguna obligacion de la GPL: el nucleo no depende de Qt.
+
+  * ESTE ARCHIVO EJECUTABLE, en cambio, es una obra combinada y se distribuye
+    bajo GPL-3.0. Si lo redistribuyes, tienes que hacerlo bajo la GPL-3.0 y
+    poner a disposicion el codigo fuente correspondiente.
+
+El codigo fuente esta en https://github.com/carlosgonzalezt/spinpy
+
+
+Que significa esto en la practica
+---------------------------------
+Para usarlo -abrirlo, medir, ajustar, exportar, publicar los resultados- no
+hay ninguna restriccion. La GPL regula la REDISTRIBUCION del programa, no el
+uso ni la propiedad de lo que produzcas con el. Los resultados, figuras y
+mallas que generes son tuyos.
+
+
+Componentes de terceros
+-----------------------
+  PyQt5 (Riverbank Computing)          GPL v3        -> impone esta licencia
+  Qt 5 (The Qt Company)                LGPL v3
+  VTK (Kitware)                        BSD 3 clausulas
+  PyVista, pyvistaqt                   MIT
+  NumPy, SciPy, scikit-image, pandas   BSD 3 clausulas
+  matplotlib                           licencia tipo PSF
+  pyamg                                MIT
+  tetgen (Hang Si / TetGen)            AGPL v3 en el original;
+                                       el envoltorio de PyVista es MIT
+  PyMeshFix (envoltorio de MeshFix)    GPL v3
+  joblib                               BSD 3 clausulas
+  ReportLab (informe en PDF)           BSD 3 clausulas
+
+Nota sobre tetgen y PyMeshFix: sus licencias tambien son copyleft, de modo que
+la conclusion no cambia aunque algun dia se migre la interfaz a PySide6 (LGPL)
+mientras esos dos sigan dentro del paquete.
+
+
+Alternativa, si algun dia hace falta un binario no copyleft
+-----------------------------------------------------------
+Migrar la interfaz de PyQt5 a PySide6 (LGPL) y hacer opcionales el mallador
+TET10 y la reparacion de superficie. No esta hecho.
+
+
+spinpy - Carlos Gonzalez-Torres, Universidad de Valparaiso
+Copyright (c) 2026

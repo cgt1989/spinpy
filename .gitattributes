@@ -1,0 +1,13 @@
+# Texto con fin de linea normalizado en el repositorio.
+* text=auto
+
+# Binarios: SIN conversion de fin de linea. Algunos PDF de este proyecto no
+# van comprimidos y git los tomaria por texto; convertir sus LF los corrompe.
+*.pdf  binary
+*.png  binary
+*.gif  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.mat  binary
+*.vtk  binary

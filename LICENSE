@@ -1,0 +1,40 @@
+MIT License
+
+Copyright (c) 2026 Carlos Gonzalez-Torres, Universidad de Valparaiso
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+-------------------------------------------------------------------------------
+NOTA SOBRE LA INTERFAZ GRAFICA (visor.py)
+-------------------------------------------------------------------------------
+
+La licencia MIT de arriba cubre TODO el codigo de este repositorio, incluido
+`visor.py`.
+
+Ahora bien, `visor.py` importa PyQt5, que se distribuye bajo GPL v3 o bajo
+licencia comercial. Quien redistribuya la aplicacion grafica junto con PyQt5
+queda sujeto a las obligaciones de la GPL sobre la obra combinada, aunque el
+codigo de este repositorio sea MIT.
+
+Esto NO afecta al nucleo `spinpy`, que no importa Qt en ninguna parte: se
+instala y se usa sin dependencias con copyleft.
+
+Migrar la interfaz a PySide6 (LGPL) elimina la restriccion y la API es casi
+identica. Esta anotado como trabajo pendiente.

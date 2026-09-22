@@ -1,0 +1,44 @@
+spinpy - antes de instalar
+==========================
+
+QUE ES
+  Una aplicacion para ajustar microestructuras espinodales (spinodoides) a
+  volumenes de hueso trabecular obtenidos por microtomografia: mide la
+  morfometria (BV/TV, BS/BV, Tb.Th, Tb.Sp, Tb.N, DA), busca el spinodoide que
+  la reproduce, homogeneiza sus propiedades elasticas, hace un ensayo de
+  compresion por elementos finitos y exporta el solido para Abaqus, ANSYS o
+  impresion 3D.
+
+  No hace falta tener Python instalado. Todo va dentro.
+
+
+LO QUE OCUPA
+  Unos 650 MB una vez instalada. La mayor parte son las bibliotecas de
+  calculo y de graficos 3D (VTK, Qt, SciPy), no la aplicacion en si.
+
+
+DONDE SE INSTALA
+  En tu carpeta de usuario. NO pide contrasena de administrador y no toca
+  nada del sistema.
+
+  Lo que guardes -sesiones, resultados, mallas exportadas- va a
+  Documentos\spinpy, y NO se borra al desinstalar.
+
+
+SI ALGO NO FUNCIONA
+  En el menu de inicio, junto al acceso directo de spinpy, hay otro llamado
+  "spinpy - autocomprobacion". Ejecutalo: comprueba uno por uno todos los
+  calculos de la aplicacion en ESTE equipo y deja un informe en
+  Documentos\spinpy\autocomprobacion.txt. Ese archivo es lo util para
+  diagnosticar; describir el sintoma por escrito casi nunca lo es.
+
+
+REQUISITOS
+  Windows 10 u 11 de 64 bits. Tarjeta grafica con OpenGL - cualquiera de
+  los ultimos diez anos sirve, incluida la integrada. Para las mallas grandes
+  conviene tener 8 GB de memoria o mas.
+
+
+LICENCIA
+  El codigo fuente es MIT; este ejecutable se distribuye bajo GPL-3.0 porque
+  incluye PyQt5. La siguiente pantalla lo explica en detalle.

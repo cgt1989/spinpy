@@ -1,0 +1,16 @@
+Carlos Gonzalez-Torres
+Universidad de Valparaiso
+
+Ajuste de microestructuras espinodales a volumenes de hueso trabecular
+de sesamoideos equinos obtenidos por microtomografia
+
+Las figuras de este documento se generan con
+docs/fig_vois.py y docs/fig_app.py, sobre los VOIs de H4
+y sobre la propia interfaz. No son ilustraciones: son la
+salida del codigo que se describe.
+---
+Los valores morfometricos que aparecen aqui provienen de una unica
+realizacion sembrada (semilla 20260720) y de resoluciones de trabajo
+declaradas en cada pie de figura. Son ejemplos de uso, no resultados
+citables: el suelo de ruido del generador y del tensor MIL esta medido
+aparte, en el anexo de validacion del proyecto.

@@ -1,0 +1,224 @@
+{
+  "pruebas": [
+    {
+      "prueba": "esfera BV/TV",
+      "obtenido": 0.11305555555555556,
+      "esperado": 0.11309733552923253,
+      "error_rel": 0.0003694160740521178,
+      "tol_rel": 0.01,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "esfera BV",
+      "obtenido": 0.11305555555555556,
+      "esperado": 0.11309733552923253,
+      "error_rel": 0.0003694160740521178,
+      "tol_rel": 0.01,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "esfera BS",
+      "obtenido": 1.2274262602010761,
+      "esperado": 1.1309733552923256,
+      "error_rel": 0.08528309217666773,
+      "tol_rel": 0.1,
+      "ok": true,
+      "nota": "MC binario sobreestima area; sesgo comun a ambos lados de la comparacion"
+    },
+    {
+      "prueba": "esfera Tb.Th = 2BV/BS",
+      "obtenido": 0.1842156375846723,
+      "esperado": 0.1842156375846723,
+      "error_rel": 0.0,
+      "tol_rel": 1e-12,
+      "ok": true,
+      "nota": "identidad de Parfitt, no 4BV/BS"
+    },
+    {
+      "prueba": "esfera DA ~ 1 (isotropa)",
+      "obtenido": 1.035659866622589,
+      "esperado": 1.0,
+      "error_rel": 0.03565986662258891,
+      "tol_rel": 0.1,
+      "ok": true,
+      "nota": "suelo de ruido del MIL: DA ~ 1.07"
+    },
+    {
+      "prueba": "laminas BV/TV",
+      "obtenido": 0.3333333333333333,
+      "esperado": 0.3333333333333333,
+      "error_rel": 0.0,
+      "tol_rel": 1e-12,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "laminas BS (consistente con MC)",
+      "obtenido": 15.668402777777782,
+      "esperado": 15.668402777777775,
+      "error_rel": 4.534876629338701e-16,
+      "tol_rel": 1e-06,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "laminas Tb.Th = 2BV/BS",
+      "obtenido": 0.04254847645429361,
+      "esperado": 0.04254847645429363,
+      "error_rel": 4.892462303340839e-16,
+      "tol_rel": 1e-09,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "barras BV/TV",
+      "obtenido": 0.1527777777777778,
+      "esperado": 0.152053084433746,
+      "error_rel": 0.004766054873076723,
+      "tol_rel": 0.03,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "barras BS",
+      "obtenido": 5.631081396275071,
+      "esperado": 5.529203070318036,
+      "error_rel": 0.018425499056806346,
+      "tol_rel": 0.1,
+      "ok": true,
+      "nota": "MC binario sobreestima; se excluyen las tapas por ser el borde abierto"
+    },
+    {
+      "prueba": "FracPort con isla suelta",
+      "obtenido": 0.9806639912440716,
+      "esperado": 0.9806639912440716,
+      "error_rel": 0.0,
+      "tol_rel": 0.02,
+      "ok": true,
+      "nota": "solo cuenta el material en componentes que unen z=0 con z=fin"
+    },
+    {
+      "prueba": "FracPort sin isla",
+      "obtenido": 1.0,
+      "esperado": 1.0,
+      "error_rel": 0.0,
+      "tol_rel": 1e-12,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "DA invariante al escalado isotropo",
+      "obtenido": 1.0920079150331037,
+      "esperado": 1.0920079150331037,
+      "error_rel": 0.0,
+      "tol_rel": 1e-09,
+      "ok": true,
+      "nota": ""
+    },
+    {
+      "prueba": "MIL escala linealmente con spacing",
+      "obtenido": 0.34408388720337063,
+      "esperado": 0.34408388720337063,
+      "error_rel": 0.0,
+      "tol_rel": 1e-09,
+      "ok": true,
+      "nota": ""
+    }
+  ],
+  "muestreo": [
+    {
+      "thetas": [
+        15,
+        45,
+        0
+      ],
+      "rechazo": [
+        0.103125,
+        0.896875,
+        0.0
+      ],
+      "equitativo": [
+        0.5,
+        0.5,
+        0.0
+      ],
+      "dif_max": 0.396875
+    },
+    {
+      "thetas": [
+        15,
+        15,
+        0
+      ],
+      "rechazo": [
+        0.49995,
+        0.50005,
+        0.0
+      ],
+      "equitativo": [
+        0.5,
+        0.5,
+        0.0
+      ],
+      "dif_max": 4.999999999999449e-05
+    },
+    {
+      "thetas": [
+        0,
+        0,
+        60
+      ],
+      "rechazo": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "equitativo": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "dif_max": 0.0
+    },
+    {
+      "thetas": [
+        30,
+        60,
+        90
+      ],
+      "rechazo": [
+        0.136,
+        0.501225,
+        1.0
+      ],
+      "equitativo": [
+        0.377875,
+        0.50145,
+        1.0
+      ],
+      "dif_max": 0.241875
+    },
+    {
+      "thetas": [
+        15,
+        90,
+        0
+      ],
+      "rechazo": [
+        0.033575,
+        1.0,
+        0.0
+      ],
+      "equitativo": [
+        0.51855,
+        1.0,
+        0.0
+      ],
+      "dif_max": 0.48497499999999993
+    }
+  ],
+  "n_fallos": 0,
+  "n_pruebas": 14
+}

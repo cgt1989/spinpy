@@ -1,0 +1,108 @@
+cff-version: 1.2.0
+title: >-
+  spinpy: ajuste de microestructuras espinodales a VOIs de hueso trabecular
+message: >-
+  Si usas este software en una publicacion, citalo con estos metadatos.
+type: software
+authors:
+  - given-names: Carlos
+    family-names: Gonzalez-Torres
+    affiliation: Universidad de Valparaiso
+    orcid: 'https://orcid.org/0000-0002-7765-6388'
+  # Nombres tal como constan en sus registros publicos de ORCID. Esos
+  # registros no declaran afiliacion, asi que no se escribe ninguna.
+  - given-names: David
+    family-names: Ortiz-Puerta
+    # affiliation: [PENDIENTE]
+    orcid: 'https://orcid.org/0000-0001-6285-3066'
+  - given-names: Mauricio A.
+    family-names: Sarabia-Vallejos
+    # affiliation: [PENDIENTE]
+    orcid: 'https://orcid.org/0000-0001-5128-796X'
+repository-code: 'https://github.com/cgt1989/spinpy'
+# doi: [PENDIENTE] — DOI del archivo en Zenodo de la version publicada.
+# Va comentado y no como texto: CFF exige un DOI valido, y un valor que no lo
+# sea rompe el boton "Cite this repository" de GitHub.
+# `spinpy/informe.py` lo escribe como [PENDIENTE] en la cita del software.
+abstract: >-
+  Nucleo voxel-primero para ajustar microestructuras espinodales (campo
+  aleatorio gaussiano, Kumar et al. 2020) a volumenes de interes de hueso
+  trabecular obtenidos por microtomografia. Cubre morfometria (BV/TV, BS/BV,
+  Tb.Th, Tb.Sp, Tb.N, tensor MIL y grado de anisotropia, Conn.D, SMI),
+  homogeneizacion elastica periodica sobre la rejilla de voxeles, ensayo de
+  compresion con criterio de fallo de Pistoia, y exportacion a Abaqus, ANSYS
+  APDL y VTU. Port a Python de la mitad numerica de AppFinal_V2.m, verificado
+  contra soluciones manufacturadas y contra la implementacion MATLAB original.
+keywords:
+  - hueso trabecular
+  - microtomografia
+  - morfometria osea
+  - homogeneizacion
+  - spinodoid
+  - trabecular bone
+  - micro-CT
+license: MIT
+version: 0.2.0
+date-released: '2026-08-09'
+
+references:
+  - type: article
+    authors:
+      - family-names: Kumar
+        given-names: Siddhant
+      - family-names: Tan
+        given-names: Stephanie
+      - family-names: Zheng
+        given-names: Li
+      - family-names: Kochmann
+        given-names: Dennis M.
+    title: >-
+      Inverse-designed spinodoid metamaterials
+    journal: npj Computational Materials
+    year: 2020
+    volume: 6
+    notes: >-
+      Definicion del generador espinodal que implementa spinpy.grf.
+  - type: article
+    authors:
+      - family-names: Andreassen
+        given-names: Erik
+      - family-names: Andreasen
+        given-names: Casper Schousboe
+    title: >-
+      How to determine composite material properties using numerical
+      homogenization
+    journal: Computational Materials Science
+    year: 2014
+    volume: 83
+    notes: >-
+      Metodo de homogeneizacion periodica que implementa spinpy.elastic.
+  - type: article
+    authors:
+      - family-names: Harrigan
+        given-names: Timothy P.
+      - family-names: Mann
+        given-names: Robert W.
+    title: >-
+      Characterization of microstructural anisotropy in orthotropic materials
+      using a second rank tensor
+    journal: Journal of Materials Science
+    year: 1984
+    volume: 19
+    notes: >-
+      Tensor MIL del que sale el grado de anisotropia.
+  - type: article
+    authors:
+      - family-names: Pistoia
+        given-names: W.
+    title: >-
+      Estimation of distal radius failure load with micro-finite element
+      analysis models based on three-dimensional peripheral quantitative
+      computed tomography images
+    journal: Bone
+    year: 2002
+    volume: 30
+    notes: >-
+      Criterio de fallo implementado en spinpy.resistencia. Sus dos parametros
+      (2% del tejido, 0.7% de deformacion) se calibraron en radio distal
+      humano y NO son constantes fisicas.
