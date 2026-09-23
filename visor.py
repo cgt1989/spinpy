@@ -229,6 +229,7 @@ from spinpy.espesor import (espesor_local, muestrear_en_puntos,  # noqa: E402
                             estadisticas as estadisticas_esp)
 from spinpy.resistencia import (EJES, EPS_CRITICA,  # noqa: E402
                                 criterio_pistoia, ensayo_compresion,
+                                cuantiles_vm_superficie,
                                 ensayo_compresion_eje, estadisticos_vm,
                                 estudio_convergencia)
 from spinpy.escribe import (escribir_abaqus, escribir_apdl,  # noqa: E402
@@ -2510,9 +2511,8 @@ class DialogoInformeAuto(QtWidgets.QDialog):
         izq.addWidget(g)
 
         # -- etapas que el informe aun no gradua --
-        g = QtWidgets.QGroupBox(_("Etapas opcionales (van a "
-                                  "resultados_sesion.json; el informe aun "
-                                  "no las gradua)"))
+        g = QtWidgets.QGroupBox(_("Etapas opcionales (el informe las "
+                                  "gradua y las dibuja si se corren)"))
         gl = QtWidgets.QGridLayout(g)
         gl.setColumnStretch(0, 1)
         self.chk_disp = QtWidgets.QCheckBox(_("Dispersion entre semillas"))
@@ -6031,6 +6031,10 @@ class Visor(QtWidgets.QMainWindow):
                         if sup.get("vm_p99_superficie") is not None
                         else float("nan")),
                     "vm_n_superficie": int(sup.get("vm_n_superficie", 0)),
+                    # La distribucion de la que sale ese p99, en MPa: la
+                    # figura de la cola se dibuja desde aqui y no del campo.
+                    "cuantiles_vm_superficie": cuantiles_vm_superficie(
+                        r, escala=1e-6),
                     "desp_max": float(r["desp_max"]),
                     "desp_media": float(de.mean()),
                     "E_app": float(r["E_app"]),
@@ -6115,7 +6119,8 @@ class Visor(QtWidgets.QMainWindow):
             "carga_N": PAPER_CARGA_N, "apoyo": PAPER_APOYO,
             "resolucion": int(self.spin_res_fe.value()),
             "por_estructura": {k: {kk: vv for kk, vv in v.items()
-                                   if np.isscalar(vv)}
+                                   if np.isscalar(vv)
+                                   or kk == "cuantiles_vm_superficie"}
                                for k, v in ok.items()},
         }
 
@@ -6403,12 +6408,19 @@ class Visor(QtWidgets.QMainWindow):
         self._t0 = time.time()
         hilo = Trabajador(lambda: None)
 
+        codigo = "voi" if cual == "VOI" else self._fam
+
         def tarea():
-            return estudio_convergencia(
+            r = estudio_convergencia(
                 BW, sp, resoluciones=resols, eje=eje, E_s=E_S_PA, nu_s=NU_S,
                 apoyo=apoyo,
                 progreso=lambda f, m: hilo.informar(
                     int(f * len(resols)), len(resols), m))
+            # El informe necesita saber DE QUE estructura es la serie (su
+            # Tb.Th da el eje Tb.Th/h de la figura); la etiqueta de pantalla
+            # esta traducida y no sirve de clave.
+            r["estructura_codigo"] = codigo
+            return r
 
         hilo._fn = tarea
         hilo.avance.connect(self._avance)
@@ -6466,6 +6478,12 @@ class Visor(QtWidgets.QMainWindow):
         return (self._etq_fam(), self.BW_vista,
                 self._spacing(self.BW_vista.shape[0]))
 
+    def _codigo_simulacion(self):
+        """Codigo de estructura de la simulacion, para `informe.comprobar`."""
+        if self.cmb_sim_estructura.currentIndex() == 0:
+            return "voi"
+        return self._fam
+
     def _eje_ensayo(self):
         """Eje del ensayo de compresion; 'los tres ejes' se reduce a Z."""
         i = self.cmb_eje_fe.currentIndex()
@@ -6513,9 +6531,12 @@ class Visor(QtWidgets.QMainWindow):
                   semilla=int(self.spin_semilla.value()))
         total = 1 + pasos * (2 if protocolo == "recuperacion" else 1)
 
+        codigo = self._codigo_simulacion()
+
         def tarea(informar):
             r = simular_perdida(BW, sp, progreso=informar, **kw)
             r["estructura"] = etq
+            r["estructura_codigo"] = codigo
             return r
 
         self._lanzar_simulacion(
@@ -6533,9 +6554,12 @@ class Visor(QtWidgets.QMainWindow):
                   eje=self._eje_ensayo(), E_s=E_S_PA, nu_s=NU_S,
                   apoyo=self.cmb_apoyo.currentText())
 
+        codigo = self._codigo_simulacion()
+
         def tarea(informar):
             r = fallo_progresivo(BW, sp, progreso=informar, **kw)
             r["estructura"] = etq
+            r["estructura_codigo"] = codigo
             return r
 
         self._lanzar_simulacion(
@@ -7106,9 +7130,15 @@ class Visor(QtWidgets.QMainWindow):
         self._t0 = time.time()
         hilo = Trabajador(lambda: None)
 
+        # Semillas seed+1..seed+K, como las replicas del ajuste (U1): la de la
+        # busqueda es la que gano, y meterla sesga la media hacia el VOI.
+        # `informe.comprobar` marca con reservas una dispersion que la use.
+        base = int(p.get("seed", 20260720)) + 1
+
         def tarea():
-            return dispersion_semillas(p, sp, n_semillas=K, m_ref=m_voi,
-                                       extra=extra, progreso=hilo.informar)
+            return dispersion_semillas(p, sp, n_semillas=K, semilla_base=base,
+                                       m_ref=m_voi, extra=extra,
+                                       progreso=hilo.informar)
 
         hilo._fn = tarea
         hilo.avance.connect(self._avance)

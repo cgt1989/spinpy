@@ -15,6 +15,12 @@ QUE PRODUCE
   fig7_distribucion  espesor trabecular local y tamano de poro (opcional)
   fig8_von_mises     tension de von Mises del analisis comparado en 3D, con
                      una escala comun para todas las estructuras (opcional)
+  fig9_convergencia  E_app frente a Tb.Th/h y deriva de densidad al remuestrear
+                     (si se corrio el estudio de convergencia)
+  fig10_incertidumbre error de cada replica del ajuste y separacion
+                     (media - VOI) / sd por metrica
+  fig11_von_mises_superficie  cola de von Mises en la capa superficial, con
+                     el p99 citable marcado (si hubo analisis comparado)
   3d/                galeria: cada estructura en cada estilo y cada vista
                      elegidos, para cambiar la figura sin volver a calcular
 
@@ -998,3 +1004,396 @@ def panel_von_mises(rutas, clim, destino, idioma="es", carga_N=100.0):
     barra.set_label(("σ von Mises [MPa]", "von Mises σ [MPa]")[i]
                     + f", {carga_N:g} N", fontsize=7, color=TINTA_2)
     return _guardar(fig, destino, pdf=False)[0]
+
+
+# ---------------------------------------------------------------------------
+# Figura 9 — convergencia en malla
+# ---------------------------------------------------------------------------
+
+def _estado_bloque(items, bloque, magnitud, estructura):
+    for it in items or []:
+        if (it["bloque"] == bloque and it["magnitud"] == magnitud
+                and it["estructura"] == estructura):
+            return it["estado"]
+    return None
+
+
+ESTADO_TXT = {"citable": ("citable", "citable"),
+              "reservas": ("con reservas", "with caveats"),
+              "no_citable": ("no citable", "not citable")}
+MARCA_ESTADO = {"reservas": "*", "no_citable": "†"}
+
+
+def fig_convergencia(doc, items, destino, idioma="es"):
+    """E_app frente a la resolucion efectiva Tb.Th/h, y lo que cambia la
+    geometria al remuestrear. Devuelve [png, pdf] o [].
+
+    El eje x es Tb.Th/h y no n: el estudio de convergencia midio que la
+    resolucion efectiva es cuantos elementos caben en una trabecula, y dos
+    estructuras a la misma n pueden estar en regimenes distintos. Si no hay
+    Tb.Th de la estructura, se cae a n y el eje lo dice.
+
+    El panel (b) existe porque una serie de E_app puede moverse por dos
+    razones que el panel (a) no distingue: la discretizacion, o que el
+    remuestreo cambio QUE hueso hay (densidad, fraccion portante). Solo lo
+    primero es convergencia.
+    """
+    from .informe import estructura_de
+    from .resistencia import CONV_DERIVA_RHO_MAX
+    i = _i(idioma)
+    rec = (doc.get("resultados") or {}).get("convergencia")
+    if not isinstance(rec, dict):
+        return []
+    val = sorted((p for p in rec.get("puntos") or [] if p.get("ok")
+                  and _f(p, "E_app") is not None),
+                 key=lambda p: int(p.get("n", 0)))
+    if len(val) < 2:
+        return []
+    est = estructura_de(rec.get("estructura_codigo") or rec.get("estructura"),
+                        doc)
+    m = doc.get({"voi": "morfometria_voi", "spinodoide": "morfometria_spin",
+                 "dual-lattice": "morfometria_dual"}[est]) or {}
+    tbth = _f(m, "TbTh")
+    if tbth:
+        x = np.array([tbth / float(p["h"]) for p in val])
+        xlab = "Tb.Th / h"
+    else:
+        x = np.array([float(p["n"]) for p in val])
+        xlab = ("n (vóxeles por lado; sin Tb.Th de la estructura)",
+                "n (voxels per side; no Tb.Th for the structure)")[i]
+    E = np.array([float(p["E_app"]) / 1e6 for p in val])
+    col = COLOR[est]
+
+    fig = _figura(6.6, 2.7)
+    ax = fig.add_subplot(1, 2, 1)
+    _estilo(ax, "y")
+    # Banda de +-3 % sobre la malla mas fina: la tolerancia con la que se
+    # dio por convergido el VOI proximal de H4 (Estudio_Convergencia).
+    ax.axhspan(E[-1] * 0.97, E[-1] * 1.03, color=col, alpha=0.12, lw=0,
+               zorder=1, label=("±3 % de la malla más fina",
+                                "±3 % of the finest mesh")[i])
+    ax.plot(x, E, "-o", color=col, ms=4, lw=1.2, zorder=3,
+            label=NOMBRES[est][i])
+    for xx, ee, p in zip(x, E, val):
+        ax.annotate(f"{int(p['n'])}³", (xx, ee), textcoords="offset points",
+                    xytext=(0, 6), ha="center", fontsize=6, color=TINTA_2)
+    Ex = _f(rec, "E_extrapolado")
+    if Ex is not None:
+        Ex /= 1e6
+        orden = _f(rec, "orden")
+        ax.axhline(Ex, color=TINTA, lw=0.9, ls="--", zorder=2,
+                   label=("Richardson" + (f", p = {_n(orden, idioma)}"
+                                          if orden is not None else "")))
+    lo = min(E.min(), E[-1] * 0.97, Ex if Ex is not None else E.min())
+    hi = max(E.max(), E[-1] * 1.03, Ex if Ex is not None else E.max())
+    pad = 0.15 * ((hi - lo) if hi > lo else (abs(hi) or 1.0))
+    ax.set_ylim(lo - pad, hi + pad * 1.8)
+    ax.set_xlabel(xlab, fontsize=7.5, color=TINTA_2)
+    ax.set_ylabel(r"$E_{app}$ [MPa]", fontsize=7.5, color=TINTA_2)
+    estado = _estado_bloque(items, "convergencia", "convergencia", est)
+    ax.set_title(f"(a) {NOMBRES[est][i]}, " + ("eje ", "axis ")[i]
+                 + str(rec.get("eje", "z"))
+                 + (f" — {ESTADO_TXT[estado][i]}" if estado else ""),
+                 fontsize=8, color=TINTA, loc="left")
+    ax.legend(frameon=False, fontsize=6.3, loc="upper right", ncol=1,
+              labelcolor=TINTA)
+
+    ax = fig.add_subplot(1, 2, 2)
+    _estilo(ax, "y")
+    rho = np.array([float(p["rho"]) for p in val])
+    ax.plot(x, 100.0 * (rho / rho[-1] - 1.0), "-o", color=TINTA, ms=3.5,
+            lw=1.0, label=("densidad", "density")[i])
+    fp = [_f(p, "frac_portante") for p in val]
+    if all(v is not None for v in fp):
+        fp = np.array(fp)
+        ax.plot(x, 100.0 * (fp / fp[-1] - 1.0), "-s", color=TINTA_2, ms=3.2,
+                lw=1.0, mfc=FONDO,
+                label=("fracción portante", "load-bearing fraction")[i])
+    lim = 100.0 * CONV_DERIVA_RHO_MAX
+    ax.axhspan(-lim, lim, color=REJILLA, alpha=0.6, lw=0, zorder=0,
+               label=(f"±{lim:g} % (criterio nuestro)",
+                      f"±{lim:g} % (our criterion)")[i])
+    ax.axhline(0.0, color=EJE, lw=0.8)
+    ax.set_xlabel(xlab, fontsize=7.5, color=TINTA_2)
+    ax.set_ylabel(("cambio frente a la malla más fina [%]",
+                   "change against the finest mesh [%]")[i], fontsize=7.5,
+                  color=TINTA_2)
+    ax.set_title(("(b) ¿cambia la geometría al remuestrear?",
+                  "(b) does resampling change the geometry?")[i],
+                 fontsize=8, color=TINTA, loc="left")
+    ax.legend(frameon=False, fontsize=6.3, loc="best", labelcolor=TINTA)
+    fig.tight_layout()
+    return _guardar(fig, destino)
+
+
+# ---------------------------------------------------------------------------
+# Figura 10 — incertidumbre entre replicas y separacion del VOI
+# ---------------------------------------------------------------------------
+
+ETIQ_METRICA = {"BVTV": "BV/TV", "BSBV": "BS/BV", "TbTh": "Tb.Th",
+                "TbSp": "Tb.Sp", "TbN": "Tb.N", "DA": "DA", "DA2": "DA2",
+                "ConnD": "Conn.D", "SMI": "SMI", "PoDm": "Po.Dm",
+                "TbTh_CV": "Tb.Th CV", "BSPV": "BS/PV", "Ez_rel": "Ez/Es",
+                "Ez_Ex": "Ez/Ex"}
+
+# Por debajo de 2 desviaciones tipicas del propio generador una diferencia no
+# distingue nada: es el criterio con el que se valido el port y el que usa
+# Estudio_Discriminadores.
+SIGMA_UMBRAL = 2.0
+
+
+def separaciones(doc):
+    """{familia: {metrica: (z, fuente)}} con z = (media - VOI) / sd.
+
+    Fuente "ajuste": las K replicas del ganador (semillas seed+1..seed+K,
+    nunca la de la busqueda). Fuente "dispersion": la etapa opcional, que
+    solo se usa para metricas que el ajuste no mide (SMI, Conn.D…): su
+    primera semilla puede ser la de la busqueda, y la citabilidad lo dice.
+    """
+    res = doc.get("resultados") or {}
+    m_voi = doc.get("morfometria_voi") or {}
+    out = {}
+    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+        z = {}
+        inc = (res.get("ajuste" + suf) or {}).get("incertidumbre") or {}
+        for k, d in (inc.get("metricas") or {}).items():
+            ref, med, sd = _f(m_voi, k), _f(d, "media"), _f(d, "sd")
+            if ref is not None and med is not None and sd:
+                z[k] = ((med - ref) / sd, "ajuste")
+        disp = (res.get("dispersion" + suf) or {}).get("resumen") or {}
+        for k, d in disp.items():
+            # Solo metricas con nombre en `ETIQ_METRICA`. La dispersion trae
+            # tambien BS y BV absolutos, PoTot, BS/TV y la fraccion portante:
+            # redundantes o, la ultima, expresamente fuera de lo que
+            # discrimina (Estudio_Discriminadores, 1.5 sigma).
+            if k in z or k not in ETIQ_METRICA:
+                continue
+            zz = _f(d, "z")
+            if zz is not None:
+                z[k] = (zz, "dispersion")
+        if z:
+            out[fam] = z
+    return out
+
+
+def fig_incertidumbre(doc, items, destino, idioma="es"):
+    """(a) error de cada replica, suelo autoconsistente y error de busqueda;
+    (b) separacion (media - VOI) / sd por metrica. Devuelve [png, pdf] o []."""
+    i = _i(idioma)
+    res = doc.get("resultados") or {}
+    fams = []
+    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+        rec = res.get("ajuste" + suf) or {}
+        inc = rec.get("incertidumbre") or {}
+        errs = [float(e) for e in (inc.get("errores") or [])
+                if e is not None and np.isfinite(float(e))]
+        if errs:
+            fams.append((fam, rec, inc, np.asarray(errs, float)))
+    sep = separaciones(doc)
+    if not fams and not sep:
+        return []
+
+    n_met = max((len(z) for z in sep.values()), default=0)
+    fig = _figura(6.8, max(2.9, 0.27 * n_met + 1.4))
+    ax = fig.add_subplot(1, 2, 1)
+    _estilo(ax, "x")
+    for j, (fam, rec, inc, errs) in enumerate(fams):
+        y = float(len(fams) - 1 - j)
+        col = COLOR[fam]
+        suelo = inc.get("suelo_autoconsistente") or {}
+        sm, ss = _f(suelo, "media"), _f(suelo, "sd") or 0.0
+        if sm is not None:
+            ax.barh(y, 2 * ss, left=sm - ss, height=0.5, color=col,
+                    alpha=0.18, lw=0, zorder=1)
+            ax.plot([sm, sm], [y - 0.25, y + 0.25], color=col, lw=1.0,
+                    ls=":", zorder=2)
+        jit = (np.linspace(-0.12, 0.12, errs.size) if errs.size > 1
+               else np.zeros(1))
+        ax.plot(errs, y + jit, "o", color=col, ms=3.6, mfc=FONDO, mew=1.0,
+                zorder=3)
+        sd = float(errs.std(ddof=1)) if errs.size > 1 else 0.0
+        ax.errorbar(float(errs.mean()), y, xerr=sd, fmt="D", color=col,
+                    ms=4.5, capsize=2.5, lw=1.1, zorder=4)
+        eb = _f(rec, "error")
+        if eb is not None:
+            ax.plot(eb, y, "x", color=TINTA, ms=5.5, mew=1.3, zorder=5)
+    if fams:
+        ax.set_yticks([float(len(fams) - 1 - j) for j in range(len(fams))])
+        ax.set_yticklabels([NOMBRES[f][i] + f"\nK = {e.size}"
+                            for f, _r, _c, e in fams], fontsize=7,
+                           color=TINTA)
+        ax.set_ylim(-0.7, len(fams) - 0.3)
+        ax.set_xlim(left=0)
+        ax.set_xlabel(("error morfométrico del ajuste",
+                       "morphometric fit error")[i], fontsize=7.5,
+                      color=TINTA_2)
+        ax.legend(handles=[
+            Line2D([], [], ls="none", marker="o", mfc=FONDO, color=TINTA_2,
+                   ms=3.6, label=("réplica (semilla nueva)",
+                                  "replicate (fresh seed)")[i]),
+            Line2D([], [], ls="none", marker="D", color=TINTA_2, ms=4,
+                   label=("media ± sd", "mean ± sd")[i]),
+            Line2D([], [], ls="none", marker="x", color=TINTA, ms=5,
+                   label=("búsqueda (semilla ganadora)",
+                          "search (winning seed)")[i]),
+            Patch(color=TINTA_2, alpha=0.25,
+                  label=("suelo autoconsistente ± sd",
+                         "self-consistent floor ± sd")[i])],
+            frameon=False, fontsize=6, loc="upper left",
+            bbox_to_anchor=(-0.02, -0.2), ncol=2, labelcolor=TINTA)
+    else:
+        ax.set_axis_off()
+    ax.set_title(("(a) error entre réplicas", "(a) error across replicates")[i],
+                 fontsize=8, color=TINTA, loc="left")
+
+    ax = fig.add_subplot(1, 2, 2)
+    _estilo(ax, "x")
+    metricas = []
+    for z in sep.values():
+        for k in z:
+            if k not in metricas:
+                metricas.append(k)
+    if metricas:
+        y0 = np.arange(len(metricas))[::-1].astype(float)
+        k_f = len(sep)
+        paso = 0.28 if k_f > 1 else 0.0
+        zmax = SIGMA_UMBRAL
+        hay_disp = False
+        for j, (fam, z) in enumerate(sep.items()):
+            for yy, met in zip(y0, metricas):
+                if met not in z:
+                    continue
+                zz, fuente = z[met]
+                zmax = max(zmax, abs(zz))
+                abierto = fuente == "dispersion"
+                hay_disp = hay_disp or abierto
+                ax.plot(zz, yy + (k_f - 1) / 2 * paso - j * paso, "o",
+                        color=COLOR[fam], ms=4.2,
+                        mfc=FONDO if abierto else COLOR[fam], mew=1.1,
+                        zorder=3)
+        ax.axvspan(-SIGMA_UMBRAL, SIGMA_UMBRAL, color=REJILLA, alpha=0.7,
+                   lw=0, zorder=0)
+        ax.axvline(0.0, color=TINTA, lw=0.9, zorder=1)
+        # symlog: lineal dentro de +-2 sd, logaritmico fuera. Las separaciones
+        # van de fracciones de sd a decenas; en lineal las pequenas, que son
+        # justo las que dicen «esto el ajuste lo empareja», se aplastarian.
+        ax.set_xscale("symlog", linthresh=SIGMA_UMBRAL, linscale=1.0)
+        lim = zmax * 1.6
+        ax.set_xlim(-lim, lim)
+        # Pocas marcas: el umbral y una por decada. En symlog las de 5 y 20
+        # se amontonan contra la de 10 y no se leen.
+        marcas = [v for v in (SIGMA_UMBRAL, 10, 100, 1000) if v <= lim]
+        if len(marcas) == 1 and lim >= 5:
+            marcas.append(5)
+        marcas = sorted([-v for v in marcas] + [0] + marcas)
+        ax.set_xticks(marcas)
+        ax.set_xticklabels([f"{v:g}".replace("-", "−") for v in marcas],
+                           fontsize=6.5)
+        ax.minorticks_off()
+        ax.set_yticks(y0)
+        ax.set_yticklabels([ETIQ_METRICA.get(k, k) for k in metricas],
+                           fontsize=7, color=TINTA)
+        ax.set_ylim(-0.7, len(metricas) - 0.3)
+        ax.set_xlabel(("(media del candidato − VOI) / sd de las réplicas",
+                       "(candidate mean − VOI) / replicate sd")[i],
+                      fontsize=7.5, color=TINTA_2)
+        man = [Patch(color=COLOR[f], label=NOMBRES[f][i]) for f in sep]
+        man.append(Patch(color=REJILLA, label=(
+            f"|z| < {SIGMA_UMBRAL:g}: indistinguible",
+            f"|z| < {SIGMA_UMBRAL:g}: indistinguishable")[i]))
+        if hay_disp:
+            man.append(Line2D([], [], ls="none", marker="o", mfc=FONDO,
+                              color=TINTA_2, label=("de la dispersión",
+                                                    "from the scatter")[i]))
+        ax.legend(handles=man, frameon=False, fontsize=6, ncol=2,
+                  loc="upper left", bbox_to_anchor=(-0.02, -0.2),
+                  labelcolor=TINTA)
+    else:
+        ax.set_axis_off()
+    ax.set_title(("(b) separación del VOI", "(b) separation from the VOI")[i],
+                 fontsize=8, color=TINTA, loc="left")
+    fig.tight_layout()
+    return _guardar(fig, destino)
+
+
+# ---------------------------------------------------------------------------
+# Figura 11 — cola de von Mises en la capa superficial
+# ---------------------------------------------------------------------------
+
+def cuantiles_superficie(doc):
+    """{estructura: (p [%], sigma [MPa], n)} del analisis comparado. El VOI
+    se toma una vez, del primer registro que lo tenga (como la figura 8)."""
+    res = doc.get("resultados") or {}
+    out = {}
+    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+        rec = res.get("analisis_comparado" + suf)
+        if not isinstance(rec, dict):
+            continue
+        for k, v in (rec.get("por_estructura") or {}).items():
+            est = "voi" if k == "voi" else fam
+            c = (v or {}).get("cuantiles_vm_superficie") or {}
+            if est in out or not c.get("p") or not c.get("valor"):
+                continue
+            out[est] = (np.asarray(c["p"], float),
+                        np.asarray(c["valor"], float), int(c.get("n", 0)))
+    return out
+
+
+def fig_von_mises_superficie(doc, items, destino, idioma="es"):
+    """Excedencia 1 - F de la tension de von Mises en la capa superficial,
+    en escala log, con el p99 de cada estructura. Devuelve [png, pdf] o [].
+
+    Es la distribucion de la que sale el valor citable. El maximo seria el
+    extremo derecho de cada curva, y es justo el punto que no converge."""
+    i = _i(idioma)
+    cu = cuantiles_superficie(doc)
+    if not cu:
+        return []
+    fig = _figura(3.8, 3.0)
+    ax = fig.add_subplot(111)
+    _estilo(ax, "both")
+    xmax = 0.0
+    hay_marca = False
+    for est in ORDEN:
+        if est not in cu:
+            continue
+        p, s, n = cu[est]
+        exc = 1.0 - p / 100.0
+        ok = exc > 0
+        ax.plot(s[ok], exc[ok], "-", color=COLOR[est], lw=1.3,
+                label=f"{NOMBRES[est][i]} (n = {n})")
+        # Hasta el p99.9, no hasta el maximo: el maximo es el punto que no
+        # converge, y estirar el eje hasta el aplastaba la cola que importa.
+        xmax = max(xmax, float(np.interp(99.9, p, s)))
+        k99 = int(np.argmin(np.abs(p - 99.0)))
+        estado = None
+        for it in items or []:
+            if (it["magnitud"] == "vm_p99_superficie"
+                    and it["estructura"] == est
+                    and it["bloque"] == "analisis_comparado"):
+                estado = it["estado"]
+                break
+        marca = MARCA_ESTADO.get(estado, "")
+        hay_marca = hay_marca or bool(marca)
+        ax.plot(s[k99], 0.01, "o", color=COLOR[est], ms=4.5, zorder=4)
+        ax.axvline(s[k99], color=COLOR[est], lw=0.7, ls=":", zorder=1)
+        ax.annotate(_n(s[k99], idioma) + marca, (s[k99], 0.01),
+                    textcoords="offset points",
+                    xytext=(3, 4 + 9 * ORDEN.index(est)), fontsize=6.3,
+                    color=COLOR[est])
+    ax.axhline(0.01, color=TINTA_2, lw=0.7, ls="--")
+    ax.text(0.01, 0.011, "p99", transform=ax.get_yaxis_transform(),
+            ha="left", va="bottom", fontsize=6.3, color=TINTA_2)
+    ax.set_yscale("log")
+    ax.set_ylim(8e-4, 1.05)
+    ax.set_xlim(0, xmax * 1.08)
+    ax.set_xlabel(("σ von Mises en la capa superficial [MPa]",
+                   "von Mises σ on the surface layer [MPa]")[i],
+                  fontsize=7.5, color=TINTA_2)
+    ax.set_ylabel(("fracción de la capa por encima (1 − F)",
+                   "fraction of the layer above (1 − F)")[i],
+                  fontsize=7.5, color=TINTA_2)
+    ax.legend(frameon=False, fontsize=6.3, loc="upper right",
+              labelcolor=TINTA)
+    fig.tight_layout()
+    return _guardar(fig, destino)

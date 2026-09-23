@@ -1377,8 +1377,8 @@ EN = {
         'The elastic tensor at {n}³ is below {m}³: the report will give it with caveats (the interface caps it at {max}³).',
     'El ensayo a {n}³ queda por debajo de {m}³: el informe dara la mecanica con reservas.':
         'The test at {n}³ is below {m}³: the report will give the mechanics with caveats.',
-    'Etapas opcionales (van a resultados_sesion.json; el informe aun no las gradua)':
-        'Optional stages (saved to resultados_sesion.json; the report does not grade them yet)',
+    'Etapas opcionales (el informe las gradua y las dibuja si se corren)':
+        'Optional stages (the report grades and plots them when they are run)',
     'Dispersion entre semillas':
         'Scatter across seeds',
     'Convergencia de malla del ensayo sobre el VOI':

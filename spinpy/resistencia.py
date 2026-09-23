@@ -81,6 +81,22 @@ SIGMA0_DEF = 1e6          # 1 MPa de tension aparente de referencia
 FRAC_CRITICA = 0.02       # 2% del volumen oseo
 EPS_CRITICA = 0.007       # 0.7% de deformacion efectiva
 
+# Umbrales del veredicto de `estudio_convergencia`. Los lee tambien
+# `informe.comprobar`, para que el informe y el dialogo no puedan discrepar.
+# Son CRITERIO NUESTRO, no una medida: por encima de un 2 % de deriva de
+# densidad el remuestreo ya cambia la estructura (no se extrapola), y un error
+# estimado frente a Richardson por debajo del 5 % es lo que se da por meseta.
+CONV_DERIVA_RHO_MAX = 0.02
+CONV_ERROR_EXTRAPOLADO_MAX = 0.05
+# Una serie NO monotona cuya dispersion total (max - min) / media no pasa de
+# este valor oscila sin tendencia dentro de la banda en la que el VOI proximal
+# de H4 se dio por convergido (+-3 % desde n = 40, Estudio_Convergencia). No
+# se extrapola —el orden no tiene sentido—, pero tampoco es la serie que «no
+# converge en absoluto»: medido en el VOI porcino V1, 4041/4072/4054/4021 MPa
+# de 22^3 a 40^3, 1.3 % de dispersion. Usar la banda ENTERA como dispersion
+# total es la lectura estricta del +-3 %; es CRITERIO NUESTRO.
+CONV_OSCILACION_MAX = 0.03
+
 ESQUINAS = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
                      [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]])
 
@@ -237,6 +253,47 @@ def estadisticos_vm(res):
             "vm_n_superficie": int(vs.size),
             "vm_frac_superficie": (float(vs.size) / float(ok.sum())
                                    if ok.any() else float("nan"))}
+
+
+# Probabilidades (en %) a las que se guardan los cuantiles de von Mises de la
+# capa superficial: cada punto entero y, en la cola, cada decima. La cola es
+# lo que se cita (p99), asi que es donde hace falta resolucion; 111 numeros
+# por estructura caben en el JSON sin guardar el campo.
+PROB_CUANTILES_VM = tuple([float(q) for q in range(0, 99)]
+                          + [round(99.0 + 0.1 * k, 1) for k in range(11)])
+
+
+def cuantiles_vm_superficie(res, probs=PROB_CUANTILES_VM, escala=1.0):
+    """Distribucion de von Mises en la capa superficial, como cuantiles.
+
+    Misma muestra que `estadisticos_vm` —el tejido de `superficie_solido`— y
+    misma convencion de percentil (hazen, la de `prctile`), de modo que el
+    cuantil 99 de la lista coincide exactamente con `vm_p99_superficie`. Es lo
+    que permite dibujar la cola de la que sale el valor citable a partir del
+    JSON exportado, sin guardar el campo de cientos de MB.
+
+    `escala` multiplica los valores (1e-6 para pasar de Pa a MPa). Devuelve
+    {"p": [...], "valor": [...], "n": int} o {} si no hay capa superficial.
+    """
+    vm = np.asarray(res.get("vm_solido", []), float)
+    sup = res.get("superficie_solido")
+    if sup is None:
+        campo = res.get("campo_vm")
+        if campo is None:
+            return {}
+        campo = np.asarray(campo, float)
+        dentro = np.isfinite(campo)
+        vm = campo[dentro]
+        sup = capa_superficie(dentro)[dentro]
+    sup = np.asarray(sup, bool).ravel()
+    if vm.size == 0 or sup.size != vm.size:
+        return {}
+    vs = vm[sup & np.isfinite(vm)]
+    if vs.size == 0:
+        return {}
+    q = np.percentile(vs, list(probs), method="hazen") * float(escala)
+    return {"p": [float(x) for x in probs], "valor": [float(x) for x in q],
+            "n": int(vs.size)}
 
 
 def ensayo_compresion(BW, spacing, E_s=E_S_DEF, nu_s=NU_S_DEF,
@@ -871,7 +928,7 @@ def estudio_convergencia(BW, spacing, resoluciones=(20, 24, 28, 32, 40),
     # mueve el valor, el valor esta cerca de su limite.
     out["salto_final_rel"] = float(abs(E[-1] - E[-2]) / abs(E[-1]))
 
-    if monotona and out["deriva_rho_rel"] < 0.02:
+    if monotona and out["deriva_rho_rel"] < CONV_DERIVA_RHO_MAX:
         # Richardson con los tres ultimos puntos. Solo tiene sentido si la
         # serie es monotona: con una serie que sube y baja, el "orden" que sale
         # de la formula es un artefacto sin interpretacion.
@@ -890,13 +947,19 @@ def estudio_convergencia(BW, spacing, resoluciones=(20, 24, 28, 32, 40),
             except (ValueError, ZeroDivisionError, FloatingPointError):
                 pass
 
-    if not monotona:
+    if not monotona and out["dispersion_rel"] <= CONV_OSCILACION_MAX:
+        out["veredicto"] = (
+            f"La serie no es monotona pero oscila sin tendencia dentro de un "
+            f"{100*out['dispersion_rel']:.1f}% (banda {100*CONV_OSCILACION_MAX:.0f}"
+            f"%). No se extrapola; cita el valor de la malla mas fina "
+            f"declarando esa banda como incertidumbre de discretizacion.")
+    elif not monotona:
         out["veredicto"] = (
             f"La serie NO es monotona (dispersion {100*out['dispersion_rel']:.0f}%). "
             f"No hay convergencia que extrapolar: al refinar cambia la "
             f"geometria conectada, no solo la discretizacion. NO cites un "
             f"E_app de una sola resolucion.")
-    elif out.get("error_estimado_rel", 1.0) < 0.05:
+    elif out.get("error_estimado_rel", 1.0) < CONV_ERROR_EXTRAPOLADO_MAX:
         out["veredicto"] = (
             f"Serie monotona y el ultimo refinado mueve el valor un "
             f"{100*out['salto_final_rel']:.1f}%. El extrapolado es citable "

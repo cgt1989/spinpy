@@ -71,7 +71,9 @@ import numpy as np
 from . import procedencia
 from .avisos import DA_MIN_EJE, desalineacion, voi_no_trabecular
 from .incertidumbre import K_MIN
-from .resistencia import EPS_CRITICA, FRAC_CRITICA
+from .resistencia import (CONV_DERIVA_RHO_MAX, CONV_ERROR_EXTRAPOLADO_MAX,
+                          CONV_OSCILACION_MAX, EPS_CRITICA, FRAC_CRITICA)
+from .simulacion import TBTH_H_MIN as SIM_TBTH_H_MIN
 
 # ---------------------------------------------------------------------------
 # Autoria y archivo del software
@@ -136,6 +138,22 @@ GRAVEDAD = {
     "no_bicontinuo": RESERVAS,
     "desalineado": RESERVAS,
     "sin_procedencia": RESERVAS,
+    # Estudio de convergencia en malla
+    "conv_pocos_puntos": NO_CITABLE,
+    "conv_no_monotona": NO_CITABLE,
+    "conv_oscila": RESERVAS,
+    "conv_deriva_rho": RESERVAS,
+    "conv_sin_meseta": RESERVAS,
+    "conv_sin_extrapolar": RESERVAS,
+    # Dispersion entre semillas y replicas generadas
+    "semilla_busqueda": RESERVAS,
+    "replicas_no_especimenes": RESERVAS,
+    # Simulaciones in silico
+    "sim_paso0": NO_CITABLE,
+    "sim_pasos_fallidos": RESERVAS,
+    "sim_tbth_h": RESERVAS,
+    "sim_pendiente": RESERVAS,
+    "fallo_modelo_dano": RESERVAS,
 }
 
 # (espanol, ingles). Los marcadores se rellenan con `datos` del item; uno que
@@ -252,6 +270,89 @@ MOTIVOS = {
         "de spinpy, el esquema ni la semilla",
         "document without a provenance block (format 1): spinpy version, "
         "scheme and seed are not recorded"),
+    "conv_pocos_puntos": (
+        "solo {n_ok:.0f} malla(s) resuelta(s): con menos de tres no hay "
+        "estudio de convergencia",
+        "only {n_ok:.0f} mesh(es) solved: with fewer than three there is no "
+        "convergence study"),
+    "conv_no_monotona": (
+        "E_app no es monótono al refinar (dispersión {disp_pct:.0f} %): cada "
+        "remuestreo cambia qué trabéculas quedan conectadas; ningún E_app de "
+        "una sola malla es citable",
+        "E_app is not monotonic under refinement (spread {disp_pct:.0f} %): "
+        "each resampling changes which trabeculae stay connected; no "
+        "single-mesh E_app is citable"),
+    "conv_oscila": (
+        "E_app oscila sin tendencia al refinar, dentro de un {disp_pct:.1f} % "
+        "(banda {max_pct:.0f} %, criterio nuestro): no se extrapola; citar el "
+        "valor de la malla más fina con esa banda como incertidumbre",
+        "E_app oscillates without a trend under refinement, within "
+        "{disp_pct:.1f} % (band {max_pct:.0f} %, our criterion): no "
+        "extrapolation; cite the finest-mesh value with that band as its "
+        "uncertainty"),
+    "conv_deriva_rho": (
+        "la densidad cambia un {deriva_pct:.1f} % entre mallas (> {max_pct:.0f}"
+        " %, criterio nuestro): el remuestreo cambia la estructura, no solo "
+        "la discretización, y no se extrapola",
+        "density changes by {deriva_pct:.1f} % between meshes (> "
+        "{max_pct:.0f} %, our criterion): resampling changes the structure, "
+        "not only the discretisation, and no extrapolation is made"),
+    "conv_sin_meseta": (
+        "la malla más fina está a un {err_pct:.1f} % del valor extrapolado "
+        "(Richardson; umbral {max_pct:.0f} %, criterio nuestro): aún no está "
+        "en la meseta; citar el extrapolado con su error o refinar",
+        "the finest mesh is {err_pct:.1f} % from the extrapolated value "
+        "(Richardson; threshold {max_pct:.0f} %, our criterion): not yet on "
+        "the plateau; cite the extrapolated value with its error or refine"),
+    "conv_sin_extrapolar": (
+        "serie monótona pero sin orden de convergencia calculable: el último "
+        "refinado mueve E_app un {salto_pct:.1f} % y no hay estimación del "
+        "error de discretización",
+        "monotonic series but no computable order of convergence: the last "
+        "refinement moves E_app by {salto_pct:.1f} % and there is no estimate "
+        "of the discretisation error"),
+    "semilla_busqueda": (
+        "la primera realización usa la semilla de la búsqueda ({semilla:.0f}),"
+        " la que ganó el ajuste: sesga la media hacia el VOI (maldición del "
+        "ganador); las réplicas del ajuste usan semilla+1…semilla+K",
+        "the first realisation uses the search seed ({semilla:.0f}), the one "
+        "that won the fit: it biases the mean towards the VOI (winner's "
+        "curse); the fit replicas use seed+1…seed+K"),
+    "replicas_no_especimenes": (
+        "{n:.0f} realizaciones de UN ajuste, no {n:.0f} especímenes: no "
+        "añaden grados de libertad a una comparación biológica",
+        "{n:.0f} realisations of ONE fit, not {n:.0f} specimens: they add no "
+        "degrees of freedom to a biological comparison"),
+    "sim_paso0": (
+        "el ensayo del paso 0 no se resolvió: todos los cocientes se refieren "
+        "a él",
+        "the step-0 test did not solve: every ratio refers to it"),
+    "sim_pasos_fallidos": (
+        "{n_fallidos:.0f} paso(s) sin solución válida (solver sin resolver o "
+        "residuo > 1e-6) quedan fuera de la curva",
+        "{n_fallidos:.0f} step(s) without a valid solution (unsolved or "
+        "residual > 1e-6) are left out of the curve"),
+    "sim_tbth_h": (
+        "Tb.Th/h de la malla mecánica = {tbth_h:.2f} < {min:.1f}: con menos "
+        "elementos por trabécula los cocientes de rigidez pueden ser "
+        "artefacto (Estudio_Convergencia)",
+        "Tb.Th/h of the mechanical mesh = {tbth_h:.2f} < {min:.1f}: with "
+        "fewer elements per trabecula the stiffness ratios may be an artefact "
+        "(Estudio_Convergencia)"),
+    "sim_pendiente": (
+        "pendiente log-log DESCRIPTIVA: cerca del umbral de rigidez el "
+        "exponente aparente se infla (Estudio_Percolacion); sirve para "
+        "comparar protocolos, no como exponente de Gibson-Ashby",
+        "DESCRIPTIVE log-log slope: near the rigidity threshold the apparent "
+        "exponent is inflated (Estudio_Percolacion); it compares protocols, "
+        "it is not a Gibson-Ashby exponent"),
+    "fallo_modelo_dano": (
+        "el tejido roto se ablanda a {rigidez:.2f} E_s en lugar de retirarse: "
+        "es un modelo de daño elegido por nosotros (borrarlo desconectaba "
+        "puntales), no una ley medida",
+        "broken tissue is softened to {rigidez:.2f} E_s instead of removed: "
+        "a damage model of our choosing (deleting it disconnected struts), "
+        "not a measured law"),
 }
 
 ESTADOS = {CITABLE: ("citable", "citable"),
@@ -275,6 +376,18 @@ MAGNITUDES = {
                "99th percentile of von Mises over all the tissue"),
     "vm_p99_superficie": ("percentil 99 de von Mises en la capa superficial",
                           "99th percentile of von Mises on the surface layer"),
+    "convergencia": ("E_app frente a la malla (convergencia)",
+                     "E_app against mesh size (convergence)"),
+    "dispersion": ("dispersión entre semillas", "seed-to-seed scatter"),
+    "replicas": ("réplicas generadas", "generated replicas"),
+    "sim_rigidez": ("rigidez relativa en la pérdida ósea simulada",
+                    "relative stiffness under simulated bone loss"),
+    "sim_pendiente": ("pendiente log-log E/E0 frente a BV/TV",
+                      "log-log slope of E/E0 against BV/TV"),
+    "sim_fallo": ("tensión de fallo relativa en la pérdida ósea simulada",
+                  "relative failure stress under simulated bone loss"),
+    "fallo_progresivo": ("carga máxima del fallo progresivo",
+                         "peak load of progressive failure"),
 }
 
 ESTRUCTURAS = {"documento": ("documento", "document"), "voi": ("VOI", "VOI"),
@@ -742,6 +855,206 @@ def comprobar(doc):
                         "analisis_comparado", "fallo", est,
                         {kk: _f(v, kk) for kk in claves_fallo},
                         mot + ["pistoia_calibracion"], dat))
+
+    items += _items_convergencia(doc, res)
+    items += _items_dispersion(doc, res)
+    items += _items_simulaciones(doc, res)
+    return items
+
+
+def estructura_de(codigo, doc):
+    """Codigo de estructura ("voi", "spinodoide", "dual-lattice") de un
+    registro de convergencia o de simulacion.
+
+    Los registros nuevos traen `estructura_codigo`. Los anteriores solo
+    guardaban la etiqueta de pantalla, que esta traducida; entonces se deduce:
+    "VOI" es el VOI y cualquier otra cosa el candidato, de la familia cuyo
+    nombre aparezca en la etiqueta, y si ninguna, el spinodoide. Sin etiqueta,
+    el VOI si el documento lo tiene, porque es lo que el visor elige primero.
+    """
+    if codigo in ESTRUCTURAS and codigo != "documento":
+        return codigo
+    txt = str(codigo or "").lower()
+    if not txt:
+        return "voi" if doc.get("voi") else "spinodoide"
+    if txt.strip() == "voi":
+        return "voi"
+    return "dual-lattice" if "dual" in txt else "spinodoide"
+
+
+def _items_convergencia(doc, res):
+    rec = res.get("convergencia")
+    if not isinstance(rec, dict) or not rec.get("puntos"):
+        return []
+    est = estructura_de(rec.get("estructura_codigo")
+                        or rec.get("estructura"), doc)
+    val = [p for p in rec["puntos"] if p.get("ok")]
+    mot, dat = [], {"n_ok": float(len(val))}
+    valor = {}
+    if len(val) < 3:
+        mot.append("conv_pocos_puntos")
+    if val:
+        fino = max(val, key=lambda p: int(p.get("n", 0)))
+        E = _f(fino, "E_app")
+        valor["E_app [MPa]"] = None if E is None else E / 1e6
+        # El residuo que manda es el PEOR de la serie: un punto mal resuelto
+        # tuerce la curva entera, no solo su propio valor.
+        residuos = [_f(p, "residuo") for p in val
+                    if _f(p, "residuo") is not None]
+        m2, d2 = _motivos_mecanicos(_i(fino.get("n")),
+                                    max(residuos) if residuos else None,
+                                    _f(fino, "frac_portante"))
+        mot += m2
+        dat.update(d2)
+    if len(val) >= 3:
+        disp = _f(rec, "dispersion_rel")
+        if disp is not None and disp < 1e-6:
+            pass                          # serie plana: ya convergida
+        elif rec.get("monotona") is False:
+            osc = disp is not None and disp <= CONV_OSCILACION_MAX
+            mot.append("conv_oscila" if osc else "conv_no_monotona")
+            dat["disp_pct"] = 100.0 * (disp if disp is not None
+                                       else float("nan"))
+            dat["max_pct"] = 100.0 * CONV_OSCILACION_MAX
+        else:
+            deriva = _f(rec, "deriva_rho_rel")
+            err = _f(rec, "error_estimado_rel")
+            if deriva is not None and deriva >= CONV_DERIVA_RHO_MAX:
+                mot.append("conv_deriva_rho")
+                dat["deriva_pct"] = 100.0 * deriva
+                dat["max_pct"] = 100.0 * CONV_DERIVA_RHO_MAX
+            elif err is None:
+                mot.append("conv_sin_extrapolar")
+                salto = _f(rec, "salto_final_rel")
+                dat["salto_pct"] = (100.0 * salto if salto is not None
+                                    else float("nan"))
+            elif err >= CONV_ERROR_EXTRAPOLADO_MAX:
+                mot.append("conv_sin_meseta")
+                dat["err_pct"] = 100.0 * err
+                dat["max_pct"] = 100.0 * CONV_ERROR_EXTRAPOLADO_MAX
+            Ex = _f(rec, "E_extrapolado")
+            if Ex is not None:
+                valor["E_extrap [MPa]"] = Ex / 1e6
+    return [_item("convergencia", "convergencia", est, valor, mot, dat,
+                  rec.get("eje"))]
+
+
+def _semilla_ajuste(rec):
+    if not isinstance(rec, dict):
+        return None
+    for d in (rec.get("procedencia") or {}, rec.get("parametros") or {}):
+        for k in ("semilla", "seed"):
+            if d.get(k) is not None:
+                return _i(d.get(k))
+    return None
+
+
+def _items_dispersion(doc, res):
+    items = []
+    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+        rec = res.get("dispersion" + suf)
+        if isinstance(rec, dict) and rec.get("resumen"):
+            K = _i(rec.get("n_semillas")) or 0
+            mot, dat = [], {"K": K}
+            if K < K_MIN:
+                mot.append("sin_replicas")
+            base = _i(rec.get("semilla_base"))
+            if base is not None and base == _semilla_ajuste(
+                    res.get("ajuste" + suf)):
+                mot.append("semilla_busqueda")
+                dat["semilla"] = float(base)
+            items.append(_item("dispersion", "dispersion", fam, {"K": K},
+                               mot, dat))
+        rec = res.get("replicas" + suf)
+        if isinstance(rec, dict) and rec.get("n"):
+            n = _i(rec.get("n"))
+            items.append(_item("replicas", "replicas", fam, {"n": n},
+                               ["replicas_no_especimenes"], {"n": float(n)}))
+    return items
+
+
+def _pasos_fallidos(filas, sin_camino_vale=True):
+    """Pasos sin solucion valida. `sin_camino` NO es un fallo: una estructura
+    sin camino portante tiene rigidez cero, y eso es un resultado."""
+    n = 0
+    for f in filas:
+        if sin_camino_vale and f.get("sin_camino"):
+            continue
+        r = _f(f, "residuo")
+        if not f.get("ok") or (r is not None and r > RESIDUO_MAX):
+            n += 1
+    return n
+
+
+def _eje_txt(par):
+    return {0: "x", 1: "y", 2: "z"}.get(_i((par or {}).get("eje")))
+
+
+def _items_simulaciones(doc, res):
+    items = []
+    rec = res.get("simulacion_perdida")
+    if isinstance(rec, dict) and rec.get("pasos"):
+        est = estructura_de(rec.get("estructura_codigo")
+                            or rec.get("estructura"), doc)
+        filas, r = rec["pasos"], rec.get("resumen") or {}
+        par = rec.get("parametros") or {}
+        f0 = filas[0]
+        mot, dat = _motivos_mecanicos(_i(f0.get("n_mec") or par.get("n_mec")),
+                                      _f(f0, "residuo"),
+                                      _f(f0, "frac_portante"))
+        if not f0.get("ok") or _f(f0, "E_app") is None:
+            mot.append("sim_paso0")
+        n_f = _pasos_fallidos(filas[1:])
+        if n_f:
+            mot.append("sim_pasos_fallidos")
+            dat["n_fallidos"] = float(n_f)
+        tbth_h = _f(r, "TbTh_h_mec")
+        if tbth_h is not None and tbth_h < SIM_TBTH_H_MIN:
+            mot.append("sim_tbth_h")
+            dat.update(tbth_h=tbth_h, min=SIM_TBTH_H_MIN)
+        eje = _eje_txt(par)
+        items.append(_item("simulacion", "sim_rigidez", est,
+                           {"E/E0": _f(r, "E_rel_final"),
+                            "BV/TV / BV/TV0": _f(r, "BVTV_rel_final")},
+                           mot, dat, eje))
+        if _f(r, "pendiente_loglog") is not None:
+            items.append(_item("simulacion", "sim_pendiente", est,
+                               {"pendiente": _f(r, "pendiente_loglog")},
+                               mot + ["sim_pendiente"], dat, eje))
+        s_fin = _f(filas[-1], "sigma_fallo_rel")
+        if s_fin is not None:
+            items.append(_item("simulacion", "sim_fallo", est,
+                               {"sigma/sigma0": s_fin},
+                               mot + ["pistoia_calibracion"], dat, eje))
+
+    rec = res.get("fallo_progresivo")
+    if isinstance(rec, dict) and rec.get("pasos"):
+        est = estructura_de(rec.get("estructura_codigo")
+                            or rec.get("estructura"), doc)
+        filas, r = rec["pasos"], rec.get("resumen") or {}
+        par = rec.get("parametros") or {}
+        f0 = filas[0]
+        mot, dat = _motivos_mecanicos(_i(par.get("n_mec")), _f(f0, "residuo"),
+                                      _f(f0, "frac_portante"))
+        if not f0.get("ok") or _f(f0, "E_app") is None:
+            mot.append("sim_paso0")
+        # Solo cuentan los pasos ANTES del colapso: despues, no resolver es
+        # justamente lo que se espera de una estructura rota.
+        antes = [f for f in filas[1:] if not f.get("tras_colapso")]
+        n_f = _pasos_fallidos(antes, sin_camino_vale=False)
+        if n_f:
+            mot.append("sim_pasos_fallidos")
+            dat["n_fallidos"] = float(n_f)
+        tbth_h = _f(r, "TbTh_h_mec")
+        if tbth_h is not None and tbth_h < SIM_TBTH_H_MIN:
+            mot.append("sim_tbth_h")
+            dat.update(tbth_h=tbth_h, min=SIM_TBTH_H_MIN)
+        mot += ["pistoia_calibracion", "fallo_modelo_dano"]
+        dat["rigidez"] = _f(par, "rigidez_danada")
+        items.append(_item("simulacion", "fallo_progresivo", est,
+                           {"F_max [N]": _f(r, "F_max"),
+                            "E/E0": _f(r, "E_rel_final")}, mot, dat,
+                           _eje_txt(par)))
     return items
 
 
@@ -1791,6 +2104,60 @@ PIES = {
         "every structure (tissue 1st and 99th percentiles). Local peaks are "
         "not citable: the converging value is the surface-layer 99th "
         "percentile (section 3)."),
+    "convergencia": (
+        "Convergencia en malla del módulo aparente en compresión ({est}, eje "
+        "{eje}). (a) E_app frente a la resolución efectiva Tb.Th/h (elementos "
+        "por espesor trabecular); banda, ±3 % de la malla más fina; línea "
+        "discontinua, extrapolación de Richardson, que solo se calcula si la "
+        "serie es monótona y la densidad estable. (b) Cambio de la densidad y "
+        "de la fracción portante frente a la malla más fina: por encima de "
+        "±{deriva} % el remuestreo cambia la estructura y la serie ya no mide "
+        "solo la discretización. Estado de citabilidad en la sección 3.",
+        "Mesh convergence of the apparent compressive modulus ({est}, {eje} "
+        "axis). (a) E_app against the effective resolution Tb.Th/h (elements "
+        "per trabecular thickness); band, ±3 % of the finest mesh; dashed "
+        "line, Richardson extrapolation, computed only when the series is "
+        "monotonic and density stable. (b) Change of density and load-bearing "
+        "fraction against the finest mesh: beyond ±{deriva} % resampling "
+        "changes the structure and the series no longer measures "
+        "discretisation alone. Citability status in section 3."),
+    "incertidumbre": (
+        "(a) Error morfométrico de K realizaciones nuevas del candidato "
+        "ganador (semillas distintas de la de búsqueda), su media ± sd, el "
+        "error de la búsqueda (×: la realización ganadora, optimista por "
+        "construcción) y el suelo autoconsistente (error entre pares de "
+        "realizaciones del mismo candidato; un error dentro del suelo no se "
+        "distingue del ruido del generador). (b) Separación de cada métrica "
+        "respecto del VOI en desviaciones típicas de las réplicas, escala "
+        "lineal dentro de ±2 y logarítmica fuera; la banda gris (|z| < 2) es "
+        "indistinguible. Con K = {K} la sd tiene un error relativo de "
+        "~{err_sd} %: una |z| cercana a 2 no decide nada.",
+        "(a) Morphometric error of K fresh realisations of the winning "
+        "candidate (seeds other than the search seed), their mean ± sd, the "
+        "search error (×: the winning realisation, optimistic by "
+        "construction) and the self-consistent floor (error between pairs of "
+        "realisations of the same candidate; an error inside the floor cannot "
+        "be told from generator noise). (b) Separation of each metric from "
+        "the VOI in replicate standard deviations, linear within ±2 and "
+        "logarithmic beyond; the grey band (|z| < 2) is indistinguishable. "
+        "With K = {K} the sd has a relative error of ~{err_sd} %: a |z| near "
+        "2 decides nothing."),
+    "vm_superficie": (
+        "Fracción de la capa superficial (elementos de hueso con una cara "
+        "hacia el poro; las seis caras del VOI no cuentan) cuya tensión de "
+        "von Mises supera σ, bajo el protocolo del análisis comparado "
+        "({carga} N). El punto marca el percentil 99 (posiciones (i − 0,5)/n, "
+        "la convención de prctile), que es el valor citable. El eje llega "
+        "al percentil 99,9: el máximo, que no converge con la malla, queda "
+        "fuera a propósito. * con reservas, † no citable (sección 3).",
+        "Fraction of the surface layer (bone elements with a face towards the "
+        "pore; the six VOI faces do not count) whose von Mises stress exceeds "
+        "σ, under the compared-analysis protocol ({carga} N). The dot marks "
+        "the 99th percentile (plotting positions (i − 0.5)/n, the prctile "
+        "convention), which is the citable value. The axis stops at the "
+        "99.9th percentile: the maximum, which does not converge with the "
+        "mesh, is left out on purpose. * with caveats, † not citable "
+        "(section 3)."),
     "suavizado": (
         " Superficie suavizada con Taubin solo para la figura; todas las "
         "medidas usan la malla sin suavizar.",
@@ -1891,6 +2258,7 @@ def figuras_datos(prep):
             prep["figuras"][idioma].append(
                 (f"{CARPETA_FIGURAS}/{Path(rutas[0]).name}",
                  PIES["anisotropia"][i]))
+        _figuras_estudios(prep, d, idioma)
         if o["distribuciones"] and prep["estructuras"]:
             if dist is None:
                 dist = F.distribuciones(prep["estructuras"])
@@ -1903,6 +2271,66 @@ def figuras_datos(prep):
                     (f"{CARPETA_FIGURAS}/{Path(rutas[0]).name}",
                      PIES["distribuciones"][i]))
     return prep
+
+
+def _figuras_estudios(prep, d, idioma):
+    """Figuras 9-11: convergencia, incertidumbre y cola de von Mises.
+
+    Salen solo del documento —sin volumenes—, asi que tambien se rehacen
+    desde un JSON exportado. Cada una aparece solo si su etapa se corrio.
+    """
+    from . import figuras as F
+    i = _idx(idioma)
+    doc, items = prep["doc"], prep["items"]
+    fm = _Formateador(idioma)
+    res = doc.get("resultados") or {}
+
+    def poner(rutas, pie):
+        if rutas:
+            prep["archivos_figuras"].extend(rutas)
+            prep["figuras"][idioma].append(
+                (f"{CARPETA_FIGURAS}/{Path(rutas[0]).name}", pie))
+
+    rec = res.get("convergencia") or {}
+    est = estructura_de(rec.get("estructura_codigo")
+                        or rec.get("estructura"), doc)
+    poner(F.fig_convergencia(doc, items, d / ("fig9_convergencia",
+                                               "fig9_convergence")[i],
+                             idioma),
+          PIES["convergencia"][i].format(
+              est=ESTRUCTURAS[est][i], eje=rec.get("eje", "z"),
+              deriva=fm.format_field(100.0 * CONV_DERIVA_RHO_MAX, "g")))
+
+    Ks = [_i(((res.get(c) or {}).get("incertidumbre") or {}).get("K"))
+          for c in ("ajuste", "ajuste_dual")]
+    Ks = [k for k in Ks if k]
+    K = min(Ks) if Ks else K_MIN
+    poner(F.fig_incertidumbre(doc, items, d / ("fig10_incertidumbre",
+                                                "fig10_uncertainty")[i],
+                              idioma),
+          PIES["incertidumbre"][i].format(
+              K=K, err_sd=fm.format_field(
+                  100.0 / np.sqrt(2.0 * max(K - 1, 1)), ".0f")))
+
+    carga = _f(res.get("analisis_comparado")
+               or res.get("analisis_comparado_dual") or {}, "carga_N") or 100.0
+    poner(F.fig_von_mises_superficie(
+              doc, items, d / ("fig11_von_mises_superficie",
+                               "fig11_von_mises_surface")[i], idioma),
+          PIES["vm_superficie"][i].format(
+              carga=fm.format_field(float(carga), ".0f")))
+
+
+def _numero_figura(ruta):
+    """fig10 va detras de fig9, no detras de fig1: orden numerico, no de
+    texto. Lo que no empieza por figN va al final, en orden alfabetico."""
+    nombre = Path(ruta).name
+    digitos = ""
+    for c in nombre[3:] if nombre.startswith("fig") else "":
+        if not c.isdigit():
+            break
+        digitos += c
+    return (int(digitos) if digitos else 10 ** 6, nombre)
 
 
 def _lado_txt(prep, idioma):
@@ -1994,12 +2422,13 @@ def componer(prep, pdf=True):
             json.dumps(procedencia.serializable(doc), indent=1,
                        ensure_ascii=False, default=str))
     escribe(ARCHIVOS["paquete"], json.dumps(paq, indent=2, ensure_ascii=False))
-    # Por nombre de archivo: los cortes (fig5) se dibujan antes que los renders
-    # (fig3, fig4), pero en el informe van despues.
+    # Por NUMERO de figura: los cortes (fig5) se dibujan antes que los
+    # renders (fig3, fig4), pero en el informe van despues; y fig10 va detras
+    # de fig9, cosa que el orden de texto no respeta.
     mds = {idioma: escribe(ARCHIVOS["md_" + idioma], informe_markdown(
                doc, items, paq, idioma, ARCHIVOS["paquete"],
                sorted(prep["figuras"][idioma],
-                      key=lambda f: Path(f[0]).name),
+                      key=lambda f: _numero_figura(f[0])),
                galeria=prep.get("galeria")))
            for idioma in ("es", "en")}
     if pdf:
