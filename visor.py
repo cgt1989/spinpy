@@ -2604,6 +2604,16 @@ class DialogoInformeAuto(QtWidgets.QDialog):
             "Mapa 3D de von Mises (del análisis comparado)"))
         self.chk_vm.setChecked(op["von_mises"])
         gl.addWidget(self.chk_vm)
+        self.chk_metodo = QtWidgets.QCheckBox(_(
+            "Figura del método (del micro-CT al candidato)"))
+        self.chk_metodo.setChecked(op["metodo"])
+        self.chk_metodo.setToolTip(_(
+            "Figura 0, en 16:9: rebanada y segmentación, el cubo en la pila, "
+            "el VOI y, por cada familia, su aleatoriedad, su campo, el umbral "
+            "por densidad y el sólido, con la morfometría frente al VOI. La "
+            "fila del micro-CT solo aparece si el VOI se recortó de una pila "
+            "en esta sesión."))
+        gl.addWidget(self.chk_metodo)
         nota = QtWidgets.QLabel(_(
             "Todas las vistas usan proyeccion paralela y la misma escala. La "
             "figura 4 reune las vistas marcadas en el estilo principal, la 5 "
@@ -2701,7 +2711,8 @@ class DialogoInformeAuto(QtWidgets.QDialog):
             "vista_principal": self.cmb_vista_ppal.currentData(),
             "suavizar": self.chk_suave.isChecked(),
             "distribuciones": self.chk_dist.isChecked(),
-            "von_mises": self.chk_vm.isChecked()})
+            "von_mises": self.chk_vm.isChecked(),
+            "metodo": self.chk_metodo.isChecked()})
         return {"familias": fams, "vox_voi": int(v.VOI.size),
                 "n_fit": n_fit, "ajuste": self.chk_ajuste.isChecked(),
                 "morfometria": self.chk_morfo.isChecked(), "extra": extra,
@@ -2728,6 +2739,8 @@ class DialogoInformeAuto(QtWidgets.QDialog):
                 "suavizar": o["suavizar"],
                 "distribuciones": o["distribuciones"],
                 "von_mises": o["von_mises"] and self.chk_comp.isChecked(),
+                "metodo": o["metodo"],
+                "pila": v.VOI_contexto is not None,
                 "figuras": o}
 
     def _actualizar(self, *_a):
@@ -2914,6 +2927,13 @@ class Visor(QtWidgets.QMainWindow):
         self._clim = None          # escala de color COMUN a los dos paneles
         self._esp_luego = None     # que hacer cuando termine el espesor
         self.VOI_ruta = None       # para poder guardarla en la sesion
+        # Figura 0 del informe: de donde salio el VOI. `_pila_param` es la
+        # carga de la pila en curso; `VOI_contexto` (rebanada, pila reducida,
+        # esquinas del cubo) se toma al recortar, porque despues la pila se
+        # suelta; `VOI_recorte` es lo que el JSON guarda para rehacerlo.
+        self._pila_param = None
+        self.VOI_contexto = None
+        self.VOI_recorte = None
         # Ultimo resultado de cada calculo, para poder exportarlos. Se guardan
         # segun se producen y no se recalculan al exportar: exportar tiene que
         # volcar EXACTAMENTE los numeros que el usuario vio, y como el
@@ -4986,6 +5006,8 @@ class Visor(QtWidgets.QMainWindow):
         prog.setWindowModality(QtCore.Qt.WindowModal)
         prog.setMinimumDuration(0)
 
+        from spinpy import figura_metodo
+
         def tarea():
             ejes, centro, proy = marco_pca(mask, spc)
             centros = centros_por_tercios(proy, 3)
@@ -4995,11 +5017,15 @@ class Visor(QtWidgets.QMainWindow):
                 tercios.append({"indice": i, "cubo": cubo, "centro_pca": c,
                                 "fuera": fuera, "bvtv": float(cubo.mean()),
                                 "lado_vox": int(cubo.shape[0])})
-            return {"ejes": ejes, "centro": centro, "proy": proy}, tercios
+            # Pila reducida para la figura 0: aqui, en el hilo de trabajo,
+            # porque tras el recorte la pila completa se suelta.
+            reducido = figura_metodo.reducir(mask)
+            return ({"ejes": ejes, "centro": centro, "proy": proy}, tercios,
+                    reducido)
 
         def listo(r):
             prog.close()
-            marco, tercios = r
+            marco, tercios, reducido = r
             dlg = DialogoRecorte(self, mask, spc, marco, tercios, lado)
             if dlg.exec_() != QtWidgets.QDialog.Accepted:
                 return
@@ -5009,8 +5035,23 @@ class Visor(QtWidgets.QMainWindow):
                 nota = _("{p:.1f} % del cubo cae fuera del volumen: el BV/TV "
                          "esta subestimado.").format(p=100 * e["fuera"])
             nombre = f"{self.VOI_nombre} · {dlg.etiqueta} {e['lado_vox']}³"
+            lado_elegido = float(dlg.sp_lado.value())
+            pila = self._pila_param
+            try:
+                ctx = figura_metodo.contexto_pila(
+                    mask, spc, marco["ejes"], marco["centro"],
+                    e["centro_pca"], lado_elegido,
+                    origen=(pila or {}).get("origen"),
+                    patron=(pila or {}).get("patron") or "*.tif",
+                    reducido=reducido)
+            except Exception:
+                ctx = None
+            rec = (figura_metodo.registro_recorte(
+                pila, marco["ejes"], marco["centro"], e["centro_pca"],
+                lado_elegido) if pila else None)
             self._instalar_voi(e["cubo"], np.asarray(spc).ravel(), nombre,
                                self.VOI_ruta, nota=nota)
+            self.VOI_contexto, self.VOI_recorte = ctx, rec
             self.statusBar().showMessage(
                 _("VOI recortado: {et}, {lv}³ vox, BV/TV {b:.4f}. El volumen "
                   "completo ya no esta cargado.").format(
@@ -5082,6 +5123,9 @@ class Visor(QtWidgets.QMainWindow):
 
         nombre = Path(info["origen"]).name or info["origen"]
         self._instalar_voi(BW, spacing, nombre, info["origen"], nota=nota)
+        self._pila_param = {"origen": info["origen"], "patron": v["patron"],
+                            "umbral": info["umbral"],
+                            "tam_voxel_mm": info["tam_voxel_mm"]}
         self.statusBar().showMessage(
             _("Pila cargada: {n} rebanadas · {mm:.6f} mm/vox ({orig}) · "
               "umbral {u} [{met}]").format(
@@ -5100,6 +5144,11 @@ class Visor(QtWidgets.QMainWindow):
         self.VOI, self.VOI_spacing = VOI, spacing
         self.VOI_nombre = nombre
         self.VOI_ruta = ruta
+        # Un VOI nuevo no hereda el origen del anterior: quien instala desde
+        # una pila o un recorte lo vuelve a poner DESPUES de esta llamada.
+        self._pila_param = None
+        self.VOI_contexto = None
+        self.VOI_recorte = None
         # El recorte tiene sentido sobre cualquier volumen cargado, no solo
         # sobre una pila: un .vtk demasiado grande tambien se puede recortar.
         try:
@@ -7396,6 +7445,10 @@ class Visor(QtWidgets.QMainWindow):
                    "spacing_mm": [float(x) for x in
                                   np.ravel(self.VOI_spacing)],
                    "sha256": sha256_archivo(self.VOI_ruta)}
+            if self.VOI_recorte:
+                # Figura 0 desde la CLI: con esto se relee la pila y se
+                # vuelve a situar el cubo.
+                voi["recorte"] = self.VOI_recorte
         return {"procedencia": proc_doc,
                 "estado": estado, "resultados": dict(self._res),
                 "voi": voi,
@@ -7466,17 +7519,19 @@ class Visor(QtWidgets.QMainWindow):
                               "dibujando las figuras…"))
         self.hilo = Trabajador(self._informe_etapa_datos, doc, carpeta,
                                self.VOI, self.VOI_spacing,
-                               opciones_figuras(), campos or None)
+                               opciones_figuras(), campos or None,
+                               self.VOI_contexto)
         self.hilo.listo.connect(self._informe_3d)
         self.hilo.fallo.connect(self._error)
         self.hilo.start()
 
     @staticmethod
     def _informe_etapa_datos(doc, carpeta, VOI, spacing, opciones_3d=None,
-                             campos_vm=None):
+                             campos_vm=None, contexto_voi=None):
         prep = informe_pub.preparar(doc, carpeta, VOI=VOI, spacing=spacing,
                                     opciones_3d=opciones_3d,
-                                    campos_vm=campos_vm)
+                                    campos_vm=campos_vm,
+                                    contexto_voi=contexto_voi)
         return informe_pub.figuras_datos(prep)
 
     def _informe_3d(self, prep):

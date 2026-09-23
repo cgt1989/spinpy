@@ -579,16 +579,20 @@ def huella_mascara(BW):
     return h.hexdigest()
 
 
-def _regenerar(par):
-    """Mascara de un ajuste desde sus parametros, por la unica traduccion."""
+def _regenerar(par, completo=False):
+    """Mascara de un ajuste desde sus parametros, por la unica traduccion.
+
+    completo=True devuelve (BW, campo, info): la figura 0 dibuja el campo y
+    el umbral, y asi no se llama dos veces al generador.
+    """
     kw = procedencia.kwargs_generador(par)
     if par.get("familia") == "dual-lattice":
         from .dual_lattice import generar_dual_lattice
-        BW, _c, _inf = generar_dual_lattice(**kw)
+        BW, c, inf = generar_dual_lattice(**kw)
     else:
         from .grf import generar_mascara
-        BW, _c, _inf = generar_mascara(**kw)
-    return BW
+        BW, c, inf = generar_mascara(**kw)
+    return (BW, c, inf) if completo else BW
 
 
 def _lado_voi(doc):
@@ -1454,8 +1458,12 @@ def parrafos_metodos(doc, idioma="es", r=None):
 # Reproduccion
 # ---------------------------------------------------------------------------
 
-def _paquete(doc, regenerar=True):
-    """(paquete, {familia: mascara regenerada}). Las mascaras sirven a las figuras."""
+def _paquete(doc, regenerar=True, campos=None):
+    """(paquete, {familia: mascara regenerada}). Las mascaras sirven a las figuras.
+
+    `campos`: dict que, si se pasa, recibe {familia: (campo, info)} del
+    generador (figura 0).
+    """
     from . import __version__
     res = doc.get("resultados") or {}
     voi = doc.get("voi") or {}
@@ -1481,7 +1489,9 @@ def _paquete(doc, regenerar=True):
              "sha256_mascara": None, "forma": None, "BVTV": None}
         if regenerar:
             try:
-                BW = _regenerar(par)
+                BW, campo, info = _regenerar(par, completo=True)
+                if campos is not None:
+                    campos[fam] = (campo, info)
                 a.update(sha256_mascara=huella_mascara(BW),
                          forma=[int(s) for s in BW.shape],
                          BVTV=float(BW.mean()))
@@ -2035,6 +2045,11 @@ AVISOS = {
         "sin render 3D del VOI: no estaba cargado y su ruta no se pudo leer",
         "no 3D render of the VOI: it was not loaded and its path could not be "
         "read"),
+    "contexto_voi_no_disponible": (
+        "figura 0 sin la pila de micro-CT: el VOI se recortó de una pila que "
+        "ya no está en la ruta guardada o no se deja leer",
+        "figure 0 without the micro-CT stack: the VOI was cropped from a "
+        "stack that is no longer at the saved path or cannot be read"),
 }
 
 PIES = {
@@ -2166,6 +2181,73 @@ PIES = {
 }
 
 
+# Figura 0: el pie se arma por partes (`pie_metodo`) segun lo que la figura
+# lleve de verdad, para no describir paneles que no estan.
+PIES_METODO = {
+    "cabecera": (
+        "Método, de la imagen al candidato.",
+        "Method, from image to candidate."),
+    "voi_pila": (
+        "Fila superior: rebanada {k} de {n} de la pila de micro-CT, la que "
+        "pasa por el centro del VOI, {gris}, con el corte exacto del cubo en "
+        "azul; la misma rebanada en la máscara segmentada que entró en la "
+        "pila; la pila reducida por medias de bloques de {p}³ vóxeles (solo "
+        "como contexto, no se mide sobre ella) con el cubo recortado en el "
+        "marco de sus ejes principales; el VOI, de {lado} mm de lado, y a la "
+        "derecha la morfometría que persigue el ajuste.",
+        "Top row: slice {k} of {n} of the micro-CT stack, the one through the "
+        "centre of the VOI, {gris}, with the exact section of the cube in "
+        "blue; the same slice in the segmented mask that entered the stack; "
+        "the stack reduced by {p}³-voxel block means (context only, nothing "
+        "is measured on it) with the cube cropped in its principal-axis "
+        "frame; the VOI, {lado} mm side, and on the right the morphometry "
+        "the fit pursues."),
+    "gris": ("en niveles de gris del archivo original",
+             "in grey levels from the original file"),
+    "sin_gris": ("ya binaria (el archivo original no se pudo releer)",
+                 "already binary (the original file could not be re-read)"),
+    "voi_archivo": (
+        "Fila superior: corte central XZ del VOI, leído de un archivo ya "
+        "recortado (la sesión no tiene la pila de micro-CT de la que salió), "
+        "el VOI, de {lado} mm de lado, y a la derecha la morfometría que "
+        "persigue el ajuste.",
+        "Top row: central XZ section of the VOI, read from an already "
+        "cropped file (the session does not hold the micro-CT stack it came "
+        "from), the VOI, {lado} mm side, and on the right the morphometry the "
+        "fit pursues."),
+    "familias": (
+        "Una fila por familia ajustada, con los parámetros y la semilla de "
+        "esta sesión:",
+        "One row per fitted family, with the parameters and seed of this "
+        "session:"),
+    "spinodoide": (
+        "las direcciones de onda del generador (y sus opuestas) en los conos "
+        "de semiángulo θ sobre los ejes de R, el campo gaussiano φ en las "
+        "caras del cubo con la isolínea φ₀, su histograma con la N(0,1) "
+        "discontinua y el umbral φ₀ que deja la fracción ρ, y el sólido "
+        "{φ ≤ φ₀};",
+        "the generator's wave directions (and their opposites) in the cones "
+        "of half-angle θ about the axes of R, the Gaussian field φ on the "
+        "faces of the cube with the φ₀ isoline, its histogram with the dashed "
+        "N(0,1) and the threshold φ₀ that leaves the fraction ρ, and the "
+        "solid {φ ≤ φ₀};"),
+    "dual": (
+        "la red dual 4-N de la triangulación de Delaunay (subcubo central, "
+        "{sub} % del lado), la distancia d al esqueleto en las caras del cubo "
+        "con la isolínea r, el umbral r como cuantil ρ de d, y el sólido "
+        "{{d ≤ r}};",
+        "the 4-N dual lattice of the Delaunay triangulation (central "
+        "sub-cube, {sub} % of the side), the distance d to the skeleton on "
+        "the faces of the cube with the r isoline, the threshold r as the "
+        "ρ-quantile of d, and the solid {{d ≤ r}};"),
+    "tablas": (
+        "las tablas dan la morfometría de la sesión (sección 2) y su "
+        "diferencia con el VOI.",
+        "the tables give the session morphometry (section 2) and its "
+        "difference from the VOI."),
+}
+
+
 def texto_aviso(aviso, idioma="es"):
     cod, _sep, detalle = str(aviso).partition(":")
     if cod not in AVISOS:
@@ -2179,18 +2261,31 @@ def _espaciado(sp):
 
 
 def preparar(doc, carpeta, VOI=None, spacing=None, regenerar=True,
-             cargar_voi=True, opciones_3d=None, campos_vm=None):
+             cargar_voi=True, opciones_3d=None, campos_vm=None,
+             contexto_voi=None):
     """Etapa 1 (hilo de trabajo): citabilidad, paquete y estructuras a dibujar.
 
     `opciones_3d`: estilos, vistas, principal y suavizado de las figuras 3D
     (`figuras.OPCIONES_3D`); None toma los de por omision. `campos_vm`:
     {estructura: (campo de von Mises en Pa, spacing)} del analisis comparado,
     para la figura 8; solo existe dentro del visor, no en un JSON.
+    `contexto_voi`: `figura_metodo.contexto_pila` tomado al recortar el VOI
+    (figura 0). Sin el, si el documento trae `voi.recorte` y la pila sigue en
+    el disco, se rehace releyendola.
     """
+    from . import figuras as F
     carpeta = Path(carpeta)
     carpeta.mkdir(parents=True, exist_ok=True)
     avisos = []
-    paq, mascaras = _paquete(doc, regenerar=regenerar)
+    o = F.opciones_3d(opciones_3d)
+    generados = {} if o["metodo"] else None
+    paq, mascaras = _paquete(doc, regenerar=regenerar, campos=generados)
+    rec = (doc.get("voi") or {}).get("recorte")
+    if o["metodo"] and contexto_voi is None and rec and cargar_voi:
+        from .figura_metodo import rehacer_contexto
+        contexto_voi = rehacer_contexto(rec)
+        if contexto_voi is None:
+            avisos.append("contexto_voi_no_disponible")
     if VOI is None and cargar_voi:
         ruta = (doc.get("voi") or {}).get("ruta")
         try:
@@ -2213,7 +2308,8 @@ def preparar(doc, carpeta, VOI=None, spacing=None, regenerar=True,
             "paquete": paq, "estructuras": estructuras, "lado_mm": lado,
             "figuras": {"es": [], "en": []}, "archivos_figuras": [],
             "opciones_3d": opciones_3d, "galeria": None,
-            "campos_vm": campos_vm,
+            "campos_vm": campos_vm, "generados": generados,
+            "contexto_voi": contexto_voi,
             "avisos": avisos}
 
 
@@ -2403,6 +2499,93 @@ def figuras_3d(prep):
                                 vista=F.VISTAS_3D[o["vista_principal"]][2][i])))
     except Exception as e:
         prep["avisos"].append(f"figuras_3d: {type(e).__name__}: {e}")
+    _figura_metodo(prep)
+    return prep
+
+
+def pie_metodo(prep, idioma="es"):
+    """Pie de la figura 0, con lo que de verdad lleva: con o sin pila, con o
+    sin VOI, una familia o dos."""
+    from . import figura_metodo as FM
+    i = _idx(idioma)
+    fm = _Formateador(idioma)
+    ctx = prep.get("contexto_voi")
+    fams = [f for f in ("spinodoide", "dual-lattice")
+            if f in (prep.get("generados") or {})]
+    hay_voi = any(e[0] == "voi" for e in prep["estructuras"])
+    partes = [PIES_METODO["cabecera"][i]]
+    if hay_voi and ctx is not None:
+        partes.append(PIES_METODO["voi_pila"][i].format(
+            k=int(ctx["k"]) + 1, n=int(ctx["n_rebanadas"]),
+            p=int(ctx["paso"]), lado=_lado_txt(prep, idioma),
+            gris=PIES_METODO["gris" if ctx.get("gris") is not None
+                             else "sin_gris"][i]))
+    elif hay_voi:
+        partes.append(PIES_METODO["voi_archivo"][i].format(
+            lado=_lado_txt(prep, idioma)))
+    if fams:
+        partes.append(PIES_METODO["familias"][i])
+    if "spinodoide" in fams:
+        partes.append(PIES_METODO["spinodoide"][i])
+    if "dual-lattice" in fams:
+        lo, hi = FM.SUBCUBO_ESQUELETO
+        partes.append(PIES_METODO["dual"][i].format(
+            sub=fm.format_field(100.0 * (hi - lo), ".0f")))
+    if fams:
+        partes.append(PIES_METODO["tablas"][i])
+    o = _opciones_fig(prep)
+    texto = " ".join(partes)
+    return texto + (PIES["suavizado"][i] if o["suavizar"] else "")
+
+
+def _opciones_fig(prep):
+    from . import figuras as F
+    return F.opciones_3d(prep.get("opciones_3d"))
+
+
+def _figura_metodo(prep):
+    """Figura 0 (hilo de la interfaz: renders VTK). Si falla, se avisa y el
+    resto del informe sigue."""
+    o = _opciones_fig(prep)
+    gen = prep.get("generados")
+    if not o["metodo"] or gen is None:
+        return prep
+    try:
+        from . import figura_metodo as FM
+        doc = prep["doc"]
+        res = doc.get("resultados") or {}
+        familias = {}
+        for (fam, BW, _sp) in prep["estructuras"]:
+            if fam == "voi" or fam not in gen:
+                continue
+            clave = "ajuste" if fam == "spinodoide" else "ajuste_dual"
+            par = dict((res.get(clave) or {}).get("parametros") or {})
+            par.setdefault("familia", fam)
+            campo, info = gen[fam]
+            familias[fam] = FM.datos_familia(par, BW=BW, campo=campo,
+                                             info=info)
+        voi = next(((BW, sp) for (e, BW, sp) in prep["estructuras"]
+                    if e == "voi"), None)
+        if not familias and voi is None:
+            return prep
+        d = prep["carpeta"] / CARPETA_FIGURAS
+        rutas, fallos = FM.figura_metodo(voi, familias, doc, d,
+                                         prep["lado_mm"],
+                                         ctx=prep.get("contexto_voi"),
+                                         suavizar=o["suavizar"])
+        for f in fallos:
+            prep["avisos"].append(f"figuras_3d: {f}")
+        for idioma in ("es", "en"):
+            if rutas.get(idioma):
+                prep["archivos_figuras"] += rutas[idioma]
+                prep["figuras"][idioma].append(
+                    (f"{CARPETA_FIGURAS}/{Path(rutas[idioma][0]).name}",
+                     pie_metodo(prep, idioma)))
+    except Exception as e:                                # noqa: BLE001
+        prep["avisos"].append(f"figuras_3d: fig0: {type(e).__name__}: {e}")
+    finally:
+        # Los campos del generador ocupan lo suyo y ya no hacen falta.
+        prep["generados"] = {k: None for k in (gen or {})} if gen else gen
     return prep
 
 
@@ -2453,14 +2636,14 @@ def componer(prep, pdf=True):
 
 def escribir_informe(doc, carpeta, regenerar=True, VOI=None, spacing=None,
                      figuras=True, render_3d=True, pdf=True, opciones_3d=None,
-                     campos_vm=None):
+                     campos_vm=None, contexto_voi=None):
     """Todas las etapas seguidas, en el hilo que llama. Para scripts y la CLI.
 
     Devuelve {"carpeta", "archivos", "items", "resumen", "paquete", "avisos"}.
     """
     prep = preparar(doc, carpeta, VOI, spacing, regenerar,
                     cargar_voi=render_3d, opciones_3d=opciones_3d,
-                    campos_vm=campos_vm)
+                    campos_vm=campos_vm, contexto_voi=contexto_voi)
     if figuras:
         figuras_datos(prep)
     if render_3d:

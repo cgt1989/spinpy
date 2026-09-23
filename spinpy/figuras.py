@@ -3,6 +3,9 @@ figuras.py — Figuras del informe para publicacion, en calidad de imprenta.
 
 QUE PRODUCE
 -----------
+  fig0_metodo        el metodo de principio a fin, 16:9: micro-CT -> VOI ->
+                     generacion de cada familia -> candidato frente al VOI
+                     (vive en `figura_metodo.py`; va primera en el informe)
   fig1_morfometria   cociente candidato / VOI de cada metrica (VOI = 1)
   fig2_mecanica      modulos por homogeneizacion (Ex, Ey, Ez) y E_app por eje,
                      VOI frente a candidato; lo NO citable va rayado y lo
@@ -378,7 +381,8 @@ TAUBIN_BANDA = 0.03
 OPCIONES_3D = {"estilos": ["gris", "identidad"],
                "vistas": ["iso", "iso_180", "frontal", "lateral", "superior"],
                "estilo_principal": "gris", "vista_principal": "iso",
-               "suavizar": True, "distribuciones": True, "von_mises": True}
+               "suavizar": True, "distribuciones": True, "von_mises": True,
+               "metodo": True}
 
 
 def opciones_3d(op=None):
@@ -397,7 +401,7 @@ def opciones_3d(op=None):
         o["estilos"].insert(0, o["estilo_principal"])
     if o["vista_principal"] not in o["vistas"]:
         o["vistas"].insert(0, o["vista_principal"])
-    for k in ("suavizar", "distribuciones", "von_mises"):
+    for k in ("suavizar", "distribuciones", "von_mises", "metodo"):
         o[k] = bool(o[k])
     return o
 

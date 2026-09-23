@@ -1339,6 +1339,17 @@ EN = {
         'Local thickness by inscribed spheres in bone and pore. This is the expensive figure: about a minute for a 188³ VOI.',
     'Mapa 3D de von Mises (del análisis comparado)':
         '3D von Mises map (from the compared analysis)',
+    'Figura del método (del micro-CT al candidato)':
+        'Method figure (from micro-CT to candidate)',
+    "Figura 0, en 16:9: rebanada y segmentación, el cubo en la pila, el VOI "
+    "y, por cada familia, su aleatoriedad, su campo, el umbral por densidad "
+    "y el sólido, con la morfometría frente al VOI. La fila del micro-CT "
+    "solo aparece si el VOI se recortó de una pila en esta sesión.":
+        "Figure 0, in 16:9: slice and segmentation, the cube in the stack, "
+        "the VOI and, for each family, its randomness, its field, the "
+        "density threshold and the solid, with the morphometry against the "
+        "VOI. The micro-CT row only appears if the VOI was cropped from a "
+        "stack in this session.",
     'Informe y figuras':
         'Report and figures',
     'no se lanzaria':

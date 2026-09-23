@@ -33,6 +33,16 @@ Medidos el 2026-09-16 en el equipo de desarrollo (VOI_V1 de talo porcino,
   distribuciones (fig 7) espesor local de hueso + poro: 188^3 73 s,
                          96^3 4.5 s                          ~ vox^1.38
 
+Figura 0 (metodo), medida el 2026-09-23 sobre H4 proximal (VOI 97^3,
+candidatos 96^3), dos pasadas por caso, con ruido de +-30 % entre pasadas:
+
+  renders     1 familia 8.8-11.5 s, 2 familias 14.2-18.2 s
+              (VOI ~3 s, pila reducida ~1 s, ~6 s por familia)
+  componer    ES + EN a 600 ppp: 2 filas 21.0-23.6 s, 3 filas 29.3-49.4 s
+              (~12 s por fila); 1 familia + pila 44.2-50.0 s en total
+Los campos y las mascaras ya los regenera el paquete de reproduccion: la
+figura no vuelve a llamar al generador.
+
 El ajuste del spinodoide y el tensor se calibraron con la ejecucion completa
 del informe automatico sobre ese VOI, asi que coincidir ahi no prueba nada.
 Lo que NO se uso para ajustar: el ensayo de esa ejecucion (modelo 35 s, real
@@ -107,8 +117,18 @@ def distribuciones(vox):
     return 73.0 * (float(vox) / VOX_VOI) ** 1.38
 
 
+def metodo(n_familias, con_pila=False):
+    """Figura 0: renders (VOI, pila y cuatro por familia) y dos composiciones."""
+    filas = 1 + int(n_familias)
+    # La fila de la pila cuesta mas al componer (rebanada en gris a 600 ppp):
+    # 1 s de render y ~8 s de composicion por encima de una fila normal.
+    return (4.0 + 6.0 * n_familias + (9.0 if con_pila else 0.0)
+            + 12.0 * filas)
+
+
 def informe(familias, n_fit, vox_voi, n_estilos, n_vistas, suavizar=True,
-            con_distribuciones=False, con_von_mises=False):
+            con_distribuciones=False, con_von_mises=False, con_metodo=False,
+            con_pila=False):
     t = 0.6 + sum(gen(f, n_fit) for f in familias)         # regenerar
     t += 12.0                                                # figuras de datos
     estructuras = [vox_voi] + [int(n_fit) ** 3] * len(familias)
@@ -120,6 +140,8 @@ def informe(familias, n_fit, vox_voi, n_estilos, n_vistas, suavizar=True,
             t += distribuciones(vox)
     if con_von_mises:
         t += 3.0 * len(estructuras) + 2.0
+    if con_metodo:
+        t += metodo(len(familias), con_pila)
     return t + 12.0                                          # PDF
 
 
@@ -181,7 +203,9 @@ def estimar(plan, factores=None):
                                    int(plan.get("n_vistas", 5)),
                                    plan.get("suavizar", True),
                                    plan.get("distribuciones", False),
-                                   plan.get("von_mises", False)))
+                                   plan.get("von_mises", False),
+                                   plan.get("metodo", False),
+                                   plan.get("pila", False)))
     return out
 
 
