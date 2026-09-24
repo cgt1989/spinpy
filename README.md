@@ -1,3 +1,7 @@
+<p align="right">
+  🌐 <b>Español</b> · <a href="README.en.md">English</a>
+</p>
+
 <p align="center">
   <img src="docs/media/banner.png" alt="spinpy — microestructuras espinodales ajustadas a hueso trabecular de micro-CT" width="100%">
 </p>
@@ -38,7 +42,7 @@ soporte también para volúmenes porcinos, de vértebra de ratón y de fémur.
 > microstructures to trabecular-bone VOIs from micro-CT, then measures them
 > (BV/TV, Tb.Th, DA, Conn.D, SMI, Ellipsoid Factor…), homogenizes their
 > elastic tensor and runs FE compression tests. The GUI is available in
-> Spanish and English.
+> Spanish and English. **[Read this README in English →](README.en.md)**
 
 <table>
 <tr>

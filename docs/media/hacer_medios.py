@@ -22,6 +22,12 @@ Uso (desde la raiz del repositorio):
     python docs/media/hacer_medios.py            # banner + GIF
     python docs/media/hacer_medios.py --banner   # solo las imagenes fijas
     python docs/media/hacer_medios.py --gif      # solo las animaciones
+    python docs/media/hacer_medios.py --idioma en   # lo mismo en ingles
+
+`--idioma en` escribe `banner_en.png`, `social_preview_en.png` y
+`0X_*_en.gif` para `README.en.md`, con la interfaz del visor cambiada a
+ingles por su propio `cambiar_idioma` (sin guardarlo en QSettings). El giro
+de la cabecera no lleva texto y es el mismo para los dos README.
 
 El GIF de ajuste necesita un VOI; por defecto busca
 `../H4/Segmentadas/VOI_proximal_cubico.vtk` y se puede pasar otro con
@@ -53,6 +59,43 @@ HUESO = "#e8dcc4"             # marfil, el mismo tono de la vista del visor
 ANCHO_GIF = 960
 
 _FUENTES = Path("C:/Windows/Fonts")
+
+# Todo texto que se dibuja sobre una imagen, por idioma.
+TEXTOS = {
+    "es": {
+        "lema1": "Microestructuras espinodales ajustadas",
+        "lema2": "a hueso trabecular de micro-CT",
+        "etapas": "morfometría  ·  ajuste  ·  homogeneización  ·  ensayo FE",
+        "voi": "VOI micro-CT", "spin": "Spinodoide", "dual": "Dual-lattice",
+        "isotropo": "Isótropo", "columnar": "Columnar", "lamelar": "Lamelar",
+        "cubico": "Cúbico", "ajustado": "Ajustado al hueso",
+        "menos": "Menos densidad",
+        "cargado": "1 · VOI micro-CT cargado", "ajustar": "2 · Ajustar al VOI",
+        "ajustando": "2 · Ajustando…",
+        "medido": "3 · Candidato ajustado y medido",
+        "ensayo": "4 · Ensayo de compresión en Z",
+        "vm": "5 · Tensión de von Mises",
+    },
+    "en": {
+        "lema1": "Spinodal microstructures fitted",
+        "lema2": "to micro-CT trabecular bone",
+        "etapas": "morphometry  ·  fitting  ·  homogenization  ·  FE testing",
+        "voi": "micro-CT VOI", "spin": "Spinodoid", "dual": "Dual-lattice",
+        "isotropo": "Isotropic", "columnar": "Columnar", "lamelar": "Lamellar",
+        "cubico": "Cubic", "ajustado": "Fitted to bone",
+        "menos": "Lower density",
+        "cargado": "1 · micro-CT VOI loaded", "ajustar": "2 · Fit to the VOI",
+        "ajustando": "2 · Fitting…",
+        "medido": "3 · Fitted candidate, measured",
+        "ensayo": "4 · Compression test along Z",
+        "vm": "5 · von Mises stress",
+    },
+}
+
+
+def _sufijo(idioma):
+    """'' en espanol (los nombres de siempre), '_en' en ingles."""
+    return "" if idioma == "es" else f"_{idioma}"
 
 
 def _fuente(n, negrita=False):
@@ -110,25 +153,25 @@ def _encajar(im, alto):
                      Image.LANCZOS)
 
 
-def _cubos(voi):
+def _cubos(voi, T):
     """Las tres estructuras del banner: el hueso y las dos familias."""
     out = []
     if voi is not None and Path(voi).exists():
         VOI, sp = leer_voi(str(voi))
-        out.append(("VOI micro-CT", _render_cubo(VOI, sp)))
+        out.append((T["voi"], _render_cubo(VOI, sp)))
     BW, _c, _i = generar_mascara(resolution=96, wave_number=15 * np.pi,
                                  num_waves=700, thetas=[15., 15., 60.],
                                  rho=0.30, seed=7)
-    out.append(("Spinodoide", _render_cubo(BW, np.full(3, 1 / 96),
+    out.append((T["spin"], _render_cubo(BW, np.full(3, 1 / 96),
                                            color="#d9d9d9")))
     BW, _c, _i = generar_dual_lattice(96, celdas=5, rho=0.28,
                                       estiramiento=(1.0, 1.0, 1.6), seed=7)
-    out.append(("Dual-lattice", _render_cubo(BW, np.full(3, 1 / 96),
+    out.append((T["dual"], _render_cubo(BW, np.full(3, 1 / 96),
                                              color="#b9c7d6")))
     return out
 
 
-def _banner(cubos, ancho, alto, titulo_px, destino, vertical=False):
+def _banner(cubos, ancho, alto, titulo_px, destino, T, vertical=False):
     """Titulo y cubos. `vertical`: titulo arriba y cubos debajo (1280x640)."""
     g = np.linspace(0, 1, ancho)[None, :, None]
     base = np.zeros((alto, ancho, 4))
@@ -146,13 +189,11 @@ def _banner(cubos, ancho, alto, titulo_px, destino, vertical=False):
     w = d.textlength("spin", font=ft)
     d.text((x0 + w, y), "py", font=ft, fill=ACENTO)
     y += int(titulo_px * 1.34)
-    d.text((x0, y), "Microestructuras espinodales ajustadas", font=fs,
-           fill=TINTA)
+    d.text((x0, y), T["lema1"], font=fs, fill=TINTA)
     y += int(titulo_px * 0.36)
-    d.text((x0, y), "a hueso trabecular de micro-CT", font=fs, fill=TINTA)
+    d.text((x0, y), T["lema2"], font=fs, fill=TINTA)
     y += int(titulo_px * 0.48)
-    d.text((x0, y), "morfometría  ·  ajuste  ·  homogeneización  ·  ensayo FE",
-           font=fp, fill=SUAVE)
+    d.text((x0, y), T["etapas"], font=fp, fill=SUAVE)
     y_fin_texto = y + int(titulo_px * 0.3)
 
     # Zona de los cubos: a la derecha del texto, o debajo.
@@ -186,13 +227,16 @@ def _banner(cubos, ancho, alto, titulo_px, destino, vertical=False):
     print("escrito", destino)
 
 
-def hacer_banner(voi):
-    cubos = _cubos(voi)
-    _banner(cubos, 1600, 440, 124, AQUI / "banner.png")
+def hacer_banner(voi, idioma="es"):
+    T, suf = TEXTOS[idioma], _sufijo(idioma)
+    cubos = _cubos(voi, T)
+    _banner(cubos, 1600, 440, 124, AQUI / f"banner{suf}.png", T)
     # 1280x640 es el tamano que pide GitHub para la vista previa social
     # (Settings -> Social preview). Se sube a mano: no vive en el repo.
-    _banner(cubos, 1280, 640, 96, AQUI / "social_preview.png",
+    _banner(cubos, 1280, 640, 96, AQUI / f"social_preview{suf}.png", T,
             vertical=True)
+    if idioma != "es":
+        return              # el giro no lleva texto: sirve para los dos
     # Giro de 360 grados de la estructura ajustada, para la cabecera.
     BW, _c, _i = generar_mascara(resolution=72, wave_number=15 * np.pi,
                                  num_waves=700, thetas=[15., 15., 60.],
@@ -246,7 +290,7 @@ def _a_pil(pix):
 class Grabador:
     """Conduce el visor y va sacando cuadros de la ventana."""
 
-    def __init__(self, voi):
+    def __init__(self, voi, idioma="es"):
         from PyQt5 import QtCore, QtWidgets
         import visor
         self.QtCore, self.QtWidgets = QtCore, QtWidgets
@@ -254,6 +298,10 @@ class Grabador:
         self.app = QtWidgets.QApplication.instance() or \
             QtWidgets.QApplication(sys.argv)
         v = visor.Visor()
+        # El Visor se construye siempre en espanol (captura ahi sus textos
+        # originales) y despues se traduce; sin guardar, para no cambiar el
+        # idioma con que el usuario abre la aplicacion.
+        v.cambiar_idioma(idioma, guardar=False)
         # Sin nadie delante: los dialogos de resultados no se abren y la
         # pregunta de orientacion se da por contestada (como en el informe
         # automatico, que hace exactamente esto).
@@ -265,6 +313,7 @@ class Grabador:
         v.raise_()
         v.activateWindow()
         self.v, self.voi = v, voi
+        self.T, self.suf = TEXTOS[idioma], _sufijo(idioma)
         self.scroll = v.findChild(QtWidgets.QScrollArea)
         self.cuadros, self.duraciones = [], []
         self.esperar(2.0)
@@ -313,7 +362,8 @@ class Grabador:
             self.foto(rotulo, ms=ms)
 
     def guardar(self, nombre):
-        _guardar_gif(self.cuadros, AQUI / nombre,
+        base, ext = nombre.rsplit(".", 1)
+        _guardar_gif(self.cuadros, AQUI / f"{base}{self.suf}.{ext}",
                      duraciones=self.duraciones)
         self.cuadros, self.duraciones = [], []
 
@@ -324,12 +374,13 @@ class Grabador:
         sl["resv"].fijar(56)
         self.esperar(0.5)
         self.ver(sl["dens"])
-        clases = [("Isótropo", 35, (90, 90, 90)),
-                  ("Columnar", 35, (15, 15, 0)),
-                  ("Lamelar", 40, (0, 0, 15)),
-                  ("Cúbico", 35, (15, 15, 15)),
-                  ("Ajustado al hueso", 30, (15, 15, 60)),
-                  ("Menos densidad", 22, (15, 15, 60))]
+        T = self.T
+        clases = [(T["isotropo"], 35, (90, 90, 90)),
+                  (T["columnar"], 35, (15, 15, 0)),
+                  (T["lamelar"], 40, (0, 0, 15)),
+                  (T["cubico"], 35, (15, 15, 15)),
+                  (T["ajustado"], 30, (15, 15, 60)),
+                  (T["menos"], 22, (15, 15, 60))]
         for nombre, dens, (tx, ty, tz) in clases:
             v._aplicando = True
             sl["dens"].fijar(dens)
@@ -344,52 +395,51 @@ class Grabador:
         self.guardar("01_explorar.gif")
 
     def ajustar(self):
-        v = self.v
+        v, T = self.v, self.T
         if not Path(self.voi).exists():
             print("sin VOI, se omite el GIF de ajuste:", self.voi)
             return False
         v.cargar_voi(str(self.voi))
         self.esperar(1.0)
-        self.foto("1 · VOI micro-CT cargado", ms=1400)
+        self.foto(T["cargado"], ms=1400)
         self.ver(v.btn_fit)
-        self.foto("2 · Ajustar al VOI", resalta=v.btn_fit, ms=1000)
+        self.foto(T["ajustar"], resalta=v.btn_fit, ms=1000)
         v.ajustar()
         t0 = time.time()
         while v.hilo is not None and v.hilo.isRunning():
             self.esperar(0.1)
             if time.time() - t0 > 4:
-                self.foto("2 · Ajustando…", ms=260)
+                self.foto(T["ajustando"], ms=260)
                 t0 = time.time()
         self.esperar(1.0)
         self.ver(v.btn_med)
         v.medir()
         self.esperar(0.5)
-        self.foto("3 · Candidato ajustado y medido", resalta=v.btn_med,
-                  ms=1800)
-        self.girar("3 · Candidato ajustado y medido", pasos=36, grados=10)
+        self.foto(T["medido"], resalta=v.btn_med, ms=1800)
+        self.girar(T["medido"], pasos=36, grados=10)
         self.guardar("02_ajuste.gif")
         return True
 
     def mecanica(self):
-        v = self.v
+        v, T = self.v, self.T
         v.spin_res_fe.setValue(40)
         v.cmb_eje_fe.setCurrentIndex(0)
         self.ver(v.btn_fe)
-        self.foto("4 · Ensayo de compresión en Z", resalta=v.btn_fe, ms=1000)
+        self.foto(T["ensayo"], resalta=v.btn_fe, ms=1000)
         v.ensayo_fe()
         self.esperar(0.5)
         v.cmb_color.setCurrentIndex(3)       # tension de von Mises
         self.esperar(1.5)
-        self.foto("5 · Tensión de von Mises", resalta=v.cmb_color, ms=1600)
-        self.girar("5 · Tensión de von Mises", pasos=36, grados=10)
+        self.foto(T["vm"], resalta=v.cmb_color, ms=1600)
+        self.girar(T["vm"], pasos=36, grados=10)
         self.guardar("03_mecanica.gif")
 
     def cerrar(self):
         self.v.close()
 
 
-def hacer_gif(voi):
-    g = Grabador(voi)
+def hacer_gif(voi, idioma="es"):
+    g = Grabador(voi, idioma)
     try:
         g.explorar()
         if g.ajustar():
@@ -403,12 +453,13 @@ def main():
     ap.add_argument("--banner", action="store_true")
     ap.add_argument("--gif", action="store_true")
     ap.add_argument("--voi", default=str(VOI_DEFECTO))
+    ap.add_argument("--idioma", choices=sorted(TEXTOS), default="es")
     a = ap.parse_args()
     todo = not (a.banner or a.gif)
     if a.banner or todo:
-        hacer_banner(a.voi)
+        hacer_banner(a.voi, a.idioma)
     if a.gif or todo:
-        hacer_gif(a.voi)
+        hacer_gif(a.voi, a.idioma)
 
 
 if __name__ == "__main__":
