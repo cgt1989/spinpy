@@ -325,40 +325,183 @@ implementaciones.** Mover el umbral un ±15 % mueve Tb.Th un 62 %, frente al
 
 ## Comparación con FEBio
 
-El ensayo de compresión de spinpy, exportado a FEBio 4.5 y resuelto allí, sobre
-tres VOIs de hueso (BV/TV 0,28 a 0,77, a 32³ y 48³) y un espinodoide ajustado:
+Cada análisis mecánico de la aplicación se ha resuelto otra vez, de forma
+independiente, con **FEBio 4.5** (Maas et al. 2012), el programa de elementos
+finitos de referencia en biomecánica. Dos campañas:
 
-- **El cálculo coincide en siete u ocho cifras.** Módulo aparente, campo de
-  desplazamientos, tensiones, p99 de von Mises en la capa superficial y carga
-  de fallo de Pistoia difieren entre 10⁻⁶ y 10⁻¹⁰, dentro de tolerancias
-  declaradas antes de medir. Los dos programas plantean el mismo problema
-  discreto y lo resuelven con métodos distintos (multigrid frente a
-  factorización directa).
-- **FEBio es no lineal geométricamente y spinpy es lineal**, y eso tiene
-  consecuencias en el hueso más poroso. En los VOIs de BV/TV 0,55 y 0,77 la
-  respuesta no lineal a 1 MPa se aparta un 0,06 % de la lineal. En el de
-  BV/TV 0,28 se aparta un 16 % a 32³ y un 48 % a 48³. Los tres VOIs son de
-  un solo espécimen (el sesamoideo H4): es un caso medido, no una tasa
-  general.
-- **La causa es la forma de cargar, no la estructura.** Con fuerza impuesta,
-  las trabéculas cortadas por la cara cargada del VOI trabajan como
-  voladizos. Con un plato rígido el desvío baja al 0,8 %, y en ese VOI el
-  propio módulo lineal es 2,1 veces mayor. En VOIs muy porosos, el módulo
-  aparente y la carga de fallo deben citarse declarando la condición de
-  carga.
+| | estructuras | qué se contrastó | informe |
+|---|---|---|---|
+| **H4 equino** | 3 VOIs (BV/TV 0,28–0,77) a 32³ y 48³ + un espinodoide | el ensayo de compresión | [`comparativa_febio/INFORME.pdf`](comparativa_febio/INFORME.pdf) |
+| **Porcino V1** | el VOI y **los dos candidatos ajustados a él** en una misma sesión (spinodoide y *dual-lattice*) | **todos** los análisis mecánicos de la app | [`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf) |
 
-Lo que esta comparación **no** demuestra: coincidir con FEBio prueba que
-spinpy resuelve bien el problema que plantea, no que ese problema represente
-el hueso real. La malla de vóxeles, el tejido homogéneo de 20 GPa y las
-condiciones de contorno son supuestos que los dos programas comparten; eso
-solo lo contrasta un ensayo físico.
+### El mismo problema, dos programas
 
-`tests/test_25_febio.py` reproduce la comparación en pequeño y se salta si
-FEBio no está instalado.
+Para que la comparación mida algo, los dos programas tienen que resolver
+**el mismo problema discreto**, no uno parecido. El exportador de la app
+(`escribe.escribir_febio`) escribe la misma malla —un hexaedro por vóxel
+portante, nodo a nodo—, el mismo apoyo, la misma carga sobre la sección bruta
+y el mismo material; FEBio la resuelve con Newton y factorización directa
+(Pardiso), y spinpy con multigrid algebraico y gradiente conjugado. Las
+cantidades derivadas (p99 de von Mises en la capa superficial, factor de
+Pistoia) se calculan con las **mismas funciones de spinpy** sobre los dos
+campos.
+
+FEBio es no lineal geométricamente; spinpy, lineal. El problema lineal se
+contrasta extrapolando FEBio a carga nula, `u = 2·u(1 kPa) − u(2 kPa)`, que
+cancela el término no lineal de primer orden. Y se aprovecha la diferencia:
+FEBio se corre además **a la carga del ensayo y a la carga de fallo**, lo que
+mide hasta dónde vale la hipótesis lineal de la app.
+
+### VOI porcino y sus dos candidatos: todos los análisis
+
+Hueso subcondral del astrágalo porcino (espécimen V1 de Koria, Mengoni y
+Brockett 2020, [doi:10.5518/787](https://doi.org/10.5518/787), CC BY 4.0;
+188³ vóxeles de 16 µm, BV/TV 0,40). Las tres estructuras son **las de la
+sesión del informe automático**: el VOI se comprueba por SHA-256 y cada
+candidato se regenera desde `reproduccion.json` y se exige su huella bit a
+bit.
+
+| análisis de la app | configuración | peor diferencia spinpy/FEBio |
+|---|---|---|
+| Ensayo de compresión + Pistoia | 40³, deslizante, 20 GPa, 1 MPa | 4·10⁻⁸ |
+| Análisis comparado (Tapia et al.) | 40³, empotrado, 18 GPa, 100 N | 4·10⁻⁸ |
+| Tensor elástico periódico | 32³, 6 casos de carga | 2·10⁻¹⁰ |
+| Convergencia de malla | 22, 28, 34 y 40³ | 2·10⁻⁹ |
+| Fallo progresivo | 32³, 10 pasos, bucle completo con FEBio como solver | **0 vóxeles distintos** en 33 pasos |
+
+<p align="center"><img src="comparativa_febio/porcino/figs/es/fig_coincidencia.png" alt="Diferencia relativa entre spinpy y FEBio en cada magnitud y análisis" width="80%"></p>
+
+Todas las diferencias están entre 10⁻¹¹ y 10⁻⁷, dentro de las tolerancias
+declaradas antes de la primera comparación con FEBio. Tres detalles que hacen
+el resultado más fuerte de lo que parece:
+
+- **El tensor periódico también.** FEBio no trae condiciones periódicas para
+  una malla de vóxeles; se escribieron con sus restricciones lineales
+  (`u(x') = u(x) + E·(x' − x)`, eliminadas del sistema, no penalizadas), y la
+  rigidez sale en FEBio por **otra vía** —promedio de volumen de la tensión—
+  que en spinpy —energía de la celda—.
+- **El fallo progresivo se repitió entero.** No se comparó paso a paso sobre
+  el daño de spinpy: FEBio decide en cada paso qué tejido rompe a partir de su
+  propio campo y construye el siguiente paso sobre su propio daño. En las tres
+  estructuras y los 33 pasos, los dos bucles rompen **exactamente los mismos
+  elementos**, aunque la regla de rotura compara cada elemento con un
+  percentil y un error pequeño en el lugar equivocado habría separado las dos
+  historias para siempre.
+- **La sesión se reproduce.** Las estructuras regeneradas dan los números que
+  guardó el informe automático con diferencias ≤ 3·10⁻¹¹.
+
+#### Los mapas de color
+
+Los mapas se pintan con la misma receta que la figura 8 del informe de la app
+y con **una sola escala de color** para app y FEBio. Columnas: la app; FEBio
+lineal; su diferencia (escala logarítmica); FEBio **no lineal** a la carga del
+ensayo; y su diferencia con la app.
+
+<p align="center"><img src="comparativa_febio/porcino/figs/es/mapa_vm_comparado.png" alt="Von Mises de la app y de FEBio en el VOI, el spinodoide y el dual-lattice, protocolo de Tapia, 100 N" width="100%"></p>
+
+Las dos primeras columnas son la misma imagen: la diferencia no pasa de
+3·10⁻⁷ del p99 en ningún elemento (el techo lo pone el guardado en `float32`;
+en doble precisión es 2·10⁻⁸). La quinta es la única que cambia: allí FEBio
+deja que la pieza se deforme de verdad, y lo que aparece en rojo son
+trabéculas de la cara cargada del spinodoide que se doblan más de lo que un
+cálculo lineal predice.
+
+<p align="center"><img src="comparativa_febio/porcino/figs/es/mapa_desp_comparado.png" alt="Deformación total de la app y de FEBio en las tres estructuras" width="100%"></p>
+
+<p align="center">
+  <img src="comparativa_febio/porcino/figs/es/fig_paridad_comparado.png" alt="Von Mises por elemento, spinpy frente a FEBio" width="100%">
+  <img src="comparativa_febio/porcino/figs/es/fig_colas_superficie.png" alt="Distribución de von Mises en la capa superficial, spinpy y FEBio" width="100%">
+</p>
+
+#### Tensor, convergencia y fallo progresivo
+
+<p align="center"><img src="comparativa_febio/porcino/figs/es/fig_tensor.png" alt="Constantes de ingeniería del tensor periódico, spinpy y FEBio" width="85%"></p>
+
+<p align="center">
+  <img src="comparativa_febio/porcino/figs/es/fig_convergencia.png" alt="Convergencia de malla de E_app en spinpy y FEBio" width="55%">
+</p>
+<p align="center">
+  <img src="comparativa_febio/porcino/figs/es/fig_fallo.png" alt="Fallo progresivo con spinpy y con FEBio como solver" width="100%">
+</p>
+
+#### Hasta dónde vale lo lineal
+
+| estructura | E_app de la app (MPa) | desvío no lineal a 1 MPa | carga de fallo de Pistoia (MPa) | desvío no lineal a esa carga | E_app con plato rígido / con fuerza |
+|---|---|---|---|---|---|
+| VOI | 4021 | −0,07 % | 21,8 | −1,6 % | 1,06 |
+| Spinodoide | 1725 | −0,70 % | 12,5 | **−8,0 %** | **1,69** |
+| Dual-lattice | 2699 | −0,22 % | 15,4 | −3,4 % | 1,23 |
+
+<p align="center"><img src="comparativa_febio/porcino/figs/es/fig_rigidez.png" alt="Módulo aparente en spinpy y FEBio, lineal, no lineal y con plato rígido" width="85%"></p>
+
+- **En el VOI, el ensayo lineal de la app vale hasta su carga de fallo**
+  (−1,6 %; el criterio de Pistoia se cumple al 2,07 % del tejido en lugar del
+  2 %).
+- **En el spinodoide, no del todo.** Cerca de su carga de fallo pierde un 8 %
+  de rigidez y su p99 de superficie sube un 8,7 %; con los 100 N del protocolo
+  de Tapia (11 MPa sobre 3 mm de lado), el p99 lineal queda un 7,7 % corto.
+- **La causa es la condición de carga, igual que en H4.** Con fuerza impuesta
+  sobre el hueso del techo, las trabéculas cortadas por la cara cargada
+  trabajan como voladizos. Un plato rígido reduce el desvío del spinodoide a
+  −2,6 % y sube su módulo lineal un 69 %.
+
+#### Lo que la comparación dice de los candidatos
+
+Con los dos programas de acuerdo, las diferencias entre estructuras son de
+las estructuras. Con BV/TV igualado a menos del 1 %, **el *dual-lattice* tiene
+0,67 veces la rigidez del VOI y el spinodoide 0,43**; el spinodoide duplica el
+p99 de superficie del hueso y pierde el 78 % de su rigidez al romperse el
+primer 2 % del tejido (el VOI, el 24 %). Y un aviso que la app no daba: **los
+candidatos no convergen en malla como el VOI** —entre 34³ y 40³ el VOI se
+mueve un −0,8 %, el *dual-lattice* un −1,9 % y el spinodoide un −5,5 %—, así
+que su rigidez a 40³ debe citarse con reservas.
+
+### VOIs equinos de H4
+
+El ensayo de compresión sobre tres VOIs de hueso (BV/TV 0,28 a 0,77, a 32³ y
+48³) y un espinodoide ajustado:
+
+- **El cálculo coincide en siete u ocho cifras**, dentro de tolerancias
+  declaradas antes de medir.
+- **En el VOI más poroso (BV/TV 0,28) la respuesta no lineal a 1 MPa se
+  aparta un 16 % a 32³ y un 48 % a 48³**; en los de BV/TV 0,55 y 0,77, un
+  0,06 %. Con un plato rígido el desvío baja al 0,8 %, y el propio módulo
+  lineal es 2,1 veces mayor. Los tres VOIs son de un solo espécimen: es un
+  caso medido, no una tasa general. En VOIs muy porosos, el módulo aparente y
+  la carga de fallo deben citarse declarando la condición de carga.
+
+### Lo que esta comparación no demuestra
+
+Coincidir con FEBio prueba que spinpy **resuelve bien los problemas que
+plantea**, no que esos problemas representen el hueso real. La malla de
+vóxeles, el tejido homogéneo e isótropo, las condiciones de contorno y el
+criterio de Pistoia son supuestos que los dos programas comparten; eso solo lo
+contrasta un ensayo físico.
+
+### Reproducir
+
+```
+python comparativa_febio/comparar_febio.py          # H4, ~90 min
+python comparativa_febio/porcino/validar_porcino.py # porcino, todos los análisis, ~2 h
+python comparativa_febio/porcino/figuras_porcino.py # figuras, solo lee resultados
+python -m pytest tests/test_25_febio.py             # versión pequeña, ~10 s
+```
+
+Necesita FEBio 4.5 (FEBio Studio 2). Los resultados quedan en
+`comparativa_febio/**/resultados/*.jsonl` con su bloque de procedencia; los
+`.feb` y las salidas de FEBio se regeneran y no se versionan.
+`tests/test_25_febio.py` se salta si FEBio no está instalado.
+
+> Maas, S. A., Ellis, B. J., Ateshian, G. A., & Weiss, J. A. (2012). FEBio:
+> finite elements for biomechanics. *Journal of Biomechanical Engineering,
+> 134*(1), 011005. https://doi.org/10.1115/1.4005694
 
 ---
 
 ## Documentación
+
+La validación mecánica frente a FEBio está en
+[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf).
 
 `docs/MANUAL_spinpy.pdf` documenta cada módulo y cada función, y se genera
 del propio código (`python docs/generar_manual.py`). Los docstrings de este

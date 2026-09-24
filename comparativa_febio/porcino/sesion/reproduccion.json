@@ -1,0 +1,184 @@
+{
+  "formato": "spinpy/reproduccion",
+  "version": 1,
+  "procedencia": {
+    "spinpy": "0.2.0",
+    "python": "3.13.5",
+    "numpy": "2.1.3",
+    "fecha": "2026-09-23T15:13:40"
+  },
+  "voi": {
+    "nombre": "VOI_V1.mat",
+    "ruta": "C:\\Users\\carlo\\OneDrive\\Escritorio\\VOIs Caballos\\Publico_Porcino\\VOI_V1.mat",
+    "sha256": "71e53d6b25e40992368d77df74827a030aab826d2ea175bb9637b3c1a0efe2e4",
+    "forma": [
+      188,
+      188,
+      188
+    ],
+    "spacing_mm": [
+      0.016,
+      0.016,
+      0.016
+    ]
+  },
+  "ajustes": {
+    "spinodoide": {
+      "parametros": {
+        "familia": "spinodoide",
+        "densidad": 0.39837391522109744,
+        "wave_number_pi": 15.0,
+        "wave_number_rad": 47.12388980384689,
+        "num_waves": 500,
+        "thetas": [
+          15.0,
+          30.0,
+          50.0
+        ],
+        "thetas_degenerados": false,
+        "R": [
+          [
+            -0.253932923819189,
+            0.9630701678397392,
+            0.08952051171532786
+          ],
+          [
+            -0.12297142437534353,
+            -0.12394933734697705,
+            0.9846393200346731
+          ],
+          [
+            0.9593727633134771,
+            0.2390238766072993,
+            0.1499049279506225
+          ]
+        ],
+        "R_clasica": [
+          [
+            -0.8598200087895991,
+            0.4464676426243875,
+            -0.24774219780747064
+          ],
+          [
+            -0.42901420129164664,
+            -0.8947997787714423,
+            -0.12361298880242438
+          ],
+          [
+            -0.27686886349884887,
+            0.0,
+            0.9609077127512589
+          ]
+        ],
+        "euler_deg": [
+          0.0,
+          16.073417236414702,
+          -153.48272358792568
+        ],
+        "resolucion": 96,
+        "spacing_mm": 0.03133333333333334,
+        "esquema": "rechazo",
+        "semilla": 20260720,
+        "rho_max": 0.95
+      },
+      "procedencia": {
+        "formato": "spinpy/resultado",
+        "version_formato": 2,
+        "spinpy": "0.2.0",
+        "fecha": "2026-09-23T14:45:52",
+        "python": "3.13.5",
+        "numpy": "2.1.3",
+        "familia": "spinodoide",
+        "semilla": 20260720,
+        "esquema": "rechazo",
+        "wave_number_pi": 15.0,
+        "wave_number_rad": 47.12388980384689
+      },
+      "sha256_mascara": "5023bb95cb246e58e08999dd99efbab58610a5d0c90f7bcee7aa992ff3749e4b",
+      "forma": [
+        96,
+        96,
+        96
+      ],
+      "BVTV": 0.40146439163773145
+    },
+    "dual-lattice": {
+      "parametros": {
+        "familia": "dual-lattice",
+        "densidad": 0.39837391522109744,
+        "celdas": 4.14,
+        "estiramiento": [
+          1.5,
+          1.0,
+          2.5
+        ],
+        "irregularidad": 0.5,
+        "R": [
+          [
+            -0.9580127143296489,
+            -0.09461979687735181,
+            -0.2706635055223114
+          ],
+          [
+            0.14061254628132333,
+            -0.9777125958709947,
+            -0.15590443131445178
+          ],
+          [
+            -0.24987947296850999,
+            -0.18741711211649953,
+            0.9499658283722056
+          ]
+        ],
+        "R_clasica": [
+          [
+            -0.8598200087895991,
+            0.4464676426243875,
+            -0.24774219780747064
+          ],
+          [
+            -0.42901420129164664,
+            -0.8947997787714423,
+            -0.12361298880242438
+          ],
+          [
+            -0.27686886349884887,
+            0.0,
+            0.9609077127512589
+          ]
+        ],
+        "euler_deg": [
+          0.0,
+          16.073417236414702,
+          -153.48272358792568
+        ],
+        "resolucion": 96,
+        "spacing_mm": 0.03133333333333334,
+        "semilla": 20260720,
+        "rho_max": 0.95,
+        "peso_da2": 1.0,
+        "espesor_puntal_mm": 0.22230420946001614
+      },
+      "procedencia": {
+        "formato": "spinpy/resultado",
+        "version_formato": 2,
+        "spinpy": "0.2.0",
+        "fecha": "2026-09-23T14:59:37",
+        "python": "3.13.5",
+        "numpy": "2.1.3",
+        "familia": "dual-lattice",
+        "semilla": 20260720,
+        "esquema": "no_aplica",
+        "wave_number_pi": null,
+        "wave_number_rad": null
+      },
+      "sha256_mascara": "5febd67d7596b1b3c4dccd63276e6d288518ee636e8b599fb6e561db2b18baff",
+      "forma": [
+        96,
+        96,
+        96
+      ],
+      "BVTV": 0.3983742042824074
+    }
+  }
+}

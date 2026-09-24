@@ -16,10 +16,16 @@ LO QUE SE VERIFICA
       Se extrapola porque FEBio es no lineal geometricamente: con una sola
       carga pequena, los voladizos del techo dejan un desvio proporcional a
       la carga (3e-4 a 1 kPa en el VOI proximal de H4).
+  (3) Con FEBio: el tensor periodico de `elastic.homogeneizar` sobre una
+      giroide de 6^3, con la celda escrita por restricciones lineales
+      (`comparativa_febio/porcino/homog_febio.py`). Anadido con la validacion
+      del VOI porcino (`comparativa_febio/porcino/INFORME.md`).
 
 TOLERANCIAS DECLARADAS ANTES DE MEDIR (las de PREDICCIONES.md)
   (1) conteos exactos; fuerza 1e-12 relativa (suma en coma flotante).
   (2) E_app 1e-6, desplazamientos 1e-5 relativo al maximo.
+  (3) la de E_app, 1e-6 del maximo de C: PREDICCIONES.md no cubria el tensor
+      y se tomo la mas estricta de las suyas, antes de correr esta prueba.
 """
 import subprocess
 import xml.etree.ElementTree as ET
@@ -131,3 +137,50 @@ def test_febio_resuelve_lo_mismo(registro, tmp_path):
                     du, "1e-5 del maximo", du < 1e-5)
     assert dE < 1e-6
     assert du < 1e-5
+
+
+@pytest.mark.skipif(not FEBIO.exists(), reason="FEBio 4 no esta instalado")
+def test_febio_homogeneiza_lo_mismo(registro, tmp_path):
+    """(3) El tensor periodico de `elastic.homogeneizar` frente a FEBio.
+
+    La celda periodica se escribe con las restricciones lineales de FEBio
+    (`comparativa_febio/porcino/homog_febio.py`): cada nodo de una cara
+    maxima depende de su imagen modulo n con el salto E.(x' - x). FEBio da
+    la rigidez por el promedio de volumen de la tension, spinpy por la
+    energia de la celda: dos vias distintas al mismo C. Giroide de 6^3 con
+    el vacio a 1e-6 E_s, como en la app; tolerancia la de E_app, 1e-6.
+    Medido en el VOI porcino a 32^3: ver comparativa_febio/porcino/INFORME.md.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]
+                           / "comparativa_febio" / "porcino"))
+    from homog_febio import escribir_periodico
+    from spinpy.elastic import homogeneizar
+
+    BW = _giroide(6)
+    sp = np.array([0.05, 0.05, 0.05])
+    Cs, info = homogeneizar(BW, 20e9, 0.3, vox_size=sp)
+    C = np.zeros((6, 6))
+    for j in range(6):
+        cols = []
+        for a in (1e-5, 2e-5):
+            e = np.zeros(6)
+            e[j] = a
+            ruta = tmp_path / f"h{j}_{a:g}.feb"
+            escribir_periodico(BW, sp, ruta, e)
+            r = subprocess.run([str(FEBIO), "-i", ruta.name, "-silent"],
+                               cwd=tmp_path, stdin=subprocess.DEVNULL,
+                               capture_output=True)
+            assert r.returncode == 0
+            txt = ruta.with_name(ruta.stem + "_s.txt").read_text()
+            ultimo = txt.split("*Step")[-1]
+            s = np.array([l.split() for l in ultimo.splitlines()
+                          if l.strip() and not l.startswith("*")
+                          and "=" not in l], float)[:, 1:]
+            cols.append(s.mean(axis=0) * 1e6 / a)
+        C[:, j] = 2 * cols[0] - cols[1]
+    dC = np.abs(C - Cs).max() / np.abs(Cs).max()
+    registro.anotar(BLOQUE, "tensor periodico FEBio = spinpy", REF,
+                    0.0, dC, dC, "1e-6 del maximo de C", dC < 1e-6)
+    assert info["ok"]
+    assert dC < 1e-6
