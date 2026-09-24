@@ -133,8 +133,8 @@ cambia nada, porque el problema está en el techo.
 ### 3.3 La prueba: un plato rígido
 
 Si la explicación es correcta, un plato rígido sin fricción, que impone el mismo
-desplazamiento a todo el techo, debe quitar el ablandamiento. **La predicción
-se escribió en `plato.py` antes de correrlo: menos del 2 % a 1 MPa.**
+desplazamiento a todo el techo, debe quitar el ablandamiento. La predicción
+se escribió en `plato.py` antes de correrlo: **menos del 2 % a 1 MPa.**
 
 | caso | fuerza impuesta (app) | plato rígido | plato a la carga de Pistoia |
 |---|---|---|---|

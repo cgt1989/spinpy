@@ -87,7 +87,8 @@ def fig1(filas):
         Line2D([], [], marker="o", ls="", color=C_FUERZA, label="un caso"),
         Line2D([], [], color=TINTA, linewidth=1.4,
                label="tolerancia predicha")],
-        frameon=False, fontsize=7.5, loc="lower left")
+        frameon=False, fontsize=7.5, loc="upper center",
+        bbox_to_anchor=(0.5, -0.12), ncol=2)
     _rejilla(ax)
     _guardar(fig, "fig1_coincidencia_lineal.png")
 
@@ -126,7 +127,9 @@ def fig2(filas, plato):
          Line2D([], [], marker="o", ls="", color=C_PLATO, label="plato rígido"),
          Line2D([], [], marker="o", ls="", color=TINTA_2, label="32³"),
          Line2D([], [], marker="s", ls="", color=TINTA_2, label="48³")]
-    ax.legend(handles=h, frameon=False, fontsize=7.5, loc="upper right")
+    # Leyenda fuera de los ejes: dentro podia tapar puntos.
+    ax.legend(handles=h, frameon=False, fontsize=7.5, loc="upper center",
+              bbox_to_anchor=(0.5, -0.18), ncol=4)
     _rejilla(ax)
     _guardar(fig, "fig2_no_lineal_bvtv.png")
 
@@ -145,8 +148,10 @@ def fig3(barrido, plato):
             ax.plot(s, y, color=color, linewidth=2, marker="o", markersize=4,
                     label=nombre)
         ax.axvline(1.0, color=EJE, linewidth=1, ls="--")
-        ax.text(0.95, 0.60, "carga de la app", transform=ax.get_xaxis_transform(),
-                fontsize=6.5, color=TINTA_2, rotation=90, ha="right")
+        # Rotulos de las lineas de referencia ENCIMA de los ejes: dentro,
+        # "carga de la app" cruzaba la curva de fuerza impuesta a 32^3.
+        ax.text(1.0, 1.01, "carga de la app ", transform=ax.get_xaxis_transform(),
+                fontsize=6.5, color=TINTA_2, ha="right", va="bottom")
         for x, v in zip(s, b["fuerza"]):
             if v is None:
                 ax.text(x, 0.35, "no converge", transform=ax.get_xaxis_transform(),
@@ -155,15 +160,17 @@ def fig3(barrido, plato):
         sf = fallo.get(b["caso"])
         if sf:
             ax.axvline(sf, color=TINTA_2, linewidth=1, ls=":")
-            ax.text(sf * 0.93, 0.60, "fallo Pistoia",
+            ax.text(sf, 1.01, "fallo Pistoia",
                     transform=ax.get_xaxis_transform(), fontsize=6.5,
-                    color=TINTA_2, rotation=90, ha="right")
+                    color=TINTA_2, ha="right", va="bottom")
         ax.set_xscale("log")
-        ax.set_title(b["caso"].replace("_", " ") + "³", fontsize=9)
+        ax.set_title(b["caso"].replace("_", " ") + "³", fontsize=9, pad=22)
         ax.set_xlabel("tensión aparente (MPa)")
         _rejilla(ax)
     axs[0][0].set_ylabel("E no lineal / E lineal")
-    axs[0][0].legend(frameon=False, fontsize=7.5, loc="lower left")
+    h, l = axs[0][0].get_legend_handles_labels()
+    fig.legend(h, l, frameon=False, fontsize=7.5, loc="upper center",
+               bbox_to_anchor=(0.5, -0.02), ncol=2)
     _guardar(fig, "fig3_barrido_carga.png")
 
 

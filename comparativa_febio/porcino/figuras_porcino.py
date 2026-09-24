@@ -36,6 +36,7 @@ DIR_CAMPOS = AQUI / "campos"
 DIR_CORR = AQUI / "corridas"
 DIR_FIGS = AQUI / "figs"
 DIR_REND = AQUI / "figs" / "render"
+N_CONV = (22, 28, 34, 40)
 ORDEN = F.ORDEN
 COLOR = F.COLOR
 DPI = 300
@@ -115,6 +116,18 @@ def leer(analisis):
     for f in filas:
         ult[clave(f)] = f
     return list(ult.values())
+
+
+def _leyenda_abajo(fig, handles, labels, ncol, dy=0.0):
+    """Leyenda FUERA de los ejes, centrada bajo la figura.
+
+    Dentro de los ejes tapaba datos (tolerancias en la figura de coincidencia,
+    la serie del dual-lattice en la de convergencia). `bbox_inches="tight"` al
+    guardar amplia el lienzo para que quepa.
+    """
+    fig.legend(handles, labels, loc="upper center", ncol=ncol,
+               bbox_to_anchor=(0.5, dy), fontsize=6.5, frameon=False,
+               handlelength=1.8, columnspacing=1.4)
 
 
 def _guardar(fig, destino):
@@ -332,14 +345,29 @@ def fig_coincidencia(idioma):
     grupos = [g for g in ("compresion", "comparado", "homogeneizacion",
                           "convergencia", "fallo")
               if any(r[0] == g for r in filas)]
-    etiquetas = []
+    # Cada grupo lleva su PROPIA fila de titulo: antes el titulo se escribia
+    # a media fila de la primera metrica y se montaba sobre la ultima
+    # etiqueta del grupo anterior.
+    filas_y = []                       # ("titulo", g) o ("metrica", g, m)
     for g in grupos:
+        filas_y.append(("titulo", g))
         for m in dict.fromkeys(r[1] for r in filas if r[0] == g):
-            etiquetas.append((g, m))
-    fig = F._figura(6.6, 0.24 * len(etiquetas) + 1.2)
+            filas_y.append(("metrica", g, m))
+    n = len(filas_y)
+    fig = F._figura(6.6, 0.22 * n + 0.9)
     ax = fig.add_axes([0.36, 0.08, 0.6, 0.86])
     F._estilo(ax, rejilla="x")
-    y = {e: len(etiquetas) - 1 - i for i, e in enumerate(etiquetas)}
+    y = {}
+    for i, f in enumerate(filas_y):
+        yy = n - 1 - i
+        if f[0] == "titulo":
+            ax.text(-0.55, yy, t[f[1]], transform=ax.get_yaxis_transform(),
+                    fontsize=7, color=F.TINTA, fontweight="bold", ha="left",
+                    va="center")
+            if i:
+                ax.axhline(yy + 0.5, color=F.EJE, lw=0.5)
+        else:
+            y[(f[1], f[2])] = yy
     desp = {"voi": -0.2, "spinodoide": 0.0, "dual-lattice": 0.2}
     for g, m, est, v in filas:
         ax.plot(max(v, 1e-16), y[(g, m)] + desp[est], "o", ms=4,
@@ -348,22 +376,15 @@ def fig_coincidencia(idioma):
         ax.plot([TOL[m]] * 2, [yy - 0.35, yy + 0.35], color=F.TINTA, lw=1.2)
     ax.set_xscale("log")
     ax.set_xlim(1e-14, 1e-3)
+    ax.set_ylim(-0.7, n - 0.4)
     ax.set_yticks(list(y.values()))
     ax.set_yticklabels([t["metricas"][m] for g, m in y], fontsize=7)
-    prev = None
-    for (g, m), yy in sorted(y.items(), key=lambda kv: -kv[1]):
-        if g != prev:
-            ax.text(-0.52, yy + 0.45, t[g], transform=ax.get_yaxis_transform(),
-                    fontsize=7, color=F.TINTA, fontweight="bold", ha="left")
-            if prev is not None:
-                ax.axhline(yy + 0.5, color=F.EJE, lw=0.5)
-            prev = g
     ax.set_xlabel(t["dif_eje"], fontsize=7.5, color=F.TINTA_2)
     from matplotlib.lines import Line2D
-    ax.legend(handles=[Line2D([], [], marker="o", ls="", color=COLOR[e],
-                              label=nombre(e, t)) for e in ORDEN]
-              + [Line2D([], [], color=F.TINTA, label=t["tol"])],
-              fontsize=6.5, frameon=False, loc="lower right")
+    hs = ([Line2D([], [], marker="o", ls="", color=COLOR[e]) for e in ORDEN]
+          + [Line2D([], [], color=F.TINTA)])
+    _leyenda_abajo(fig, hs, [nombre(e, t) for e in ORDEN] + [t["tol"]], 4,
+                   dy=-0.01)
     return _guardar(fig, DIR_FIGS / idioma / "fig_coincidencia")
 
 
@@ -430,9 +451,9 @@ def fig_colas(idioma):
         ax.set_xlabel(t["vm"], fontsize=7, color=F.TINTA_2)
         ax.set_ylabel(t["excedencia"], fontsize=7, color=F.TINTA_2)
         ax.set_title(t[an], fontsize=7.5, color=F.TINTA)
-        if j == len(ans) - 1:
-            ax.legend(fontsize=5.5, frameon=False, ncol=1)
     fig.tight_layout()
+    h, l = fig.axes[0].get_legend_handles_labels()
+    _leyenda_abajo(fig, h, l, 3)
     return _guardar(fig, DIR_FIGS / idioma / "fig_colas_superficie")
 
 
@@ -472,10 +493,15 @@ def fig_rigidez(idioma):
                            fontsize=7)
         ax.set_ylabel(t["E_app"], fontsize=7, color=F.TINTA_2)
         ax.set_title(t[an], fontsize=7.5, color=F.TINTA)
-        leg = ax.legend(fontsize=5.5, frameon=False)
-        for h in leg.legend_handles:
-            h.set_facecolor("#888888")
     fig.tight_layout()
+    # Una sola leyenda, con las series del panel mas completo; en gris,
+    # porque el color ya es la estructura.
+    from matplotlib.patches import Patch
+    h, l = fig.axes[0].get_legend_handles_labels()
+    gris = [Patch(facecolor="#888888", alpha=x.patches[0].get_alpha(),
+                  hatch=x.patches[0].get_hatch(), edgecolor="white")
+            for x in h]
+    _leyenda_abajo(fig, gris, l, len(l))
     return _guardar(fig, DIR_FIGS / idioma / "fig_rigidez")
 
 
@@ -503,7 +529,8 @@ def fig_tensor(idioma):
     ax.set_xticklabels(["E_x", "E_y", "E_z", "G_yz", "G_xz", "G_xy"],
                        fontsize=7)
     ax.set_ylabel(t["const"], fontsize=7, color=F.TINTA_2)
-    ax.legend(fontsize=6, frameon=False)
+    ax.legend(fontsize=6, frameon=False, loc="upper center",
+              bbox_to_anchor=(0.5, -0.12), ncol=4)
     ax.set_title(t["homogeneizacion"], fontsize=7.5, color=F.TINTA)
     # Mapa de |ΔC| / max|C| del VOI
     f = filas[0]
@@ -554,7 +581,13 @@ def fig_convergencia(idioma):
     ax.set_xlabel(t["n"], fontsize=7, color=F.TINTA_2)
     ax.set_ylabel(t["E_app"], fontsize=7, color=F.TINTA_2)
     ax.set_title(t["convergencia"], fontsize=7.5, color=F.TINTA)
-    ax.legend(fontsize=5.5, frameon=False, ncol=2)
+    ax.set_xticks(list(N_CONV))
+    fig.tight_layout()
+    h, l = ax.get_legend_handles_labels()
+    # la marca de la sesion al final: asi cada columna es una estructura
+    ses = [i for i, x in enumerate(l) if x.startswith(("sesión", "app session"))]
+    orden = [i for i in range(len(l)) if i not in ses] + ses[:1]
+    _leyenda_abajo(fig, [h[i] for i in orden], [l[i] for i in orden], 4)
     return _guardar(fig, DIR_FIGS / idioma / "fig_convergencia")
 
 
@@ -588,9 +621,10 @@ def fig_fallo(idioma):
     axs[1].set_ylabel(t["F_fallo"], fontsize=7, color=F.TINTA_2)
     for ax in axs:
         ax.set_xlabel(t["paso"], fontsize=7, color=F.TINTA_2)
-    axs[0].legend(fontsize=5.5, frameon=False, ncol=1)
     fig.suptitle(t["fallo"], fontsize=7.5, color=F.TINTA)
     fig.tight_layout()
+    h, l = axs[0].get_legend_handles_labels()
+    _leyenda_abajo(fig, h, l, 3)
     return _guardar(fig, DIR_FIGS / idioma / "fig_fallo")
 
 

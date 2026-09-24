@@ -429,7 +429,7 @@ el tensor (promedio de tensiones), no una verdad.
 
 ## 8. Incidencias
 
-- **FEBio 4.5.0 se cae sin `plotfile`.** Un archivo cuya sección `Output`
+- **FEBio 4.5.0 se cae sin plotfile.** Un archivo cuya sección `Output`
   solo tiene `logfile` termina con violación de acceso (0xC0000005), con o
   sin restricciones lineales. `homog_febio.py` escribe siempre un plotfile
   mínimo, y el comentario lo explica.
