@@ -230,6 +230,117 @@ def texto(s, idioma="es"):
     return f"~{h} h {r:02d} min" if r else f"~{h} h"
 
 
+# ---------------------------------------------------------------------------
+# FEBio (FEM automatico y «Analizar con FEBio…»)
+# ---------------------------------------------------------------------------
+#
+# PROVISIONAL. Medido el 2026-09-24 en el equipo de desarrollo CON LA CPU AL
+# 100 % por procesos ajenos y FEBio limitado a 4 hilos
+# (`comparativa_febio_tet/resultados/cavidad.jsonl`, cubo con cavidad
+# esferica). Los tiempos por corrida se apartan del ajuste hasta un 70 %; las
+# memorias, un 5 % (hex8) y un 29 % (TET10). Hay que recalibrar con el equipo
+# tranquilo (`comparativa_febio_tet/calibrar_tiempos.py`); mientras, el factor
+# por equipo (`guardar_factor_tiempo`) corrige con cada etapa terminada.
+#
+#   memoria FEBio   hex8  1183 MB (gdl/1e5)^1.148      4 puntos, 15k-202k gdl
+#                   tet10 2254 MB (gdl/3e5)^1.071     16 puntos, 33k-468k gdl
+#   corrida lineal  hex8  22.9 s (gdl/1e5)^0.816   (3 iteraciones de Newton)
+#                   tet10 38.0 s (gdl/3e5)^1.028   (3 iteraciones)
+#
+# LO QUE NO DEPENDE DE LA CARGA DEL EQUIPO se midio aparte (VOI proximal de H4
+# a 20^3, hex8 y TET10, protocolos de la app y de Tapia): cada corrida lineal
+# hace 3 iteraciones; la no lineal con fuerza 5-6, la del plato 4-5, la de
+# Pistoia 6. El coste de una corrida es el de sus iteraciones.
+#
+# Tamano de la malla TET10 (VOI de H4 a 48 y 64, spinodoide a 32^3, con la
+# correccion de volumen): n_tet = 6.245 vox_superficie + 0.622 vox_hueso, a
+# +-4 % en estructuras trabeculares (7.1-7.3 TET10 por voxel de superficie);
+# en un solido denso (el cubo con cavidad) subestima hasta un 45 %.
+# gdl = 3 x 1.85 nodos por TET10 (1.87 y 1.82 medidos a 48 y 64).
+# Mallado TET10: 14-18 s a 179 000 TET10 y 29 s a 350 000 (VOI 48 y 64), mas
+# ~15 s de arrancar el proceso hijo (`febio.mallar_aislado`), medido a 20^3.
+
+ITER_FEBIO = {"lineal": 3, "nl_fuerza": 6, "nl_plato": 5, "nl_pistoia": 6}
+NODOS_POR_TET10 = 1.85
+T_ARRANQUE_FEBIO = 2.0         # s por corrida (medido 2-7 s con el equipo lleno)
+T_ARRANQUE_HIJO = 15.0         # s, proceso hijo del mallado TET10
+
+
+def n_tet10(vox_superficie, vox_hueso):
+    return 6.245 * float(vox_superficie) + 0.622 * float(vox_hueso)
+
+
+def gdl_tet10(n_tet):
+    return 3.0 * NODOS_POR_TET10 * float(n_tet)
+
+
+def memoria_febio(tipo, gdl):
+    """MB de pico de FEBio (Pardiso) para una malla de `gdl` grados."""
+    g = float(gdl)
+    if tipo == "hex8":
+        return 1183.0 * (g / 1e5) ** 1.148
+    return 2254.0 * (g / 3e5) ** 1.071
+
+
+def iteracion_febio(tipo, gdl):
+    """s por iteracion de Newton (factorizacion) de FEBio."""
+    g = float(gdl)
+    if tipo == "hex8":
+        return 22.9 / 3.0 * (g / 1e5) ** 0.816
+    return 38.0 / 3.0 * (g / 3e5) ** 1.028
+
+
+def corridas_ensayo(analisis):
+    """(corridas de FEBio, iteraciones) de un protocolo de compresion.
+
+    El plato y la carga de Pistoia necesitan el lineal (`febio.ensayo` lo
+    corre igual si no se pidio); el plato hace ademas su propio lineal.
+    """
+    a = set(analisis)
+    lineal = bool(a & {"lineal", "nl_plato", "nl_pistoia"})
+    n, it = 0, 0
+    if lineal:
+        n, it = 2, 2 * ITER_FEBIO["lineal"]
+    if "nl_fuerza" in a:
+        n, it = n + 1, it + ITER_FEBIO["nl_fuerza"]
+    if "nl_plato" in a:
+        n, it = n + 3, it + 2 * ITER_FEBIO["lineal"] + ITER_FEBIO["nl_plato"]
+    if "nl_pistoia" in a:
+        n, it = n + 1, it + ITER_FEBIO["nl_pistoia"]
+    return n, it
+
+
+def tetgen(n_tet):
+    return T_ARRANQUE_HIJO + 16.0 * (float(n_tet) / 1.79e5) ** 0.9
+
+
+def febio_ensayo(tipo, gdl, analisis, n_tet=None, n_ejes=1,
+                 conv_malla=False):
+    """s de una estructura x protocolo de compresion x malla."""
+    n, it = corridas_ensayo(analisis)
+    t = n * T_ARRANQUE_FEBIO + it * iteracion_febio(tipo, gdl)
+    if tipo == "tet10":
+        t += tetgen(n_tet or gdl / (3 * NODOS_POR_TET10))
+    t *= int(n_ejes)
+    if conv_malla and tipo == "tet10":
+        # Segunda malla con la mitad del tamano: ~2^(3/2) veces mas TET10 en
+        # el interior; solo el lineal.
+        g2 = 2.0 * float(gdl)
+        t += (tetgen(2.0 * (n_tet or gdl / 5.55)) + 2 * T_ARRANQUE_FEBIO
+              + 2 * ITER_FEBIO["lineal"] * iteracion_febio(tipo, g2)) * n_ejes
+    return t
+
+
+def febio_homog(tipo, gdl, n_tet=None):
+    """s de la homogeneizacion: 12 corridas periodicas (hex8) o 24 (tet10)."""
+    runs = 12 if tipo == "hex8" else 24
+    t = runs * (T_ARRANQUE_FEBIO + ITER_FEBIO["lineal"]
+                * iteracion_febio(tipo, gdl))
+    if tipo == "tet10":
+        t += tetgen(n_tet or gdl / (3 * NODOS_POR_TET10))
+    return t
+
+
 def actualizar_factor(anterior, real, estimado, peso=0.5):
     """Media movil del cociente real/estimado, acotada a [0.2, 5]: una etapa
     rara (el equipo ocupado con otra cosa) no descalibra todo."""

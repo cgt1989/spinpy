@@ -498,6 +498,42 @@ Necesita FEBio 4.5 (FEBio Studio 2). Los resultados quedan en
 
 ---
 
+## FEBio dentro de spinpy: «FEM automático» y «Analizar con FEBio»
+
+La aplicación resuelve también sus ensayos en FEBio desde la interfaz: el
+ensayo de la app, el protocolo de Tapia et al. (2026) y la homogeneización,
+con la malla de ladrillos de la app (hex8), con una **malla suave de
+tetraedros cuadráticos** (TET10) o con las dos, en lineal y no lineal (fuerza,
+plato rígido, carga de Pistoia). El mismo cálculo corre desde la línea de
+comandos:
+
+```bash
+python -m spinpy.febio VOI.vtk --protocolo app tapia2026 --malla hex8 tet10
+```
+
+**Cómo obtener FEBio.** Este repositorio **no lleva binarios de FEBio**.
+Instala FEBio Studio 2 (gratuito, [febio.org](https://febio.org)); spinpy lo
+encuentra solo, o se elige `febio4.exe` en la ventana. El ejecutable de Windows
+del laboratorio lo trae incluido.
+
+**Licencia de FEBio: en trámite.** Los binarios de FEBio están bajo la FEBio
+Software License 4.0 de la Universidad de Utah, que no permite
+redistribuirlos. La licencia de redistribución **se está tramitando** con
+vistas a la publicación de este repositorio; hasta entonces la copia incluida
+en el ejecutable es solo para uso interno del laboratorio. El código fuente de
+FEBio es MIT ([febiosoftware/FEBio](https://github.com/febiosoftware/FEBio)).
+
+**Lo que ya está medido con la malla suave**
+([`comparativa_febio_tet/INFORME.md`](comparativa_febio_tet/INFORME.md)): FEBio
+lee los TET10 en el mismo orden que spinpy (3,9·10⁻¹⁰ con un campo cuadrático
+exacto) y un bloque macizo da E_app = E_s a 10⁻⁹. En una cavidad esférica,
+**la rigidez es estable (< 0,2 %) pero el pico de von Mises no converge**: con
+el suavizado por omisión se pasa un 12 % a 40³ y cambia varios puntos con las
+iteraciones de Taubin. La malla suave quita los escalones, pero no resuelve por
+sí sola la dependencia del pico respecto de la malla.
+
+---
+
 ## Documentación
 
 La validación mecánica frente a FEBio está en

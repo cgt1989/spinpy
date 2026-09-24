@@ -1525,4 +1525,256 @@ EN = {
     'aparecerá aquí cuando lo esté.':
         'Code: the public repository is not published yet; the link will appear '
         'here once it is.',
+
+    # -- FEBio: FEM automatico y «Analizar con FEBio…» ----------------
+    '(no generado)':
+        '(not generated)',
+    '* con reservas; † no citable (ver el informe de publicación). E<sub>app</sub> de FEBio con el desplazamiento del techo ponderado por área; «Δ implementación» compara FEBio con ladrillos y la app con la definición de la app y debe ser ~0. Los desvíos no lineales son frente al lineal de la misma malla.':
+        "* with caveats; † not citable (see the publication report). FEBio E<sub>app</sub> from the area-weighted top displacement; «Δ implementation» compares FEBio on bricks with the app using the app's definition and must be ~0. Nonlinear deviations are against the linear result of the same mesh.",
+    '<b>Tiempo estimado: {t}</b> · terminaría hacia las {h} · {n} etapa(s)':
+        '<b>Estimated time: {t}</b> · would finish around {h} · {n} stage(s)',
+    'Abrir carpeta':
+        'Open folder',
+    'Ajustar antes si falta (mejor ajuste: rápido, completo, equitativo)':
+        'Fit first if missing (best fit: fast, full, equal-area)',
+    'Ambas (recomendada)':
+        'Both (recommended)',
+    'Ambas separa el efecto del programa (app frente a FEBio con ladrillos, debe dar ~0) del efecto de la malla (ladrillos frente a tetraedros, mismo programa y carga).':
+        'Both separates the effect of the program (app against FEBio on bricks, must be ~0) from the effect of the mesh (bricks against tetrahedra, same program and load).',
+    'Amplitud de la deformación:':
+        'Strain amplitude:',
+    'Analizar con FEBio':
+        'Analyse with FEBio',
+    'Analizar con FEBio…':
+        'Analyse with FEBio…',
+    'Buscar…':
+        'Browse…',
+    'Carga axial:':
+        'Axial load:',
+    'Carga el VOI o genera una estructura primero.':
+        'Load the VOI or generate a structure first.',
+    'Carpeta de resultados de FEBio':
+        'FEBio results folder',
+    'Carpeta de resultados:':
+        'Results folder:',
+    'Coeficiente de Poisson ν:':
+        "Poisson's ratio ν:",
+    'Con recorte automático si Newton no converge. Medido en el VOI proximal de H4: 1, 5 y 10 pasos dan la misma respuesta con 5, 20 y 40 iteraciones.':
+        'With automatic cutback if Newton does not converge. Measured on the H4 proximal VOI: 1, 5 and 10 steps give the same answer with 5, 20 and 40 iterations.',
+    'Conservar .feb / .xplt para abrirlos en FEBio Studio (pesan)':
+        'Keep .feb / .xplt files to open them in FEBio Studio (large)',
+    'Corregir la pérdida de volumen del suavizado':
+        'Correct the volume loss of smoothing',
+    'Corridas que fallaron':
+        'Runs that failed',
+    'Decimado:':
+        'Decimation:',
+    'Desplaza la superficie por su normal hasta el volumen de los vóxeles. Medido en el VOI proximal de H4 a 48³: −6,8 % sin corregir, −0,15 % corregido.':
+        'Offsets the surface along its normal up to the voxel volume. Measured on the H4 proximal VOI at 48³: −6.8 % uncorrected, −0.15 % corrected.',
+    'Dirección de carga:':
+        'Loading direction:',
+    'Dual-lattice ajustado':
+        'Fitted dual-lattice',
+    'El mismo ensayo resuelto en FEBio, con la malla de ladrillos de\nla app y/o una malla suave de tetraedros cuadráticos, en lineal\ny no lineal. Usa la estructura activa, el VOI y la resolución,\ndirección y apoyo de este panel.':
+        "The same test solved in FEBio, with the app's brick mesh\nand/or a smooth mesh of quadratic tetrahedra, linear\nand nonlinear. Uses the active structure, the VOI and the resolution,\ndirection and support of this panel.",
+    'El plato rígido y la carga de Pistoia necesitan el lineal: si no se marca, se corre igual.':
+        'The rigid platen and the Pistoia load need the linear run: if it is not ticked, it runs anyway.',
+    'Elige febio4.exe':
+        'Choose febio4.exe',
+    'Elige febio4.exe abajo, en «Material y solver».':
+        'Choose febio4.exe below, in «Material and solver».',
+    'Ensayo de la app':
+        'App test',
+    'Estructuras':
+        'Structures',
+    'Exportar CSV…':
+        'Export CSV…',
+    'Exportar tabla CSV':
+        'Export CSV table',
+    'FEBio detenido; lo terminado se conserva.':
+        'FEBio stopped; what finished is kept.',
+    'FEBio no encontrado: elige febio4.exe.':
+        'FEBio not found: choose febio4.exe.',
+    'FEBio {v} · {n} registro(s) · carpeta {c}':
+        'FEBio {v} · {n} record(s) · folder {c}',
+    'FEBio:':
+        'FEBio:',
+    'FEBio: preparando…':
+        'FEBio: preparing…',
+    'FEM automático (FEBio)':
+        'Automatic FEM (FEBio)',
+    'FEM automático (FEBio)…':
+        'Automatic FEM (FEBio)…',
+    'FEM automático detenido; lo terminado se conserva.':
+        'Automatic FEM stopped; what finished is kept.',
+    'FEM automático terminado.':
+        'Automatic FEM finished.',
+    'FEM automático {i}/{n}: {etapa}':
+        'Automatic FEM {i}/{n}: {etapa}',
+    'FEM automático: empezando…':
+        'Automatic FEM: starting…',
+    'Falta la estructura':
+        'Missing structure',
+    'Figura de validación (5 columnas: E_app, p99 de superficie, fallo, desvío no lineal, BV/TV de la malla)':
+        'Validation figure (5 columns: E_app, surface p99, failure, nonlinear deviation, mesh BV/TV)',
+    'Hilos de CPU:':
+        'CPU threads:',
+    'Homogeneización (tensor elástico)':
+        'Homogenisation (stiffness tensor)',
+    'Incluir en el informe de publicación':
+        'Include in the publication report',
+    'Incluir los resultados en el informe de publicación':
+        'Include the results in the publication report',
+    'La memoria estimada supera el 70 % de la del equipo: baja la resolución de la malla suave.':
+        "The estimated memory exceeds 70 % of this computer's: lower the smooth-mesh resolution.",
+    'Ladrillos (hex8)':
+        'Bricks (hex8)',
+    'Ladrillos (hex8, un vóxel = un elemento)':
+        'Bricks (hex8, one voxel = one element)',
+    'Ladrillos a {n}³, por debajo de 40³: la rigidez del VOI proximal de H4 cae ~10 % a 32³.':
+        'Bricks at {n}³, below 40³: the H4 proximal VOI loses ~10 % of stiffness at 32³.',
+    'Ladrillos, resolución:':
+        'Bricks, resolution:',
+    'Ladrillos: la malla que resuelve la app, validada contra FEBio a 1e-6. Conserva los escalones.':
+        'Bricks: the mesh the app solves, validated against FEBio to 1e-6. It keeps the staircase.',
+    'Lineal (extrapolado a carga nula; comparable 1:1 con la app)':
+        'Linear (extrapolated to zero load; comparable 1:1 with the app)',
+    'Malla':
+        'Mesh',
+    'Mallado suave (TET10)':
+        'Smooth mesh (TET10)',
+    'Mallado suave (tetraedros TET10)':
+        'Smooth mesh (TET10 tetrahedra)',
+    'Mallado suave: quita los escalones, pero su borde es una de muchas superficies compatibles con la imagen; el pico de von Mises depende del suavizado.':
+        'Smooth mesh: removes the staircase, but its boundary is one of many surfaces compatible with the image; the von Mises peak depends on the smoothing.',
+    'Mapas 3D de von Mises':
+        '3D von Mises maps',
+    'Mapas 3D de von Mises con una sola escala':
+        '3D von Mises maps with a single scale',
+    'Mapas 3D de von Mises…':
+        '3D von Mises maps…',
+    'Material no lineal:':
+        'Nonlinear material:',
+    'Material y solver':
+        'Material and solver',
+    'Memoria máx. estimada: {m} GB de {t} GB':
+        'Estimated peak memory: {m} GB of {t} GB',
+    'Modelo PROVISIONAL: medido con el equipo de desarrollo cargado; puede errar un factor 2 hasta recalibrarlo. Se corrige solo con cada etapa terminada en este equipo.':
+        'PROVISIONAL model: measured with the development computer under load; it may be off by a factor 2 until recalibrated. It corrects itself with every stage finished on this computer.',
+    'Módulo del tejido E_s:':
+        'Tissue modulus E_s:',
+    'NL Pistoia':
+        'NL Pistoia',
+    'NL fuerza':
+        'NL force',
+    'NL plato':
+        'NL platen',
+    'Nada que analizar':
+        'Nothing to analyse',
+    'Neo-Hookeano':
+        'Neo-Hookean',
+    'No lineal a la carga de fallo de Pistoia':
+        'Nonlinear at the Pistoia failure load',
+    'No lineal, fuerza impuesta a la carga del protocolo':
+        'Nonlinear, force imposed at the protocol load',
+    'No lineal, plato rígido':
+        'Nonlinear, rigid platen',
+    'No se encontró FEBio.':
+        'FEBio was not found.',
+    'Núcleos − 1 por omisión, para que la ventana siga respondiendo.':
+        'Cores − 1 by default, so the window stays responsive.',
+    'Parámetros del protocolo':
+        'Protocol parameters',
+    'Parámetros…':
+        'Parameters…',
+    'Pasos de carga (no lineal):':
+        'Load steps (nonlinear):',
+    'Protocolo de Tapia et al. (2026)':
+        'Tapia et al. (2026) protocol',
+    'Protocolos':
+        'Protocols',
+    'Registro: «{n}». Los valores en naranja difieren del protocolo publicado.':
+        'Record: «{n}». Values in orange differ from the published protocol.',
+    'Resuelve en <b>FEBio {ver}</b> ({origen})':
+        'Solves in <b>FEBio {ver}</b> ({origen})',
+    'Resuelve en FEBio las estructuras, protocolos (ensayo de la app,\nTapia et al. 2026, homogeneización) y mallas (ladrillos y/o\ntetraedros suaves) marcados, y los compara con la app.\nPuede tardar horas.':
+        'Solves in FEBio the ticked structures, protocols (app test,\nTapia et al. 2026, homogenisation) and meshes (bricks and/or\nsmooth tetrahedra), and compares them with the app.\nIt may take hours.',
+    'Resultados de FEBio':
+        'FEBio results',
+    'Salidas':
+        'Outputs',
+    'Solver directo Pardiso; tolerancias las validadas (Newton completo, 1e-9/1e-12).':
+        'Pardiso direct solver; the validated tolerances (full Newton, 1e-9/1e-12).',
+    'Spinodoide ajustado':
+        'Fitted spinodoid',
+    'St. Venant-Kirchhoff (validado)':
+        'St. Venant-Kirchhoff (validated)',
+    'Suave, resolución de la máscara:':
+        'Smooth, mask resolution:',
+    'Suavizado Taubin:':
+        'Taubin smoothing:',
+    'Sugerido ≈ Tb.Th/3 = {t} mm':
+        'Suggested ≈ Tb.Th/3 = {t} mm',
+    'Tabla comparativa app vs FEBio, con citabilidad':
+        'App vs FEBio comparison table, with citability',
+    'Tamaño máx. de tetraedro:':
+        'Max. tetrahedron size:',
+    'Tapia: 0,05 mm':
+        'Tapia: 0.05 mm',
+    'Tensión aparente:':
+        'Apparent stress:',
+    'Tipo de análisis (protocolos de compresión)':
+        'Analysis type (compression protocols)',
+    'VOI no trabecular (BV/TV {b}): ninguna familia es bicontinua ahí.':
+        'Non-trabecular VOI (BV/TV {b}): no family is bicontinuous there.',
+    'Valores publicados':
+        'Published values',
+    'Valores publicados del protocolo.':
+        'Published values of the protocol.',
+    'Verificar convergencia con dos tamaños de malla (repite el lineal con la mitad del tamaño)':
+        'Check convergence with two mesh sizes (repeats the linear run at half the size)',
+    'X, Y y Z':
+        'X, Y and Z',
+    'cotas KUBC/SUBC':
+        'KUBC/SUBC bounds',
+    'de FEBio Studio':
+        'from FEBio Studio',
+    'el de la superficie':
+        'set by the surface',
+    'estructura':
+        'structure',
+    'incluido en spinpy':
+        'bundled with spinpy',
+    'la estructura activa y el VOI, con la dirección del panel (<b>{eje}</b>).':
+        'the active structure and the VOI, with the panel direction (<b>{eje}</b>).',
+    'las estructuras, protocolos y mallas marcados, y los compara con el ensayo de la app. Los diálogos de resultados no se abren: todo queda en la sesión y en la carpeta. Puede tardar <b>horas</b>; la ventana sigue respondiendo y se puede detener tras la etapa en curso.':
+        'the ticked structures, protocols and meshes, and compares them with the app test. Result dialogs do not open: everything stays in the session and in the folder. It may take <b>hours</b>; the window stays responsive and can stop after the current stage.',
+    'modificado: «{n}»':
+        'modified: «{n}»',
+    'periódica con ladrillos · cotas KUBC/SUBC con tetraedros · E_s {E} GPa · ν {nu}':
+        'periodic on bricks · KUBC/SUBC bounds on tetrahedra · E_s {E} GPa · ν {nu}',
+    'periódico':
+        'periodic',
+    'protocolo':
+        'protocol',
+    'ruta elegida':
+        'chosen path',
+    'superficie':
+        'surface',
+    '{carga} · apoyo {apoyo} · E_s {E} GPa · ν {nu}':
+        '{carga} · {apoyo} support · E_s {E} GPa · ν {nu}',
+    '{e} no está generado; se omite.':
+        '{e} is not generated; skipped.',
+    '{e} no generado: se ajustará antes porque está marcado «Ajustar antes si falta».':
+        '{e} not generated: it will be fitted first because «Fit first if missing» is ticked.',
+    '{e}: eje a {g}° del VOI.':
+        '{e}: axis at {g}° from the VOI.',
+    '{e}: {p} % del hueso desconectado (se filtra antes de mallar).':
+        '{e}: {p} % of the bone is disconnected (filtered before meshing).',
+    '{s} MPa sobre la sección bruta':
+        '{s} MPa on the gross section',
+    'Δ implementación':
+        'Δ implementation',
+    'Δ volumen':
+        'Δ volume',
 }

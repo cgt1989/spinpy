@@ -350,6 +350,238 @@ def escribir_febio(nodos, elems, ruta, E_s=20e9, nu_s=0.30, sigma_app=1e6,
             "unidades": "mm-N-MPa"}
 
 
+#: Materiales de FEBio para el analisis no lineal. 'isotropic elastic' es St.
+#: Venant-Kirchhoff —el de toda la validacion de `comparativa_febio`—;
+#: neo-Hookeano compresible es la alternativa habitual en grandes
+#: deformaciones. Los dos se reducen a la elasticidad lineal de spinpy con
+#: deformaciones pequenas.
+MATERIALES_FEBIO = {"svk": "isotropic elastic", "neohookeano": "neo-Hookean"}
+
+#: Regla de integracion del TET10. Es la que FEBio 4.5 usa por omision
+#: (medido: sin atributo y con `elem_type="TET10G8"` dan la misma solucion bit
+#: a bit; `TET10G4` cambia la quinta cifra en no lineal y `TET10G1` es
+#: singular). Se escribe EXPLICITA para que quede en el archivo. Ojo: FEBio
+#: solo la lee como ATRIBUTO de `SolidDomain`; como etiqueta hija la ignora
+#: sin avisar.
+REGLA_TET10 = "TET10G8"
+
+#: Tolerancia de RESIDUO de FEBio. Con hexaedros, 1e-12: la validada. Con
+#: TET10 el residuo se queda en el piso de redondeo: en el VOI proximal de H4
+#: a 32^3 (360 000 GDL) la solucion habia convergido en la 3.a iteracion
+#: (energia 1e-22, desplazamiento 5e-14 relativos) y el residuo relativo se
+#: estanco en 2.3e-12 > 1e-12; FEBio agoto las 50 reformas en 9 min y declaro
+#: el fallo. Con TET10 se usa 1e-10; dtol y etol no cambian.
+RTOL = {"hex8": 1e-12, "tet10": 1e-10}
+
+
+def _caras_techo_hex(nodos, elems):
+    z = nodos[:, 2]
+    tolz = 1e-9 * max(float(z.max() - z.min()), 1.0)
+    return elems[np.all(z[elems[:, 4:8]] >= z.max() - tolz, axis=1), 4:8]
+
+
+def area_caras(nodos, caras):
+    """Area de cada cara quad4 (rectangulo de voxel) o tri6 (lados rectos)."""
+    nodos = np.asarray(nodos, float)
+    caras = np.asarray(caras, dtype=np.int64)
+    p0, p1 = nodos[caras[:, 0]], nodos[caras[:, 1]]
+    if caras.shape[1] == 4:
+        p3 = nodos[caras[:, 3]]
+        return np.linalg.norm(np.cross(p1 - p0, p3 - p0), axis=1)
+    p2 = nodos[caras[:, 2]]
+    return 0.5 * np.linalg.norm(np.cross(p1 - p0, p2 - p0), axis=1)
+
+
+def escribir_febio_ensayo(nodos, elems, ruta, E_s=20e9, nu_s=0.30,
+                          sigma_app=1e6, A_bruta=None, apoyo="deslizante",
+                          datos=True, eps_plato=None, caras_techo=None,
+                          material="svk", pasos=1, comentario="",
+                          adaptativo=False):
+    """El ensayo de `escribir_febio`, generalizado a TET10 y a varios pasos.
+
+    Hermano de `escribir_febio`, que NO se toca: es el camino hex8 validado
+    contra la app a <= 1e-6 en `comparativa_febio/`. Con hexaedros, un paso y
+    St. Venant-Kirchhoff, este escribe el MISMO problema linea a linea salvo
+    el comentario de cabecera (lo comprueba el bloque 27), asi que esa
+    validacion se hereda.
+
+    Lo que anade:
+      tet10       elementos cuadraticos en orden C3D10 —el que deja
+                  `solido.malla_tet10`; que FEBio use el mismo se MIDE en el
+                  bloque 27 con un campo cuadratico exacto, no se supone— y
+                  carga sobre caras `tri6` del techo.
+      caras_techo caras cargadas (quad4 o tri6), con la normal hacia +z.
+                  FEBio aplica la presion contra la normal de la cara: una
+                  cara del reves tira del techo en vez de comprimirlo, sin
+                  ningun error. Con hexaedros y None se toman como siempre.
+      material    'svk' (St. Venant-Kirchhoff, el validado) o 'neohookeano'.
+      pasos       incrementos de carga del analisis no lineal.
+      adaptativo  escribe un `time_stepper` que RECORTA el paso si Newton no
+                  converge (siempre que pasos > 1). Medido en el VOI proximal
+                  de H4 a 20^3: con 1, 5 y 10 pasos la respuesta no lineal es
+                  la misma a todas las cifras y el coste crece con los pasos
+                  (5, 20 y 40 iteraciones), asi que el defecto es un paso con
+                  recorte automatico.
+
+    Apoyo, presion y plato son los de `escribir_febio`. Con TET10 la base y
+    el techo son planos EXACTOS (`solido._aplanar_tapas`), asi que base y
+    techo son todos los nodos de esos planos, intermedios incluidos, y las
+    anclas del apoyo deslizante salen de la misma regla (min x+y, max x-y):
+    en una malla suave no hay esquina geometrica, y esa regla elige el nodo
+    de la base mas extremo en esas direcciones.
+    """
+    ruta = Path(ruta)
+    nodos = np.asarray(nodos, float)
+    elems = np.asarray(elems, dtype=np.int64)
+    nn = elems.shape[1]
+    if nn not in (8, 10):
+        raise ValueError("escribir_febio_ensayo escribe hex8 o tet10; se "
+                         f"recibieron elementos de {nn} nodos")
+    tipo = "hex8" if nn == 8 else "tet10"
+    if material not in MATERIALES_FEBIO:
+        raise ValueError(f"material desconocido: {material!r}")
+    pasos = max(1, int(pasos))
+    E_MPa = float(E_s) / 1e6
+    base, techo = _caras_z(nodos)
+
+    z = nodos[:, 2]
+    if caras_techo is None:
+        if tipo != "hex8":
+            raise ValueError("Con TET10 hay que dar las caras del techo.")
+        caras = _caras_techo_hex(nodos, elems)
+    else:
+        caras = np.asarray(caras_techo, dtype=np.int64)
+    if caras.shape[0] == 0:
+        raise ValueError("Ningun elemento llega al techo: no hay donde cargar.")
+    A_osea = float(area_caras(nodos, caras).sum())
+    if A_bruta is None:
+        A_bruta = float(np.ptp(nodos[:, 0]) * np.ptp(nodos[:, 1]))
+    F_N = float(sigma_app) / 1e6 * float(A_bruta)
+    p_MPa = F_N / A_osea
+
+    cb = nodos[base]
+    ancla_xy = int(base[int(np.argmin(cb[:, 0] + cb[:, 1]))])
+    ancla_y = int(base[int(np.argmax(cb[:, 0] - cb[:, 1]))])
+    empotrado = normalizar_apoyo(apoyo) == "empotrado"
+    stem = ruta.stem
+    tipo_cara = "quad4" if caras.shape[1] == 4 else "tri6"
+
+    with open(ruta, "w", encoding="utf-8") as fh:
+        w = fh.write
+        w('<?xml version="1.0" encoding="ISO-8859-1"?>\n')
+        w("<!-- Ensayo de compresion en z generado por spinpy/escribe.py\n")
+        w(f"     (escribir_febio_ensayo, {tipo}, material {material}, "
+          f"{pasos} paso(s)).\n")
+        if comentario:
+            w("     " + str(comentario).replace("--", "- -") + "\n")
+        w("     Unidades mm-N-MPa. E = %g MPa, nu = %g, sigma_app = %g MPa,\n"
+          % (E_MPa, nu_s, float(sigma_app) / 1e6))
+        w("     A_bruta = %.9g mm2, F = %.9g N, apoyo %s. -->\n"
+          % (A_bruta, F_N, "empotrado" if empotrado else "deslizante"))
+        w('<febio_spec version="4.0">\n')
+        w('\t<Module type="solid">\n\t\t<units>mm-N-s</units>\n\t</Module>\n')
+        w("\t<Control>\n\t\t<analysis>STATIC</analysis>\n")
+        w(f"\t\t<time_steps>{pasos}</time_steps>\n"
+          f"\t\t<step_size>{1.0 / pasos:.17g}</step_size>\n")
+        if pasos > 1 or adaptativo:
+            w("\t\t<time_stepper type=\"default\">\n"
+              "\t\t\t<max_retries>8</max_retries>\n"
+              "\t\t\t<opt_iter>12</opt_iter>\n"
+              f"\t\t\t<dtmin>{1e-3 / pasos:.17g}</dtmin>\n"
+              f"\t\t\t<dtmax>{1.0 / pasos:.17g}</dtmax>\n"
+              "\t\t</time_stepper>\n")
+        w("\t\t<solver>\n\t\t\t<max_refs>50</max_refs>\n")
+        w('\t\t\t<qn_method type="BFGS">\n\t\t\t\t<max_ups>0</max_ups>\n'
+          "\t\t\t</qn_method>\n\t\t\t<dtol>1e-9</dtol>\n")
+        w(f"\t\t\t<etol>1e-12</etol>\n\t\t\t<rtol>{RTOL[tipo]:g}</rtol>\n")
+        w("\t\t\t<lstol>0.9</lstol>\n")
+        w('\t\t\t<linear_solver type="pardiso"/>\n\t\t</solver>\n')
+        w("\t</Control>\n")
+        w('\t<Material>\n\t\t<material id="1" name="hueso" '
+          f'type="{MATERIALES_FEBIO[material]}">\n')
+        w(f"\t\t\t<E>{E_MPa:.9g}</E>\n\t\t\t<v>{nu_s:.9g}</v>\n")
+        w("\t\t</material>\n\t</Material>\n")
+
+        w('\t<Mesh>\n\t\t<Nodes name="todos">\n')
+        w("".join(f'\t\t\t<node id="{i}">{p[0]:.12g},{p[1]:.12g},{p[2]:.12g}'
+                  "</node>\n" for i, p in enumerate(nodos, start=1)))
+        w(f'\t\t</Nodes>\n\t\t<Elements type="{tipo}" name="solido">\n')
+        e1 = elems + 1
+        w("".join(f'\t\t\t<elem id="{i}">' + ",".join(map(str, c))
+                  + "</elem>\n" for i, c in enumerate(e1.tolist(), start=1)))
+        w("\t\t</Elements>\n")
+        for nom, ids in (("base", base), ("techo", techo),
+                         ("ancla_xy", [ancla_xy]), ("ancla_y", [ancla_y])):
+            w(f'\t\t<NodeSet name="{nom}">\n')
+            ids = np.asarray(ids, dtype=np.int64) + 1
+            for i in range(0, ids.size, 16):
+                w("\t\t\t" + ", ".join(map(str, ids[i:i + 16].tolist()))
+                  + ("," if i + 16 < ids.size else "") + "\n")
+            w("\t\t</NodeSet>\n")
+        w('\t\t<Surface name="techo_carga">\n')
+        w("".join(f'\t\t\t<{tipo_cara} id="{i}">' + ",".join(map(str, c))
+                  + f"</{tipo_cara}>\n"
+                  for i, c in enumerate((caras + 1).tolist(), start=1)))
+        w("\t\t</Surface>\n\t</Mesh>\n")
+        regla = f' elem_type="{REGLA_TET10}"' if tipo == "tet10" else ""
+        w(f'\t<MeshDomains>\n\t\t<SolidDomain name="solido" mat="hueso"'
+          f"{regla}/>\n\t</MeshDomains>\n")
+
+        w("\t<Boundary>\n")
+        bcs = ([("base", 1, 1, 1)] if empotrado else
+               [("base", 0, 0, 1), ("ancla_xy", 1, 1, 0), ("ancla_y", 0, 1, 0)])
+        for ns, bx, by, bz in bcs:
+            w(f'\t\t<bc name="fijo_{ns}" type="zero displacement" '
+              f'node_set="{ns}">\n')
+            w(f"\t\t\t<x_dof>{bx}</x_dof>\n\t\t\t<y_dof>{by}</y_dof>\n"
+              f"\t\t\t<z_dof>{bz}</z_dof>\n\t\t</bc>\n")
+        if eps_plato is not None:
+            uz = -float(eps_plato) * float(z.max() - z.min())
+            w('\t\t<bc name="plato" type="prescribed displacement" '
+              'node_set="techo">\n')
+            w(f'\t\t\t<dof>z</dof>\n\t\t\t<value lc="1">{uz:.17g}</value>\n'
+              "\t\t\t<relative>0</relative>\n\t\t</bc>\n")
+        w("\t</Boundary>\n")
+        if eps_plato is None:
+            w('\t<Loads>\n\t\t<surface_load name="compresion" '
+              'type="pressure" surface="techo_carga">\n')
+            w(f'\t\t\t<pressure lc="1">{p_MPa:.17g}</pressure>\n')
+            w("\t\t\t<linear>1</linear>\n")
+            w("\t\t\t<symmetric_stiffness>1</symmetric_stiffness>\n")
+            w("\t\t</surface_load>\n\t</Loads>\n")
+        w('\t<LoadData>\n\t\t<load_controller id="1" name="rampa" '
+          'type="loadcurve">\n')
+        w("\t\t\t<interpolate>LINEAR</interpolate>\n\t\t\t<points>\n")
+        w("\t\t\t\t<point>0,0</point>\n\t\t\t\t<point>1,1</point>\n")
+        w("\t\t\t</points>\n\t\t</load_controller>\n\t</LoadData>\n")
+        # El plotfile NO es opcional: FEBio 4.5.0 termina con una violacion
+        # de acceso (0xC0000005) si Output solo tiene logfile.
+        w("\t<Output>\n")
+        w('\t\t<plotfile type="febio">\n'
+          '\t\t\t<var type="displacement"/>\n\t\t\t<var type="stress"/>\n'
+          "\t\t</plotfile>\n")
+        if datos:
+            w("\t\t<logfile>\n")
+            w(f'\t\t\t<node_data data="ux;uy;uz" delim=" " '
+              f'file="{stem}_u.txt"/>\n')
+            w(f'\t\t\t<element_data data="sx;sy;sz;syz;sxz;sxy" delim=" " '
+              f'file="{stem}_s.txt"/>\n')
+            w("\t\t</logfile>\n")
+        w("\t</Output>\n</febio_spec>\n")
+
+    return {"ruta": str(ruta), "MB": ruta.stat().st_size / 1e6,
+            "tipo": tipo, "n_nodos": int(nodos.shape[0]),
+            "n_elems": int(elems.shape[0]), "n_caras_techo": int(caras.shape[0]),
+            "A_bruta_mm2": float(A_bruta), "A_osea_techo_mm2": A_osea,
+            "F_N": F_N, "presion_MPa": p_MPa, "E_MPa": E_MPa,
+            "control": "fuerza" if eps_plato is None else "plato",
+            "eps_plato": eps_plato, "material": material, "pasos": pasos,
+            "regla": REGLA_TET10 if tipo == "tet10" else "hex8 (2x2x2)",
+            "apoyo": "empotrado" if empotrado else "deslizante",
+            "ancla_xy": ancla_xy, "ancla_y": ancla_y,
+            "unidades": "mm-N-MPa"}
+
+
 def escribir_apdl(nodos, elems, ruta, E_s=20e9, nu_s=0.30):
     """Script de Mechanical APDL con NBLOCK/EBLOCK y conjuntos de nodos."""
     ruta = Path(ruta)

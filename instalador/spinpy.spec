@@ -87,6 +87,31 @@ if _test.is_dir():
             datos.append((str(_f),
                           str(Path("Test") / _f.relative_to(_test).parent)))
 
+# FEBio: el conjunto MINIMO para correr febio4.exe (19 archivos, ~103 MB de
+# los ~350 MB de la carpeta de FEBio Studio; `febio_minimo.py` lo calcula por
+# la tabla de importaciones y lo prueba aislado). Va como DATO en la carpeta
+# `febio`, donde `spinpy.febio.localizar()` lo busca primero; como binario,
+# PyInstaller lo mezclaria con sus propias DLL. Sin FEBio Studio instalado en
+# la maquina que compila, el ejecutable sale sin FEBio y lo dice aqui.
+#
+# LICENCIA: los binarios de FEBio Studio estan bajo la FEBio Software License
+# 4.0, que no permite redistribuirlos a terceros sin una licencia aparte de la
+# Universidad de Utah. Se incluyen por decision del responsable del
+# laboratorio, para uso interno, con la licencia EN TRAMITE
+# (`LICENCIA_FEBIO.txt`, que viaja al lado junto con el EULA).
+from febio_minimo import ORIGEN as _FEBIO_ORIGEN, conjunto_minimo  # noqa: E402
+if (_FEBIO_ORIGEN / "febio4.exe").exists():
+    _febio = conjunto_minimo(_FEBIO_ORIGEN)
+    datos += [(str(p), "febio") for p in _febio]
+    _eula = _FEBIO_ORIGEN.parent / "doc" / "FEBio_EULA_4.pdf"
+    if _eula.exists():
+        datos.append((str(_eula), "febio"))
+    datos.append((str(Path(SPECPATH) / "LICENCIA_FEBIO.txt"), "febio"))  # noqa: F821
+    print(f"[spinpy] FEBio empaquetado: {len(_febio)} archivos")
+else:
+    print("[spinpy] AVISO: FEBio Studio no esta instalado; el ejecutable "
+          "sale SIN FEBio")
+
 datos += collect_data_files("pyvista")
 datos += collect_data_files("vtkmodules")
 datos += collect_data_files("matplotlib", subdir="mpl-data")

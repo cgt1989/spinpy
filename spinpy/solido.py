@@ -161,20 +161,100 @@ def superficie_cerrada(BW, spacing):
     return g.contour([0.5], scalars="v").triangulate().clean()
 
 
-def _aplanar_tapas(sup, z0, z1, banda):
+def _aplanar_tapas(sup, z0, z1, banda, eje=2):
     """Devuelve al plano exacto los nodos que el suavizado saco de las tapas."""
     p = np.array(sup.points, dtype=float, copy=True)
-    z = p[:, 2]
+    z = p[:, eje]
     n0 = int((z <= z0 + banda).sum()); n1 = int((z >= z1 - banda).sum())
-    p[z <= z0 + banda, 2] = z0
-    p[z >= z1 - banda, 2] = z1
+    p[z <= z0 + banda, eje] = z0
+    p[z >= z1 - banda, eje] = z1
     m = sup.copy(); m.points = p
     return m.clean(), {"aplanados_base": n0, "aplanados_techo": n1}
 
 
+def _planos(BW_shape, spacing, eje):
+    """Planos de las dos tapas del eje: los de `superficie_cerrada`."""
+    return -0.5 * spacing[eje], (BW_shape[eje] - 0.5) * spacing[eje]
+
+
+def _area_libre(sup, BW_shape, spacing, ejes):
+    """Area de los triangulos que NO estan sobre un plano de tapa."""
+    s = sup.triangulate()
+    tri = np.asarray(s.faces).reshape(-1, 4)[:, 1:]
+    p = np.asarray(s.points, float)
+    en_plano = np.zeros(tri.shape[0], bool)
+    for e in ejes:
+        for v in _planos(BW_shape, spacing, e):
+            en_plano |= np.all(np.abs(p[tri, e] - v) <= 1e-9 * spacing[e],
+                               axis=1)
+    P = p[tri]
+    a = 0.5 * np.linalg.norm(np.cross(P[:, 1] - P[:, 0], P[:, 2] - P[:, 0]),
+                             axis=1)
+    return float(a[~en_plano].sum())
+
+
+def _desplazar_normal(sup, delta, BW_shape, spacing, ejes):
+    """Desplaza la superficie `delta` (mm) por su normal saliente.
+
+    Es la correccion de volumen: el suavizado de Taubin, el decimado y la
+    reparacion encogen el solido (medido: -1.9 % frente a la superficie
+    cruda). Un desplazamiento uniforme por la normal cambia el volumen en
+    delta * area, a primer orden, y delta puede ser NEGATIVO: el suavizado
+    encoge lo convexo y agranda lo concavo, y en una estructura dominada por
+    poros (una cavidad en un bloque) el solido GANA volumen.
+
+    Los vertices que estaban sobre un plano de tapa vuelven EXACTAMENTE a ese
+    plano (solo se mueven dentro de el): recortar al cubo no basta, porque
+    con delta < 0 la tapa se meteria hacia dentro, dejaria de ser plana y
+    tetgen aborta (medido: violacion de segmento en la cavidad de 16^3).
+    """
+    p0 = np.asarray(sup.points, float)
+    en_plano = []
+    for e in ejes:
+        a, b = _planos(BW_shape, spacing, e)
+        t = 1e-9 * float(spacing[e])
+        en_plano.append((e, np.abs(p0[:, e] - a) <= t, a))
+        en_plano.append((e, np.abs(p0[:, e] - b) <= t, b))
+    # SIN auto_orient_normals: orienta cada cascara hacia fuera de SI MISMA, y
+    # la pared de un poro cerrado quedaba apuntando al hueso (la correccion
+    # engordaba el solido cuando debia adelgazarlo). La orientacion que deja
+    # PyMeshFix es la saliente del solido —su volumen con signo es el del
+    # hueso—, y se conserva.
+    s = sup.compute_normals(point_normals=True, cell_normals=False,
+                            auto_orient_normals=False,
+                            consistent_normals=False, split_vertices=False)
+    p = p0 + float(delta) * np.asarray(s.point_data["Normals"], float)
+    for e in ejes:
+        a, b = _planos(BW_shape, spacing, e)
+        p[:, e] = np.clip(p[:, e], a, b)
+    for e, m_, v in en_plano:
+        p[m_, e] = v
+    m = sup.copy(); m.points = p
+    return m
+
+
 def malla_tet10(BW, spacing, suavizado=SUAVIZADO_ITER, banda=SUAVIZADO_BANDA,
-                decimado=DECIMADO, progreso=None):
-    """Mascara -> TET10. Devuelve (nodos, elems, superficie, informe)."""
+                decimado=DECIMADO, progreso=None, maxvolume=None,
+                minratio=None, ejes_planos=(2,), volumen_objetivo=None):
+    """Mascara -> TET10. Devuelve (nodos, elems, superficie, informe).
+
+    Los cuatro ultimos argumentos son opcionales; con su valor por omision el
+    resultado es el de siempre.
+
+      maxvolume          volumen maximo de tetraedro (mm^3) para tetgen; None
+                         deja que el tamano lo marque la superficie.
+      minratio           razon radio-arista maxima de la mejora de calidad
+                         de tetgen (su defecto es 2.0).
+      ejes_planos        tapas que se devuelven a su plano exacto tras el
+                         suavizado. Por omision solo z (base y techo del
+                         ensayo). (0, 1, 2) deja las seis caras del cubo
+                         planas: lo necesitan las condiciones de borde de la
+                         homogeneizacion y la regla que excluye las caras del
+                         cubo de la capa superficial.
+      volumen_objetivo   si se da (mm^3), la superficie reparada se desplaza
+                         por su normal para encerrar ese volumen (dos
+                         iteraciones) antes de tetraedralizar.
+    """
     import pymeshfix
     import tetgen
 
@@ -203,11 +283,52 @@ def malla_tet10(BW, spacing, suavizado=SUAVIZADO_ITER, banda=SUAVIZADO_BANDA,
     pr(0.45, "Aplanando las tapas…")
     sup, inf_pl = _aplanar_tapas(sup, -0.5 * spacing[2],
                                  (BW.shape[2] - 0.5) * spacing[2], spacing[2])
+    for e in ejes_planos:
+        if e != 2:
+            sup, _ = _aplanar_tapas(sup, *_planos(BW.shape, spacing, e),
+                                    spacing[e], eje=e)
 
     pr(0.55, "Reparando (estanqueidad)…")
+    # remove_smallest_components=False: el defecto de PyMeshFix BORRA todas
+    # las cascaras menos la mayor. En una estructura con poros cerrados (una
+    # cavidad que no toca las caras del cubo) eso quitaba la pared del poro y
+    # tetgen lo rellenaba de tetraedros: el poro salia macizo, sin ningun
+    # aviso (medido 2026-09-24 en una cavidad esferica a 16^3: la malla tenia
+    # el volumen del cubo entero). Las regiones que quedan dentro de un poro
+    # se quitan despues de tetraedralizar (`_quitar_poros`).
     mf = pymeshfix.MeshFix(sup.triangulate().clean())
-    mf.repair()
+    mf.repair(remove_smallest_components=False)
     sup = mf.mesh
+
+    correccion = None
+    if volumen_objetivo is not None:
+        V0 = float(sup.volume)
+        Vobj = float(volumen_objetivo)
+        antes = sup
+        for _ in range(2):
+            # Solo se mueve la superficie LIBRE: las caras sobre los planos del
+            # cubo vuelven a su plano. Dividir por el area total subestimaba el
+            # desplazamiento en una estructura con mucha tapa.
+            A = _area_libre(sup, BW.shape, spacing, set(ejes_planos) | {2})
+            if A <= 0:
+                break
+            delta = (Vobj - float(sup.volume)) / A
+            sup = _desplazar_normal(sup, delta, BW.shape, spacing,
+                                    set(ejes_planos) | {2})
+        # El desplazamiento puede CRUZAR entre si puntales finos (delta del
+        # orden de 0.1 voxel cuando la perdida es grande): tetgen aborta con
+        # una violacion de acceso sobre una superficie que se autointerseca
+        # (medido en el VOI proximal de H4 a 32^3). Se repara otra vez.
+        mf = pymeshfix.MeshFix(sup.triangulate().clean())
+        mf.repair(remove_smallest_components=False)
+        sup = mf.mesh
+        # Guarda: si el volumen no se acerco al objetivo (orientacion
+        # inesperada, superficie rara), se deshace y se declara.
+        aplicada = abs(float(sup.volume) - Vobj) < abs(V0 - Vobj)
+        if not aplicada:
+            sup = antes
+        correccion = {"V_antes": V0, "V_despues": float(sup.volume),
+                      "V_objetivo": Vobj, "aplicada": bool(aplicada)}
 
     # Informe de estanqueidad ANTES de tetraedralizar y de escribir: una STL
     # con bordes abiertos no se imprime, y tetgen sobre ella aborta o, peor,
@@ -222,29 +343,85 @@ def malla_tet10(BW, spacing, suavizado=SUAVIZADO_ITER, banda=SUAVIZADO_BANDA,
 
     pr(0.70, "Tetraedralizando…")
     tg = tetgen.TetGen(sup)
-    salida = tg.tetrahedralize(order=2)
+    opciones = {}
+    if maxvolume is not None:
+        opciones["maxvolume"] = float(maxvolume)
+    if minratio is not None:
+        opciones["minratio"] = float(minratio)
+    salida = tg.tetrahedralize(order=2, regionattrib=True, **opciones)
     nodos = np.asarray(salida[0], dtype=float)
     elems = np.asarray(salida[1], dtype=np.int64)[:, PERM_TETGEN_A_C3D10]
+    nodos, elems, inf_poros = _quitar_poros(nodos, elems, salida[2], BW,
+                                            spacing)
 
     pr(0.95, "Verificando…")
     ok, vinf = verificar_tet10(nodos, elems)
+    V_tet = float(np.abs(_vol_tet4(nodos, elems)).sum())
     inf = {"tipo": "tet10", "n_nodos": int(nodos.shape[0]),
            "n_elems": int(elems.shape[0]), "n_gdl": int(3 * nodos.shape[0]),
-           "volumen": float(tg.grid.volume), "BV_voxel": BV,
-           "vol_pct_BV": 100.0 * float(tg.grid.volume) / BV,
+           "volumen": V_tet, "BV_voxel": BV,
+           "vol_pct_BV": 100.0 * V_tet / BV,
            # Frente a la superficie cerrada cruda: es la perdida que de verdad
            # anaden suavizado, decimado y reparacion. La diferencia entre
            # conteo de voxeles y superficie cruda es de definicion.
            "V_mc": V_mc,
-           "vol_pct_MC": 100.0 * float(tg.grid.volume) / V_mc if V_mc > 0
+           "vol_pct_MC": 100.0 * V_tet / V_mc if V_mc > 0
            else float("nan"),
+           "poros": inf_poros,
            "estanca": estanca, "bordes_abiertos": bordes,
            "n_componentes": n_comp,
            "tri_superficie": int(sup.n_cells),
            "orden_ok": bool(ok), "orden": vinf,
-           "aplanado": inf_pl, "tiempo_s": time.time() - t0}
+           "aplanado": inf_pl, "tiempo_s": time.time() - t0,
+           "maxvolume": maxvolume, "minratio": minratio,
+           "ejes_planos": [int(e) for e in sorted(set(ejes_planos) | {2})],
+           "correccion_volumen": correccion}
     pr(1.0, "Listo.")
     return nodos, elems, sup, inf
+
+
+def _vol_tet4(nodos, elems):
+    P = nodos[elems[:, :4]]
+    return np.einsum("ij,ij->i", P[:, 1] - P[:, 0],
+                     np.cross(P[:, 2] - P[:, 0], P[:, 3] - P[:, 0])) / 6.0
+
+
+def _quitar_poros(nodos, elems, atributos, BW, spacing):
+    """Quita las regiones de tetgen que caen dentro de un poro cerrado.
+
+    tetgen numera cada region encerrada por la superficie (`regionattrib`).
+    Una cavidad cerrada es una region propia; se decide si es hueso o poro
+    por VOTO de volumen de sus tetraedros: la fase de la mascara en el voxel
+    que contiene cada centroide (voxel i centrado en i*h, la convencion de
+    `superficie_cerrada`). Se vota por region y no por elemento porque un
+    tetraedro pegado a la superficie suavizada puede caer en un voxel de la
+    otra fase sin que su region lo sea.
+    """
+    at = np.asarray(atributos).ravel()
+    if at.size != elems.shape[0]:
+        return nodos, elems, {"regiones": None}
+    v = np.abs(_vol_tet4(nodos, elems))
+    c = nodos[elems[:, :4]].mean(axis=1)
+    idx = np.rint(c / spacing[None, :]).astype(np.int64)
+    idx = np.clip(idx, 0, np.array(BW.shape) - 1)
+    es_hueso = BW[idx[:, 0], idx[:, 1], idx[:, 2]]
+    quitar = np.zeros(elems.shape[0], bool)
+    regiones = []
+    for a in np.unique(at):
+        m = at == a
+        frac = float(v[m & es_hueso].sum() / max(v[m].sum(), 1e-300))
+        poro = frac < 0.5
+        regiones.append({"region": float(a), "V_mm3": float(v[m].sum()),
+                         "frac_hueso": frac, "poro": bool(poro)})
+        quitar |= m & poro
+    if quitar.any():
+        elems = elems[~quitar]
+        usados, inv = np.unique(elems, return_inverse=True)
+        nodos, elems = nodos[usados], inv.reshape(elems.shape)
+    return nodos, elems, {"regiones": regiones,
+                          "n_poros_quitados": int(sum(r["poro"]
+                                                      for r in regiones)),
+                          "V_poros_quitados_mm3": float(v[quitar].sum())}
 
 
 def verificar_tet10(nodos, elems, tol_rel=1e-6, n_muestra=2000):

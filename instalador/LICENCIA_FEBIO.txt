@@ -1,0 +1,30 @@
+FEBio incluido en spinpy — situación de la licencia
+=====================================================
+
+Esta carpeta contiene una copia de FEBio 4.5 (febio4.exe y las bibliotecas
+mínimas para ejecutarlo, incluida numcore.dll con el solver Pardiso de Intel
+MKL), tomada de FEBio Studio 2.
+
+FEBio es software de la Universidad de Utah (Steve Maas, Jeff Weiss) y de la
+Universidad de Columbia (Gerard Ateshian). Sus binarios se distribuyen bajo la
+FEBio Software License 4.0, que se adjunta (FEBio_EULA_4.pdf). Esa licencia
+autoriza el uso en una sola instalación y NO permite redistribuir los binarios
+a terceros sin una licencia aparte de la Universidad de Utah.
+
+SITUACIÓN ACTUAL
+  * La licencia de redistribución con la Universidad de Utah SE ESTÁ
+    TRAMITANDO, con vistas a la futura publicación del repositorio.
+  * Mientras tanto, esta copia se entrega solo para uso interno del
+    laboratorio, por decisión del responsable del proyecto. No la
+    redistribuyas fuera del laboratorio.
+  * Si prefieres no usarla: instala FEBio Studio desde
+    https://febio.org (gratuito, aceptando tú su licencia). spinpy encuentra
+    esa instalación por sí solo, o puedes elegir febio4.exe en la ventana
+    «FEM automático (FEBio)».
+
+El código fuente de FEBio (https://github.com/febiosoftware/FEBio) se publica
+bajo licencia MIT; si la licencia de los binarios no llegara a concederse, la
+alternativa es compilarlo desde ese código.
+
+Cita de FEBio: Maas SA, Ellis BJ, Ateshian GA, Weiss JA (2012). FEBio: finite
+elements for biomechanics. Journal of Biomechanical Engineering 134(1):011005.

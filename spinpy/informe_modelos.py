@@ -92,7 +92,8 @@ def seccion_modelos(doc, idioma, r, numero):
     fe = [x for x in fe if isinstance(x, dict)]
     comp = [res.get("analisis_comparado" + s) for s in ("", "_dual")]
     comp = [x for x in comp if isinstance(x, dict)]
-    if not (m_voi or fams or ela or fe or comp):
+    if not (m_voi or fams or ela or fe or comp
+            or (res.get("febio") or {}).get("registros")):
         return []
 
     eq = _Eq()
@@ -834,6 +835,82 @@ def seccion_modelos(doc, idioma, r, numero):
         "nearest solid voxel (no maximum filter, which would inflate peaks) "
         "and the common colour scale spans the 1st to 99th percentiles of all "
         "the tissue of all structures.")
+
+    # ------------------------------------------------------------------
+    regs_febio = ((res.get("febio") or {}).get("registros") or [])
+    if regs_febio:
+        from . import febio as FB
+        from .escribe import REGLA_TET10
+        mallas = sorted({str(x.get("malla")) for x in regs_febio})
+        vers = sorted({str((x.get("febio") or {}).get("version"))
+                       for x in regs_febio if (x.get("febio") or {})
+                       .get("version")})
+        s1, s2 = FB.FRACCIONES_LINEAL
+        sub("Resolución en FEBio", "Solution in FEBio")
+        par(f"Los ensayos marcados como «FEBio» se resolvieron en FEBio "
+            f"{', '.join(vers) or '?'} {r.c('maas2012')} con las mallas "
+            f"{', '.join(mallas)}. Con hexaedros (hex8) la malla es la misma "
+            "de la app —un elemento por vóxel del hueso portante—; con "
+            "tetraedros cuadráticos (TET10) sale de la isosuperficie 0,5 de la "
+            "máscara, suavizada (Taubin), decimada, con las seis caras del cubo "
+            "devueltas a su plano exacto, reparada y tetraedralizada con "
+            "tetgen; si se pidió, la superficie se desplaza por su normal hasta "
+            "el volumen de los vóxeles portantes. Los poros cerrados se "
+            "conservan como huecos. Se descartan los componentes de la malla "
+            "que no unen base y techo. Integración TET10: "
+            f"{REGLA_TET10}; tensión por elemento: la media de sus puntos de "
+            "Gauss.",
+            f"Tests marked «FEBio» were solved in FEBio "
+            f"{', '.join(vers) or '?'} {r.c('maas2012')} on the meshes "
+            f"{', '.join(mallas)}. With hexahedra (hex8) the mesh is the app's "
+            "own —one element per load-bearing bone voxel—; with quadratic "
+            "tetrahedra (TET10) it comes from the 0.5 isosurface of the mask, "
+            "smoothed (Taubin), decimated, with the six cube faces returned "
+            "to their exact plane, repaired and tetrahedralised with tetgen; "
+            "if requested, the surface is offset along its normal up to the "
+            "volume of the load-bearing voxels. Closed pores are kept as "
+            "holes. Mesh components not connecting bottom and top are "
+            f"discarded. TET10 integration: {REGLA_TET10}; element stress: "
+            "the mean of its Gauss points.")
+        par("FEBio es no lineal geométricamente (St. Venant-Kirchhoff). La "
+            "respuesta lineal se obtiene de dos cargas pequeñas, fracciones "
+            f"{n(s1)} y {n(s2)} de la del protocolo, extrapolando a carga nula:",
+            "FEBio is geometrically nonlinear (St. Venant-Kirchhoff). The "
+            "linear response is obtained from two small loads, fractions "
+            f"{n(s1)} and {n(s2)} of the protocol load, extrapolated to zero "
+            "load:")
+        eq(L, r"\mathbf{u}_{lin}=2\,\frac{\mathbf{u}(s_{1})}{s_{1}}-"
+              r"\frac{\mathbf{u}(s_{2})}{s_{2}},\quad s_{2}=2\,s_{1}")
+        par("E_{app} usa el desplazamiento vertical del techo promediado por "
+            "ÁREA (con TET10 las esquinas de cada cara tri6 pesan cero y cada "
+            "nodo intermedio A/3); la fuerza se comprueba con la integral de "
+            "volumen de la tensión, porque FEBio 4.5 no escribe reacciones en "
+            "los apoyos:",
+            "E_{app} uses the AREA-averaged vertical displacement of the top "
+            "(with TET10 the corners of each tri6 face weigh zero and each "
+            "mid-side node A/3); the force is checked with the volume integral "
+            "of stress, because FEBio 4.5 writes no support reactions:")
+        eq(L, r"F=-\frac{1}{H}\sum_{e}\sigma_{zz,e}\,V_{e}")
+        par("Con elementos de distinto volumen, el percentil de Pistoia y el "
+            "p99 de la capa superficial se ponderan por volumen: cada elemento "
+            "ocupa un tramo de peso V_{e} y se sitúa en su punto medio "
+            "c_{i} = S_{i} − V_{i}/2; con volúmenes iguales el resultado es "
+            "exactamente el de las ecuaciones anteriores. Los análisis no "
+            "lineales (fuerza impuesta, plato rígido, carga de Pistoia) se "
+            "resuelven en un paso con recorte automático y se comparan con el "
+            "lineal de la misma malla. La homogeneización con hex8 es la "
+            "periódica de la app; con TET10 se dan cotas KUBC/SUBC, que no son "
+            "el mismo problema.",
+            "With elements of different volume, the Pistoia percentile and "
+            "the surface-layer p99 are volume-weighted: each element spans a "
+            "weight interval V_{e} and sits at its midpoint "
+            "c_{i} = S_{i} − V_{i}/2; with equal volumes the result is exactly "
+            "that of the equations above. Nonlinear analyses (imposed force, "
+            "rigid platen, Pistoia load) are solved in one step with "
+            "automatic cutback and compared with the linear result of the "
+            "same mesh. Homogenisation on hex8 is the app's periodic one; on "
+            "TET10 KUBC/SUBC bounds are given, which are not the same "
+            "problem.")
 
     # ------------------------------------------------------------------
     sub("Criterios de citabilidad", "Citability criteria")

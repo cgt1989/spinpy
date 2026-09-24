@@ -199,6 +199,66 @@ def _pct(v, q):
     return float(np.percentile(v, q, method="hazen")) if v.size else float("nan")
 
 
+def _pesos_iguales(w):
+    return w is None or (np.size(w) > 0 and bool(np.all(w == np.ravel(w)[0])))
+
+
+def percentil_ponderado(v, w, q, metodo="hazen"):
+    """Percentil ponderado por `w` (volumen de cada elemento).
+
+    Con voxeles todos los elementos pesan lo mismo y el percentil por conteo
+    YA esta ponderado por volumen. Con tetraedros no: «el 2 % del volumen
+    oseo» (Pistoia) o el p99 de la capa superficial tienen que contar volumen,
+    no elementos.
+
+    DEFINICION. Se ordenan los valores; cada elemento ocupa un tramo de peso
+    w_i y se situa en su punto MEDIO, c_i = S_i - w_i / 2 (S_i, peso
+    acumulado). Entre esos puntos se interpola linealmente y fuera se toma el
+    extremo:
+      'hazen'   posicion c_i / W: con pesos iguales es (i - 0.5)/n, la de
+                `prctile` de MATLAB (Q5 de Hyndman y Fan).
+      'linear'  posicion (c_i - c_1)/(c_n - c_1): con pesos iguales es
+                (i - 1)/(n - 1), el defecto de numpy (Q7), que es el que usan
+                el umbral de Pistoia y el vm_p99 de todo el tejido.
+
+    Con pesos iguales (o `w` None) se llama a `np.percentile` con el mismo
+    metodo, de modo que el resultado es BIT A BIT el de siempre: el bloque 27
+    lo comprueba, y comprueba tambien que la formula ponderada con pesos
+    iguales coincide con numpy a redondeo.
+    """
+    v = np.asarray(v, float).ravel()
+    if v.size == 0:
+        return float("nan") if np.ndim(q) == 0 else np.full(np.shape(q), np.nan)
+    if _pesos_iguales(w):
+        r = np.percentile(v, q, method=metodo)
+        return float(r) if np.ndim(r) == 0 else r
+    w = np.asarray(w, float).ravel()
+    if w.size != v.size or (w < 0).any():
+        raise ValueError("pesos incompatibles con los valores")
+    return _percentil_formula(v, w, q, metodo)
+
+
+def _percentil_formula(v, w, q, metodo):
+    orden = np.argsort(v, kind="stable")
+    v, w = v[orden], w[orden]
+    S = np.cumsum(w)
+    c = S - 0.5 * w
+    if metodo == "hazen":
+        pos = c / S[-1]
+    elif metodo == "linear":
+        pos = (c - c[0]) / (c[-1] - c[0]) if v.size > 1 else np.zeros(1)
+    else:
+        raise ValueError(f"metodo desconocido: {metodo!r}")
+    r = np.interp(np.asarray(q, float) / 100.0, pos, v)
+    return float(r) if np.ndim(r) == 0 else r
+
+
+def _media(v, w):
+    if _pesos_iguales(w):
+        return float(v.mean())
+    return float(np.average(v, weights=w))
+
+
 def capa_superficie(BW):
     """Elementos solidos con al menos un vecino POR CARA en el vacio.
 
@@ -254,9 +314,16 @@ def estadisticos_vm(res):
     n = 0; es correcto, no hay concentracion que medir.
 
     Los percentiles de aqui usan la convencion de `prctile` (ver `_pct`).
+
+    Si `res` trae `vol_solido` —el volumen de cada elemento, alineado con
+    `vm_solido`; lo ponen los ensayos en FEBio con tetraedros— el percentil,
+    la media y la fraccion se PONDERAN por volumen (`percentil_ponderado`).
+    Con volumenes iguales, o sin la clave, el resultado es bit a bit el de
+    siempre.
     """
     vm = np.asarray(res.get("vm_solido", []), float)
     sup = res.get("superficie_solido")
+    w = res.get("vol_solido")
     if sup is None:
         campo = res.get("campo_vm")
         if campo is None:
@@ -265,18 +332,29 @@ def estadisticos_vm(res):
         dentro = np.isfinite(campo)
         vm = campo[dentro]
         sup = capa_superficie(dentro)[dentro]
+        w = None
     sup = np.asarray(sup, bool).ravel()
     if vm.size == 0 or sup.size != vm.size:
         return {}
+    if w is not None:
+        w = np.asarray(w, float).ravel()
+        if w.size != vm.size:
+            return {}
     ok = np.isfinite(vm)
     vs = vm[sup & ok]
-    return {"vm_p99_superficie": _pct(vs, 99),
+    ws = None if w is None else w[sup & ok]
+    if _pesos_iguales(ws) and _pesos_iguales(w):
+        frac = (float(vs.size) / float(ok.sum()) if ok.any()
+                else float("nan"))
+    else:
+        frac = float(ws.sum() / w[ok].sum()) if ok.any() else float("nan")
+    return {"vm_p99_superficie": (percentil_ponderado(vs, ws, 99)
+                                  if vs.size else float("nan")),
             "vm_max_superficie": float(vs.max()) if vs.size else float("nan"),
-            "vm_media_superficie": float(vs.mean()) if vs.size
+            "vm_media_superficie": _media(vs, ws) if vs.size
             else float("nan"),
             "vm_n_superficie": int(vs.size),
-            "vm_frac_superficie": (float(vs.size) / float(ok.sum())
-                                   if ok.any() else float("nan"))}
+            "vm_frac_superficie": frac}
 
 
 # Probabilidades (en %) a las que se guardan los cuantiles de von Mises de la
@@ -301,6 +379,7 @@ def cuantiles_vm_superficie(res, probs=PROB_CUANTILES_VM, escala=1.0):
     """
     vm = np.asarray(res.get("vm_solido", []), float)
     sup = res.get("superficie_solido")
+    w = res.get("vol_solido")
     if sup is None:
         campo = res.get("campo_vm")
         if campo is None:
@@ -309,13 +388,16 @@ def cuantiles_vm_superficie(res, probs=PROB_CUANTILES_VM, escala=1.0):
         dentro = np.isfinite(campo)
         vm = campo[dentro]
         sup = capa_superficie(dentro)[dentro]
+        w = None
     sup = np.asarray(sup, bool).ravel()
     if vm.size == 0 or sup.size != vm.size:
         return {}
-    vs = vm[sup & np.isfinite(vm)]
+    m = sup & np.isfinite(vm)
+    vs = vm[m]
     if vs.size == 0:
         return {}
-    q = np.percentile(vs, list(probs), method="hazen") * float(escala)
+    ws = None if w is None else np.asarray(w, float).ravel()[m]
+    q = np.asarray(percentil_ponderado(vs, ws, list(probs))) * float(escala)
     return {"p": [float(x) for x in probs], "valor": [float(x) for x in q],
             "n": int(vs.size)}
 
@@ -702,14 +784,22 @@ def criterio_pistoia(res, frac=FRAC_CRITICA, eps_crit=EPS_CRITICA):
         return {"ok": False, "msg": res.get("msg", "El ensayo no se resolvio.")}
 
     e = np.asarray(res["eps_eff_solido"], float)
-    e = e[np.isfinite(e)]
+    # `vol_solido` (opcional, alineado con eps_eff_solido/vm_solido): volumen
+    # de cada elemento. Con voxeles no hace falta; con tetraedros de tamanos
+    # distintos «el 2 % del volumen» ya no es «el 2 % de los elementos».
+    w = res.get("vol_solido")
+    w = None if w is None else np.asarray(w, float).ravel()
+    fin = np.isfinite(e)
+    e = e[fin]
+    we = None if w is None else w[fin]
     if e.size == 0:
         return {"ok": False, "msg": "No hay tejido oseo con deformacion."}
 
     # Percentil (1-frac): el valor que supera exactamente esa fraccion del
-    # tejido. Todos los elementos tienen el mismo volumen, asi que el percentil
-    # por conteo YA esta ponderado por volumen.
-    umbral = float(np.percentile(e, 100.0 * (1.0 - frac)))
+    # tejido. Con elementos iguales el percentil por conteo YA esta ponderado
+    # por volumen; si no, lo pondera `percentil_ponderado` (mismo tipo 7).
+    umbral = float(percentil_ponderado(e, we, 100.0 * (1.0 - frac),
+                                       metodo="linear"))
     if umbral <= 0:
         return {"ok": False, "msg": "Deformacion nula en el tejido."}
 
@@ -719,7 +809,9 @@ def criterio_pistoia(res, frac=FRAC_CRITICA, eps_crit=EPS_CRITICA):
     # Contrastarla con el limite elastico del tejido (~150-200 MPa en hueso
     # mineralizado) es la comprobacion de coherencia que el criterio no hace.
     vms = np.asarray(res.get("vm_solido", []), float)
-    vms = vms[np.isfinite(vms)]
+    fv = np.isfinite(vms)
+    vms = vms[fv]
+    wv = None if (w is None or w.size != fv.size) else w[fv]
     vm_out = {}
     if vms.size:
         # NOTA DE CONVENCION: estas cuatro claves conservan `np.percentile` con
@@ -730,10 +822,11 @@ def criterio_pistoia(res, frac=FRAC_CRITICA, eps_crit=EPS_CRITICA):
         # que se anaden debajo SI usan la convencion declarada, porque son
         # nuevas y porque asi coinciden con `Estudio_Convergencia`, que es de
         # donde sale su validacion.
-        vm_out = {"vm_max": float(vms.max()), "vm_media": float(vms.mean()),
-                  "vm_p99": float(np.percentile(vms, 99.0)),
+        p99 = percentil_ponderado(vms, wv, 99.0, metodo="linear")
+        vm_out = {"vm_max": float(vms.max()), "vm_media": _media(vms, wv),
+                  "vm_p99": float(p99),
                   "vm_max_fallo": float(k * vms.max()),
-                  "vm_p99_fallo": float(k * np.percentile(vms, 99.0))}
+                  "vm_p99_fallo": float(k * p99)}
 
         # Capa superficial: el unico sabor del pico que converge. El maximo se
         # sigue reportando —esta en los resultados de siempre y hay quien lo
@@ -752,7 +845,8 @@ def criterio_pistoia(res, frac=FRAC_CRITICA, eps_crit=EPS_CRITICA):
         "F_fallo": float(k * res["F_total"]),
         "eps_eff_p": umbral,
         "eps_eff_max": float(e.max()),
-        "eps_eff_media": float(e.mean()),
+        "eps_eff_media": _media(e, we),
+        "ponderado_volumen": not _pesos_iguales(we),
         "frac": float(frac), "eps_crit": float(eps_crit),
         "n_elem_solido": int(e.size),
         "E_app": res.get("E_app"),

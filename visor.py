@@ -245,6 +245,9 @@ from spinpy.simulacion import TBTH_H_MIN                     # noqa: E402
 from spinpy.simulacion import fallo_progresivo, simular_perdida  # noqa: E402
 from spinpy.solido import (malla_hex, malla_tet10,           # noqa: E402
                            volumen_hex)
+from dialogo_febio import (DialogoFEBio, DialogoFEMAuto,     # noqa: E402
+                           DialogoResultadosFEBio, escribir_csv,
+                           figura_validacion)
 
 RAIZ = Path(__file__).parent
 
@@ -2936,6 +2939,10 @@ class Visor(QtWidgets.QMainWindow):
         self._esp = {}             # campos de espesor local cacheados
         self._fe = {}              # campos de deformacion efectiva
         self._vm = {}              # campos de tension de von Mises
+        # FEBio: evento para detener la corrida en curso y mapas de la ultima
+        # (malla + von Mises por elemento; en memoria, no en `_res`).
+        self._febio_evento = None
+        self._febio_mapas = []
         self._desp = {}            # campos de deformacion total (mm)
         self._clim = None          # escala de color COMUN a los dos paneles
         self._esp_luego = None     # que hacer cuando termine el espesor
@@ -3677,6 +3684,15 @@ class Visor(QtWidgets.QMainWindow):
         self.btn_fe.clicked.connect(self.ensayo_fe)
         gl.addWidget(self.btn_fe)
 
+        self.btn_febio = QtWidgets.QPushButton("Analizar con FEBio…")
+        self.btn_febio.setToolTip(
+            "El mismo ensayo resuelto en FEBio, con la malla de ladrillos de\n"
+            "la app y/o una malla suave de tetraedros cuadráticos, en lineal\n"
+            "y no lineal. Usa la estructura activa, el VOI y la resolución,\n"
+            "dirección y apoyo de este panel.")
+        self.btn_febio.clicked.connect(self.analizar_febio)
+        gl.addWidget(self.btn_febio)
+
         f = QtWidgets.QHBoxLayout()
         self.btn_dist = QtWidgets.QPushButton("Distribuciones…")
         self.btn_dist.setToolTip(
@@ -4244,6 +4260,18 @@ class Visor(QtWidgets.QMainWindow):
         self.act_informe_auto.triggered.connect(self.informe_auto)
         tb.addAction(self.act_informe_auto)
 
+        # Al lado del informe automatico y con su misma logica: se elige todo
+        # en una ventana y se espera. Encadena las MISMAS `_febio_una` que el
+        # boton «Analizar con FEBio…» del panel.
+        self.act_fem_auto = QtWidgets.QAction("FEM automático (FEBio)…", self)
+        self.act_fem_auto.setToolTip(
+            "Resuelve en FEBio las estructuras, protocolos (ensayo de la app,\n"
+            "Tapia et al. 2026, homogeneización) y mallas (ladrillos y/o\n"
+            "tetraedros suaves) marcados, y los compara con la app.\n"
+            "Puede tardar horas.")
+        self.act_fem_auto.triggered.connect(self.fem_auto)
+        tb.addAction(self.act_fem_auto)
+
         # Avance de la cadena y boton para pararla. En la barra de estado y no
         # en un dialogo: la ventana tiene que seguir a la vista y usable para
         # mirar resultados intermedios durante horas.
@@ -4305,7 +4333,8 @@ class Visor(QtWidgets.QMainWindow):
                   self.btn_exp, self.btn_fe, self.btn_hist, self.btn_dist,
                   self.btn_conv, self.btn_disp, self.btn_lote, self.btn_todos,
                   self.btn_paper, self.cmb_familia, self.btn_sim,
-                  self.btn_fallo, self.act_informe, self.act_informe_auto):
+                  self.btn_fallo, self.act_informe, self.act_informe_auto,
+                  self.btn_febio, self.act_fem_auto):
             b.setEnabled(not bloquear)
         if si and determinada:
             self.barra.setRange(0, max(1, int(total)))
@@ -7838,22 +7867,37 @@ class Visor(QtWidgets.QMainWindow):
             self._auto_detenido()
             return
         if not a["pasos"]:
-            self._auto_informe()
+            if a.get("tipo") == "fem":
+                self._fem_auto_fin()
+            else:
+                self._auto_informe()
             return
         clave, rotulo, fam, accion = a["pasos"].pop(0)
         if fam is not None:
             self._activar(fam)
-            rotulo = f"{rotulo} · {self._etq_fam(fam)}"
+            if a.get("tipo") != "fem":
+                rotulo = f"{rotulo} · {self._etq_fam(fam)}"
         i = a["total"] - len(a["pasos"])
-        t_est = self._auto_estimado(a, clave, fam)
-        # Lo que queda: esta etapa, las pendientes y el informe final.
-        resta = (t_est or 0.0) + (self._auto_estimado(a, "informe", None) or 0.0) + sum(
-            self._auto_estimado(a, p[0], p[2]) or 0.0 for p in a["pasos"])
         from spinpy import tiempos
-        self.lab_auto.setText(
-            _("Informe automatico {i}/{n}: {etapa}").format(
-                i=i, n=a["total"], etapa=rotulo)
-            + "  ·  " + _("quedan {t}").format(t=tiempos.texto(resta)))
+        if a.get("tipo") == "fem":
+            # Una estimacion por etapa, en el orden de las etapas: varias
+            # comparten clave y familia y `_auto_estimado` no las distingue.
+            t_est = a["estimados"].pop(0) if a["estimados"] else None
+            resta = (t_est or 0.0) + sum(x or 0.0 for x in a["estimados"])
+            self.lab_auto.setText(
+                _("FEM automático {i}/{n}: {etapa}").format(
+                    i=i, n=a["total"], etapa=rotulo)
+                + "  ·  " + _("quedan {t}").format(t=tiempos.texto(resta)))
+        else:
+            t_est = self._auto_estimado(a, clave, fam)
+            # Lo que queda: esta etapa, las pendientes y el informe final.
+            resta = (t_est or 0.0) + (self._auto_estimado(a, "informe", None)
+                                      or 0.0) + sum(
+                self._auto_estimado(a, p[0], p[2]) or 0.0 for p in a["pasos"])
+            self.lab_auto.setText(
+                _("Informe automatico {i}/{n}: {etapa}").format(
+                    i=i, n=a["total"], etapa=rotulo)
+                + "  ·  " + _("quedan {t}").format(t=tiempos.texto(resta)))
         a["error"] = None
         fila = {"clave": clave, "etapa": rotulo, "familia": fam,
                 "t_estimado_s": t_est}
@@ -7924,7 +7968,12 @@ class Visor(QtWidgets.QMainWindow):
         self._lanzar_informe(a["carpeta"])
 
     def _auto_detener(self):
+        # FEBio se detiene de verdad: el evento lo consulta `febio.correr`,
+        # que mata el proceso; lo terminado se guarda.
+        if self._febio_evento is not None:
+            self._febio_evento.set()
         if self._auto is None:
+            self.btn_auto_detener.setEnabled(False)
             return
         self._auto["detener"] = True
         self.btn_auto_detener.setEnabled(False)
@@ -7933,6 +7982,9 @@ class Visor(QtWidgets.QMainWindow):
 
     def _auto_detenido(self):
         a = self._auto
+        if a.get("tipo") == "fem":
+            self._fem_auto_fin(detenido=True)
+            return
         self._activar(self._familias()[0])
         self._redibujar()
         self._res["informe_auto"] = self._auto_registro(a)
@@ -8003,6 +8055,323 @@ class Visor(QtWidgets.QMainWindow):
         for av in a["avisos"]:
             t.append("<br>⚠ " + html.escape(av))
         return "".join(t)
+
+    # -- FEBio -------------------------------------------------------------
+    #
+    # Dos puertas —«Analizar con FEBio…» del panel y «FEM automático
+    # (FEBio)…» de la barra— y un solo camino: las dos construyen «tareas»
+    # (estructura x protocolo x malla x ejes) y las pasan a `_febio_una`, que
+    # las resuelve en un hilo con `febio.analizar` / `febio.homogeneizar`. El
+    # automatico las recorre con `_auto_siguiente`, una etapa por tarea.
+
+    def _carpeta_febio_def(self):
+        nombre = Path(str(self.VOI_nombre or "sesion")).stem
+        return DATOS / f"FEM_{nombre}_{time.strftime('%Y-%m-%d')}"
+
+    def _mascara_estructura(self, est):
+        if est == "voi":
+            return self.VOI, self.VOI_spacing
+        BW = self._de(est, "BW")
+        return (None, None) if BW is None else (BW, self._spacing(BW.shape[0]))
+
+    def _procedencia_estructura(self, est):
+        """La del ajuste si lo hay (es la estructura ensayada); si no, la de
+        los controles. El VOI no tiene generador."""
+        if est == "voi":
+            return procedencia.bloque("voi")
+        rec = self._res.get("ajuste" if est == "spinodoide" else "ajuste_dual")
+        if isinstance(rec, dict) and rec.get("procedencia"):
+            return rec["procedencia"]
+        return self._procedencia_controles()[est]
+
+    def _febio_una(self, tareas, agregar=True):
+        """Resuelve `tareas` en FEBio, en un hilo, una detras de otra."""
+        if self.hilo is not None and self.hilo.isRunning():
+            return
+        import threading
+        trabajos = []
+        for t in tareas:
+            BW, sp = self._mascara_estructura(t["estructura"])
+            if BW is None:
+                self._avisar(_("Falta la estructura"),
+                             _("{e} no está generado; se omite.").format(
+                                 e=t["estructura"]))
+                continue
+            trabajos.append((dict(t), BW, sp,
+                             self._procedencia_estructura(t["estructura"])))
+        if not trabajos:
+            return
+        ev = threading.Event()
+        self._febio_evento = ev
+        self.btn_auto_detener.setVisible(True)
+        self.btn_auto_detener.setEnabled(True)
+        self._ocupado(True, _("FEBio: preparando…"))
+        self._t0 = time.time()
+        hilo = Trabajador(lambda: None)
+        hilo._fn = lambda: Visor._febio_tarea(trabajos, ev, hilo.informar)
+        hilo.avance.connect(self._febio_avance)
+        hilo.listo.connect(lambda out, ag=agregar: self._febio_listo(out, ag))
+        hilo.fallo.connect(self._error)
+        self.hilo = hilo
+        hilo.start()
+
+    def _febio_avance(self, i, n, etapa):
+        if self.barra.maximum() != n:
+            self.barra.setRange(0, max(1, n))
+        self.barra.setValue(i)
+        self.statusBar().showMessage("FEBio · " + etapa)
+
+    @staticmethod
+    def _febio_tarea(trabajos, ev, informar):
+        """Sin Qt: corre en el hilo de trabajo."""
+        import tempfile
+
+        from spinpy import febio
+        out = {"registros": [], "mapas": [], "cancelado": False}
+        for t, BW, sp, proc in trabajos:
+            p, est, m = t["protocolo"], t["estructura"], t["malla"]
+            carpeta = (Path(t["carpeta"]) if t.get("carpeta")
+                       else Path(tempfile.mkdtemp(prefix="febio_")))
+            for eje in t["ejes"]:
+                rot = f"{est} · {p['nombre']} · {m} · {'XYZ'[eje]}"
+
+                def pr(i, n, et, _r=rot):
+                    informar(i, n, f"{_r} · {et}")
+                informar(0, 1, rot)
+                try:
+                    if p["tipo"] == "homogeneizacion":
+                        r = febio.homogeneizar(
+                            BW, sp, p, malla=m, carpeta=carpeta, n=t["n"],
+                            exe=t["exe"], hilos=t["hilos"], cancelar=ev,
+                            progreso=pr, opciones_malla=t["opciones_malla"],
+                            etiqueta=est, conservar=t["conservar"])
+                    else:
+                        r = febio.analizar(
+                            BW, sp, p, malla=m, analisis=t["analisis"],
+                            eje=eje, carpeta=carpeta, n=t["n"], exe=t["exe"],
+                            hilos=t["hilos"], cancelar=ev,
+                            material=t["material"], pasos=t["pasos"],
+                            progreso=pr, conservar=t["conservar"],
+                            comparar_app=t["comparar_app"],
+                            opciones_malla=t["opciones_malla"], etiqueta=est,
+                            conv_malla=t["conv_malla"])
+                except febio.Cancelado:
+                    out["cancelado"] = True
+                    return out
+                except (febio.ErrorMalla, febio.ErrorFEBio, ValueError,
+                        RuntimeError) as e:
+                    # Una etapa que falla se registra y no para las demas.
+                    r = {"nombre": p["nombre"], "protocolo": p["clave"],
+                         "modificado": p["modificado"], "malla": m,
+                         "lineal": None, "fallos": [{"corrida": "malla",
+                                                      "msg": str(e)}],
+                         "carpeta": str(carpeta / f"{est}_fallo")}
+                r.update(estructura=est, estructura_codigo=est,
+                         tipo=r.get("tipo", p["tipo"]), procedencia=proc,
+                         eje_nombre=r.get("eje_nombre", "XYZ"[eje]))
+                cl, mm = r.get("_campos_lineal"), r.get("_malla")
+                if cl is not None and mm is not None:
+                    out["mapas"].append({
+                        "titulo": rot, "nodos": mm["nodos"],
+                        "elems": mm["elems"],
+                        "vm": febio.von_mises(cl["sigma"]) / 1e6})
+                out["registros"].append(febio.registro_json(r))
+        return out
+
+    def _febio_registrar(self, registros):
+        """Registros en la sesion: `_res["febio"]["registros"]`, donde los
+        recoge el informe de publicacion. Una repeticion reemplaza a la
+        anterior de la misma estructura, protocolo, malla y eje."""
+        def clave(r):
+            return (r.get("estructura"), r.get("nombre"), r.get("malla"),
+                    r.get("eje_nombre"), r.get("tipo"))
+        rec = self._res.setdefault("febio", {"registros": []})
+        nuevas = {clave(r) for r in registros}
+        rec["registros"] = [r for r in rec["registros"]
+                            if clave(r) not in nuevas] + list(registros)
+
+    @staticmethod
+    def _febio_guardar(carpeta, registros):
+        """`resultados_fem.json` y `tabla_fem.csv` en la carpeta, sumando a
+        lo que ya hubiera de corridas anteriores."""
+        carpeta = Path(carpeta)
+        carpeta.mkdir(parents=True, exist_ok=True)
+        ruta = carpeta / "resultados_fem.json"
+        previos = []
+        if ruta.exists():
+            try:
+                previos = json.loads(ruta.read_text(encoding="utf-8")).get(
+                    "registros", [])
+            except (ValueError, OSError):
+                previos = []
+
+        def clave(r):
+            return (r.get("estructura"), r.get("nombre"), r.get("malla"),
+                    r.get("eje_nombre"), r.get("tipo"))
+        nuevas = {clave(r) for r in registros}
+        todos = [r for r in previos if clave(r) not in nuevas] + list(registros)
+        doc = {"formato": "spinpy/resultados_fem", "version": 1,
+               "spinpy": procedencia.version_spinpy(),
+               "escrito": time.strftime("%Y-%m-%d %H:%M:%S"),
+               "registros": todos}
+        ruta.write_text(json.dumps(doc, ensure_ascii=False, indent=1,
+                                   default=float), encoding="utf-8")
+        escribir_csv(todos, carpeta / "tabla_fem.csv")
+        return todos
+
+    def _febio_listo(self, out, agregar=True):
+        self._febio_evento = None
+        a = self._auto
+        if a is None:
+            self.btn_auto_detener.setVisible(False)
+        self._ocupado(False)
+        regs = out["registros"]
+        self._febio_mapas = (self._febio_mapas if a is not None else []) \
+            + out["mapas"]
+        carpetas = {r.get("carpeta") for r in regs if r.get("carpeta")}
+        # La carpeta de la tarea es la raiz; cada registro guarda la suya.
+        raiz = None
+        for c in carpetas:
+            raiz = Path(c).parent
+            break
+        if raiz is not None:
+            self._febio_guardar(raiz, regs)
+        if agregar:
+            self._febio_registrar(regs)
+        if a is not None:
+            a.setdefault("registros", []).extend(regs)
+            if out["cancelado"]:
+                a["detener"] = True
+            return
+        if out["cancelado"]:
+            self.statusBar().showMessage(_("FEBio detenido; lo terminado se "
+                                           "conserva."))
+        self._mostrar(lambda: DialogoResultadosFEBio(
+            self, regs, raiz, pendiente=not agregar, mapas=self._febio_mapas))
+
+    def analizar_febio(self):
+        """«Analizar con FEBio…»: la estructura activa y el VOI."""
+        if self.hilo is not None and self.hilo.isRunning():
+            return
+        if self.VOI is None and self.BW_vista is None:
+            return
+        d = DialogoFEBio(self, str(self._carpeta_febio_def()))
+        if d.exec_() != QtWidgets.QDialog.Accepted:
+            return
+        op = d.opciones()
+        p = op["protocolo"]
+
+        def tareas(est):
+            return [{"estructura": est, "protocolo": p, "malla": m,
+                     "analisis": op["analisis"] or ["lineal"],
+                     "ejes": op["ejes"] if p["tipo"] == "compresion" else [2],
+                     "n": op["n_hex"] if m == "hex8" else op["n_tet"],
+                     "opciones_malla": op["opciones_malla"],
+                     "conv_malla": op["conv_malla"] and m == "tet10",
+                     "material": op["material"], "pasos": op["pasos"],
+                     "hilos": op["hilos"], "exe": op["exe"],
+                     "carpeta": op["carpeta"], "conservar": True,
+                     "comparar_app": True}
+                    for m in op["mallas"]]
+
+        voi_hecho = [False]
+
+        def una():
+            ts = []
+            if self.VOI is not None and not voi_hecho[0]:
+                ts += tareas("voi")
+                voi_hecho[0] = True
+            if self.BW_vista is not None and self._confirmar_orientacion():
+                ts += tareas(self._fam)
+            if ts:
+                self._febio_una(ts)
+
+        self._en_cada_familia(una)
+
+    def fem_auto(self):
+        """«FEM automático (FEBio)…»: todo desatendido, como el informe
+        automatico, encadenando las mismas `_febio_una` que el panel."""
+        if self.hilo is not None and self.hilo.isRunning():
+            return
+        if self.VOI is None and all(self._de(f, "BW") is None
+                                    for f in FAMILIAS):
+            QtWidgets.QMessageBox.information(
+                self, _("Nada que analizar"),
+                _("Carga el VOI o genera una estructura primero."))
+            return
+        d = DialogoFEMAuto(self, str(self._carpeta_febio_def()))
+        if d.exec_() != QtWidgets.QDialog.Accepted:
+            return
+        op = d.opciones()
+        from dialogo_febio import etiqueta_estructura, etiqueta_malla
+        pasos, estimados = [], []
+        for est in op["por_ajustar"]:
+            pasos.append(("ajuste", _("Mejor ajuste al VOI") + " · "
+                          + self._etq_fam(est), est, self._ajuste_mejor_una))
+            estimados.append(1100.0)
+        for t, s in zip(op["tareas"], op["estimados"]):
+            fam = None if t["estructura"] == "voi" else t["estructura"]
+            rot = " · ".join((etiqueta_estructura(t["estructura"]),
+                              t["protocolo"]["nombre"],
+                              etiqueta_malla(t["malla"])))
+            pasos.append((f"febio_{t['malla']}", rot, fam,
+                          lambda t=t: self._febio_una(
+                              [t], agregar=op["sesion"])))
+            estimados.append(s)
+        self._auto = {"tipo": "fem", "pasos": pasos, "total": len(pasos),
+                      "hechos": [], "avisos": [], "error": None,
+                      "detener": False, "t0": time.time(),
+                      "carpeta": Path(op["carpeta"]),
+                      "opciones": {k: v for k, v in op.items()
+                                   if k not in ("tareas", "estimados")},
+                      "inicio": time.strftime("%Y-%m-%d %H:%M:%S"),
+                      "estimados": estimados, "registros": []}
+        self._febio_mapas = []
+        self.lab_auto.setVisible(True)
+        self.btn_auto_detener.setEnabled(True)
+        self.btn_auto_detener.setVisible(True)
+        self._ocupado(True, _("FEM automático: empezando…"))
+        QtCore.QTimer.singleShot(0, self._auto_siguiente)
+
+    def _fem_auto_fin(self, detenido=False):
+        a = self._auto
+        op = a["opciones"]
+        reg = {"inicio": a["inicio"], "duracion_s": time.time() - a["t0"],
+               "configuracion": op.get("configuracion"),
+               "etapas": [dict(f) for f in a["hechos"]],
+               "pendientes": [p[1] for p in a["pasos"]],
+               "avisos": list(a["avisos"]), "detenido": bool(detenido),
+               "carpeta": str(a["carpeta"])}
+        if op.get("sesion"):
+            self._res["fem_auto"] = reg
+        regs = a.get("registros", [])
+        carpeta = a["carpeta"]
+        figura = None
+        try:
+            carpeta.mkdir(parents=True, exist_ok=True)
+            (carpeta / "fem_auto.json").write_text(
+                json.dumps(reg, ensure_ascii=False, indent=1, default=str),
+                encoding="utf-8")
+            if op.get("figura") and regs:
+                figura = figura_validacion(
+                    regs, carpeta / "figura_validacion_fem.png")
+        except Exception:
+            a["avisos"].append(traceback.format_exc().splitlines()[-1])
+        mapas = self._febio_mapas if op.get("mapas") else []
+        resumen = self._auto_resumen_html(a)
+        self._auto_terminar()
+        self._febio_evento = None
+        self._ocupado(False, _("FEM automático detenido; lo terminado se "
+                               "conserva.") if detenido
+                      else _("FEM automático terminado."))
+        caja = QtWidgets.QMessageBox(self)
+        caja.setWindowTitle(_("FEM automático (FEBio)"))
+        caja.setTextFormat(QtCore.Qt.RichText)
+        caja.setText(resumen)
+        caja.exec_()
+        DialogoResultadosFEBio(self, regs, carpeta,
+                               pendiente=not op.get("sesion"), mapas=mapas,
+                               figura=figura).exec_()
 
     def _ajuste_mejor_una(self):
         """Etapa de ajuste del informe automatico, para la familia activa.
@@ -8267,6 +8636,41 @@ def autocomprobacion():
             tam = {f.suffix: f.stat().st_size for f in d.iterdir()}
         return " ".join(f"{k}{v//1024}kB" for k, v in sorted(tam.items()))
     prueba("escribir VTU / INP / DAT / FEB / STL", _escribir)
+
+    def _febio():
+        # En el ejecutable FEBio tiene que ser la copia EMPAQUETADA: si se
+        # usara una instalacion de FEBio Studio de la maquina que compilo, la
+        # prueba pasaria aqui y fallaria en la de cualquier otro. El TET10
+        # pasa por el proceso hijo de `mallar_aislado`, que en un ejecutable
+        # congelado depende de `freeze_support`: se prueba lo que se usa.
+        from spinpy import febio
+        exe = febio.localizar()
+        if exe is None:
+            if getattr(sys, "frozen", False):
+                raise RuntimeError("no se encontro la copia empaquetada de "
+                                   "FEBio")
+            return "FEBio no instalado (desde el codigo no es obligatorio)"
+        org = febio.origen(exe)
+        if getattr(sys, "frozen", False) and org != "empaquetado":
+            raise RuntimeError(f"FEBio no es el empaquetado: {exe}")
+        out = []
+        # Cubo con una cavidad esferica: malla de forma fiable a 16^3 (un
+        # spinodoide a esa resolucion tiene puntales de 1-2 voxeles, que es
+        # justo donde tetgen se cae, y la prueba es del camino, no de eso).
+        c = (np.arange(16) - 7.5) / 16
+        X, Y, Z = np.meshgrid(c, c, c, indexing="ij")
+        cav = np.sqrt(X ** 2 + Y ** 2 + Z ** 2) > 0.2
+        with tempfile.TemporaryDirectory() as d:
+            for tipo in ("hex8", "tet10"):
+                r = febio.analizar(cav, np.full(3, 1.0 / 16),
+                                   febio.protocolo("app"), malla=tipo,
+                                   carpeta=d, n=16, exe=exe,
+                                   comparar_app=False, etiqueta="auto")
+                if not r.get("lineal"):
+                    raise RuntimeError(f"{tipo}: {r.get('fallos')}")
+                out.append(f"{tipo} E_app {r['lineal']['E_app'] / 1e6:.1f} MPa")
+        return f"FEBio {febio.version(exe)} ({org}); " + ", ".join(out)
+    prueba("FEBio: ensayo lineal hex8 y TET10 16^3", _febio)
 
     def _lote():
         # Se ejercita con la MISMA politica que usa el lote de verdad

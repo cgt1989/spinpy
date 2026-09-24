@@ -38,6 +38,20 @@ densidad^2. Esta documentado en el repositorio. Conviene saberlo antes de
 sacar conclusiones mecanicas.
 
 
+FEBIO INCLUIDO (USO INTERNO DEL LABORATORIO)
+--------------------------------------------
+"FEM automatico (FEBio)" (barra superior) y "Analizar con FEBio" (Analisis
+mecanico) resuelven los ensayos en FEBio 4.5, que viene incluido en la carpeta
+_internal\febio. No hay que instalar nada mas.
+
+Los binarios de FEBio estan bajo la licencia de la Universidad de Utah (FEBio
+Software License 4.0), que no permite redistribuirlos. La licencia de
+redistribucion SE ESTA TRAMITANDO para la futura publicacion; mientras, esta
+copia es solo para uso interno del laboratorio. Detalles en
+_internal\febio\LICENCIA_FEBIO.txt. Quien prefiera su propia instalacion puede
+instalar FEBio Studio (febio.org) y elegir febio4.exe en la ventana.
+
+
 SI ALGO FALLA
 -------------
 Menu de inicio -> "spinpy - autocomprobacion". Deja un informe en

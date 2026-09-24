@@ -154,7 +154,26 @@ GRAVEDAD = {
     "sim_tbth_h": RESERVAS,
     "sim_pendiente": RESERVAS,
     "fallo_modelo_dano": RESERVAS,
+    # FEBio (febio.py)
+    "febio_fallo": NO_CITABLE,
+    "febio_equilibrio": NO_CITABLE,
+    "febio_perdida_volumen": RESERVAS,
+    "febio_descarte": RESERVAS,
+    "febio_malla_no_convergida": RESERVAS,
+    "febio_suavizado_pico": RESERVAS,
+    "febio_cotas": RESERVAS,
+    "febio_protocolo_modificado": RESERVAS,
 }
+
+# Equilibrio del ensayo lineal en FEBio: la fuerza de la integral de volumen
+# de sigma_zz frente a la aplicada. Medido <= 5e-9 en el bloque macizo (hex8 y
+# TET10) y <= 2e-9 en la giroide; 1e-6 es la misma puerta que el residuo
+# (F10). CRITERIO NUESTRO.
+FEBIO_EQUILIBRIO_MAX = 1e-6
+# Dos tamanos de malla TET10: E_app no debe moverse mas que esto. Es la banda
+# de +-3 % en que el VOI proximal de H4 se declaro convergido
+# (Estudio_Convergencia). CRITERIO NUESTRO.
+FEBIO_CONV_MALLA_MAX = 0.03
 
 # (espanol, ingles). Los marcadores se rellenan con `datos` del item; uno que
 # falte sale como nan en vez de romper el informe.
@@ -353,6 +372,53 @@ MOTIVOS = {
         "broken tissue is softened to {rigidez:.2f} E_s instead of removed: "
         "a damage model of our choosing (deleting it disconnected struts), "
         "not a measured law"),
+    "febio_fallo": (
+        "FEBio no terminó {n_fallos:.0f} corrida(s) de este análisis: no hay "
+        "valor que citar",
+        "FEBio did not finish {n_fallos:.0f} run(s) of this analysis: there "
+        "is no value to cite"),
+    "febio_equilibrio": (
+        "la fuerza que equilibra FEBio difiere de la aplicada en {dF:.1e} "
+        "(> 1e-6, criterio nuestro): el campo no es fiable",
+        "the force FEBio balances differs from the applied one by {dF:.1e} "
+        "(> 1e-6, our criterion): the field is not reliable"),
+    "febio_perdida_volumen": (
+        "la malla suave tiene un {perdida_pct:+.1f} % de volumen frente a los "
+        "vóxeles (umbral {max_pct:.0f} %, criterio nuestro): la rigidez "
+        "escala ~ρ², así que parte de la diferencia no viene de los escalones",
+        "the smooth mesh has {perdida_pct:+.1f} % volume against the voxels "
+        "(threshold {max_pct:.0f} %, our criterion): stiffness scales ~ρ², so "
+        "part of the difference does not come from the staircase"),
+    "febio_descarte": (
+        "el {descartado_pct:.1f} % de la malla no une base y techo y se "
+        "descartó (umbral {max_pct:.0f} %, criterio nuestro)",
+        "{descartado_pct:.1f} % of the mesh does not connect bottom and top "
+        "and was discarded (threshold {max_pct:.0f} %, our criterion)"),
+    "febio_malla_no_convergida": (
+        "E_app cambia un {dE_pct:.1f} % entre dos tamaños de malla (> "
+        "{max_pct:.0f} %, criterio nuestro)",
+        "E_app changes by {dE_pct:.1f} % between two mesh sizes (> "
+        "{max_pct:.0f} %, our criterion)"),
+    "febio_suavizado_pico": (
+        "percentil de von Mises con malla suave: en la cavidad esférica "
+        "depende del suavizado en varios puntos y no converge al refinar "
+        "(comparativa_febio_tet/INFORME.md); citar con esa salvedad",
+        "von Mises percentile on the smooth mesh: on the spherical cavity it "
+        "depends on the smoothing by several points and does not converge "
+        "under refinement (comparativa_febio_tet/INFORME.md); cite with that "
+        "caveat"),
+    "febio_cotas": (
+        "cotas KUBC/SUBC con tetraedros, no el tensor periódico: son "
+        "condiciones de borde distintas y no se comparan 1:1 con la "
+        "homogeneización de la app",
+        "KUBC/SUBC bounds on tetrahedra, not the periodic tensor: different "
+        "boundary conditions, not comparable 1:1 with the app's "
+        "homogenisation"),
+    "febio_protocolo_modificado": (
+        "protocolo con valores editados respecto del publicado: no es el "
+        "protocolo original",
+        "protocol with values edited from the published one: it is not the "
+        "original protocol"),
 }
 
 ESTADOS = {CITABLE: ("citable", "citable"),
@@ -388,6 +454,10 @@ MAGNITUDES = {
                   "relative failure stress under simulated bone loss"),
     "fallo_progresivo": ("carga máxima del fallo progresivo",
                          "peak load of progressive failure"),
+    "febio_E_app": ("E_app en FEBio (lineal)", "E_app in FEBio (linear)"),
+    "febio_no_lineal": ("desvío no lineal en FEBio",
+                        "nonlinear deviation in FEBio"),
+    "febio_homog": ("tensor elástico en FEBio", "stiffness tensor in FEBio"),
 }
 
 ESTRUCTURAS = {"documento": ("documento", "document"), "voi": ("VOI", "VOI"),
@@ -435,6 +505,10 @@ REFERENCIAS = {
                    "shrinkage. Proceedings of IEEE International Conference "
                    "on Computer Vision, 852–857.",
                    "10.1109/ICCV.1995.466848"),
+    # Comprobada en Crossref (2026-09-24), para la resolucion en FEBio.
+    "maas2012": ("Maas SA, Ellis BJ, Ateshian GA, Weiss JA (2012). FEBio: "
+                 "finite elements for biomechanics. Journal of Biomechanical "
+                 "Engineering 134(1):011005.", "10.1115/1.4005694"),
     "hyndman1996": ("Hyndman RJ, Fan Y (1996). Sample quantiles in "
                     "statistical packages. The American Statistician "
                     "50(4):361–365.", "10.1080/00031305.1996.10473566"),
@@ -863,6 +937,129 @@ def comprobar(doc):
     items += _items_convergencia(doc, res)
     items += _items_dispersion(doc, res)
     items += _items_simulaciones(doc, res)
+    items += _items_febio(doc, res)
+    return items
+
+
+def _items_febio(doc, res):
+    """Citabilidad de los registros de FEBio (`febio.registro_json`).
+
+    `res["febio"]["registros"]` es una lista: cada registro declara su
+    estructura, protocolo, malla y eje. La procedencia de la malla y la
+    version de FEBio viajan en el propio registro.
+    """
+    from .febio import DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT
+    todos = []
+    rec = res.get("febio")
+    if not isinstance(rec, dict):
+        return todos
+    for r in rec.get("registros") or []:
+        items = []
+        _items_febio_uno(doc, r, items, DESCARTE_MAX_PCT,
+                         PERDIDA_VOLUMEN_MAX_PCT)
+        det = f"FEBio {r.get('nombre')}, {r.get('malla')}"
+        for it in items:
+            it["detalle"] = det + (f", {it['bloque'].split(' · ')[-1]}"
+                                   if it["bloque"].count(" · ") == 3 else "")
+        todos += items
+    return todos
+
+
+def _items_febio_uno(doc, r, items, DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT):
+    """Items de un registro de FEBio (ver `_items_febio`)."""
+    est = estructura_de(r.get("estructura_codigo")
+                        or r.get("estructura"), doc)
+    malla = r.get("malla")
+    eje = str(r.get("eje_nombre") or "z").lower()
+    bloque = f"febio · {r.get('nombre')} · {malla}"
+    inf = r.get("informe_malla") or {}
+    base, dat = [], {}
+    if r.get("modificado"):
+        base.append("febio_protocolo_modificado")
+    if malla == "hex8":
+        m2, d2 = _motivos_mecanicos(_i(r.get("n")), None,
+                                    _f(inf, "frac_portante_voxel"))
+        base += m2
+        dat.update(d2)
+    else:
+        m2, d2 = _motivos_mecanicos(None, None,
+                                    _f(inf, "frac_portante_voxel"))
+        base += m2
+        dat.update(d2)
+        perd = _f(inf, "perdida_pct")
+        if perd is not None and abs(perd) > PERDIDA_VOLUMEN_MAX_PCT:
+            base.append("febio_perdida_volumen")
+            dat.update(perdida_pct=-perd, max_pct=PERDIDA_VOLUMEN_MAX_PCT)
+        desc = _f(inf, "descartado_pct")
+        if desc is not None and desc > DESCARTE_MAX_PCT:
+            base.append("febio_descarte")
+            dat.update(descartado_pct=desc, max_pct=DESCARTE_MAX_PCT)
+        conv = r.get("convergencia_malla") or {}
+        dEc = _f(conv, "dE_rel")
+        if dEc is not None and abs(dEc) > FEBIO_CONV_MALLA_MAX:
+            base.append("febio_malla_no_convergida")
+            dat.update(dE_pct=100.0 * abs(dEc),
+                       max_pct=100.0 * FEBIO_CONV_MALLA_MAX)
+
+    if r.get("tipo") == "homogeneizacion":
+        mot = list(base)
+        if r.get("fallos"):
+            mot.append("febio_fallo")
+            dat["n_fallos"] = float(len(r["fallos"]))
+        if malla == "tet10":
+            mot.append("febio_cotas")
+        items.append(_item(bloque, "febio_homog", est,
+                           {"condicion": None}, mot, dat))
+        return items
+
+    fallos = r.get("fallos") or []
+    lin = r.get("lineal")
+    mot = list(base)
+    d = dict(dat)
+    if not lin:
+        mot.append("no_resuelto")
+        if fallos:
+            mot.append("febio_fallo")
+            d["n_fallos"] = float(len(fallos))
+        items.append(_item(bloque, "febio_E_app", est, {}, mot, d, eje))
+        return items
+    dF = _f(lin, "dF_rel")
+    if dF is not None and dF > FEBIO_EQUILIBRIO_MAX:
+        mot.append("febio_equilibrio")
+        d["dF"] = dF
+    E = _f(lin, "E_app")
+    items.append(_item(bloque, "febio_E_app", est,
+                       {"E_app [MPa]": None if E is None else E / 1e6},
+                       mot, d, eje))
+    p = lin.get("pistoia") or {}
+    if p.get("ok"):
+        s = _f(p, "sigma_fallo")
+        items.append(_item(bloque, "fallo", est,
+                           {"sigma_fallo [MPa]": None if s is None
+                            else s / 1e6},
+                           mot + ["pistoia_calibracion"], d, eje))
+        vm = {k: v for k, v in p.items() if str(k).startswith("vm_")}
+        extra = ["febio_suavizado_pico"] if malla == "tet10" else []
+        for it in _items_vm(bloque, vm, est, mot, d, eje):
+            if it["magnitud"] == "vm_p99_superficie" and extra:
+                it = _item(it["bloque"], it["magnitud"], est, it["valor"],
+                           it["motivos"] + extra, it["datos"], eje)
+            items.append(it)
+    for k in ("nl_fuerza", "nl_plato", "nl_pistoia"):
+        nl = r.get(k)
+        if not isinstance(nl, dict):
+            continue
+        m_nl = list(mot)
+        fall_k = [f for f in fallos if str(f.get("corrida", "")).startswith(
+            {"nl_fuerza": "nl_fuerza", "nl_plato": "nl_plato",
+             "nl_pistoia": "nl_pistoia"}[k])]
+        if fall_k or _f(nl, "dE_rel") is None:
+            m_nl.append("febio_fallo")
+            d["n_fallos"] = float(max(len(fall_k), 1))
+        if k == "nl_pistoia":
+            m_nl.append("pistoia_calibracion")
+        items.append(_item(bloque + f" · {k}", "febio_no_lineal", est,
+                           {"dE_rel": _f(nl, "dE_rel")}, m_nl, d, eje))
     return items
 
 
@@ -1085,6 +1282,8 @@ def etiqueta_item(item, idioma="es"):
     i = _idx(idioma)
     txt = (ESTRUCTURAS[item["estructura"]][i] + " — "
            + MAGNITUDES[item["magnitud"]][i])
+    if item.get("detalle"):
+        txt += f" ({item['detalle']})"
     return txt + (f" [{item['eje']}]" if item.get("eje") else "")
 
 

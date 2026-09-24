@@ -148,7 +148,7 @@ def main():
     # porque el comprobador ni siquiera sabia que existian. Un comprobador con
     # puntos ciegos es peor que no tenerlo: da tranquilidad falsa.
     for ruta in (RAIZ / "visor.py", RAIZ / "dialogo_metodos.py",
-                 RAIZ / "dialogo_validacion.py"):
+                 RAIZ / "dialogo_validacion.py", RAIZ / "dialogo_febio.py"):
         if not ruta.exists():
             continue
         arbol = ast.parse(ruta.read_text(encoding="utf-8"))
