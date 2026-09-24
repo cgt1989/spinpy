@@ -85,7 +85,8 @@ from .elastic import remuestrear_bw
 from .espesor import espesor_local
 from .morphometry import morfometria
 from .resistencia import (E_S_DEF, EPS_CRITICA, FRAC_CRITICA, NU_S_DEF,
-                          criterio_pistoia, ensayo_compresion_eje)
+                          criterio_pistoia, ensayo_compresion_eje,
+                          normalizar_apoyo)
 
 PROTOCOLOS = ("adelgazamiento", "trabeculas_finas", "desuso", "recuperacion")
 N_TRABAJO_DEF = 96
@@ -296,6 +297,7 @@ def simular_perdida(BW, spacing, protocolo="adelgazamiento", pasos=8,
         raise ValueError(f"protocolo desconocido: {protocolo!r}; "
                          f"use uno de {PROTOCOLOS}")
     t0 = time.time()
+    apoyo = normalizar_apoyo(apoyo)   # falla ANTES de gastar pasos
     BW = np.asarray(BW, dtype=bool)
     sp = np.atleast_1d(np.asarray(spacing, float)).ravel()
     if sp.size == 1:
@@ -490,6 +492,7 @@ def fallo_progresivo(BW, spacing, pasos=10, n_mec=N_MEC_DEF, eje=2,
     una carga de rotura absoluta.
     """
     t0 = time.time()
+    apoyo = normalizar_apoyo(apoyo)   # falla ANTES de gastar pasos
     BW = np.asarray(BW, dtype=bool)
     sp = np.atleast_1d(np.asarray(spacing, float)).ravel()
     if sp.size == 1:

@@ -78,6 +78,30 @@ from .elastic import UMBRAL_DIRECTO, VOID_SCALE, hex8_ke
 
 E_S_DEF, NU_S_DEF = 20e9, 0.30
 SIGMA0_DEF = 1e6          # 1 MPa de tension aparente de referencia
+
+# Claves CANONICAS del apoyo del ensayo de compresion. Son las unicas que
+# entienden `ensayo_compresion` y `escribe.escribir_febio`, y las que se
+# guardan en los registros exportados. El visor traduce el texto del combo
+# ("empotrado" -> "fixed" con la interfaz en ingles), asi que NUNCA debe
+# pasar `currentText()`: antes se decidia con startswith("empotr") y "fixed"
+# ejecutaba en silencio el apoyo DESLIZANTE mientras el registro decia
+# "fixed". Ahora un texto desconocido lanza ValueError.
+APOYOS = ("deslizante", "empotrado")
+
+
+def normalizar_apoyo(apoyo):
+    """Devuelve la clave canonica de `apoyo` o lanza ValueError.
+
+    Admite mayusculas y espacios alrededor, nada mas: ni traducciones
+    ("fixed", "sliding") ni prefijos. Un apoyo mal nombrado cambia E_app y la
+    carga de fallo sin dar ningun sintoma, asi que vale mas un error.
+    """
+    clave = str(apoyo).strip().lower()
+    if clave not in APOYOS:
+        raise ValueError(
+            "apoyo desconocido: %r (se admite %s)"
+            % (apoyo, " o ".join(repr(a) for a in APOYOS)))
+    return clave
 FRAC_CRITICA = 0.02       # 2% del volumen oseo
 EPS_CRITICA = 0.007       # 0.7% de deformacion efectiva
 
@@ -368,6 +392,7 @@ def ensayo_compresion(BW, spacing, E_s=E_S_DEF, nu_s=NU_S_DEF,
         if progreso:
             progreso(f, m)
 
+    apoyo = normalizar_apoyo(apoyo)
     BW = np.asarray(BW, dtype=bool)
     spacing = np.atleast_1d(np.asarray(spacing, float)).ravel()
     if spacing.size == 1:
@@ -499,7 +524,7 @@ def ensayo_compresion(BW, spacing, E_s=E_S_DEF, nu_s=NU_S_DEF,
         np.add.at(F, 3 * conn[elem_techo, a] + 2, -f_por_nodo)
 
     # --- contorno ----------------------------------------------------------
-    if str(apoyo).lower().startswith("empotr"):
+    if apoyo == "empotrado":
         fijos = np.concatenate([3 * base, 3 * base + 1, 3 * base + 2])
     else:
         # Apoyo deslizante: uz = 0 en toda la base y SOLO lo minimo para

@@ -1100,6 +1100,26 @@ def _valor_txt(valor, idioma):
 # Texto de metodos
 # ---------------------------------------------------------------------------
 
+APOYO_EN = {"deslizante": "sliding", "empotrado": "fixed"}
+
+
+def nombre_apoyo(apoyo, idioma):
+    """Nombre del apoyo EJECUTADO, en el idioma del informe.
+
+    Los registros nuevos guardan la clave canonica (`resistencia.APOYOS`).
+    Los anteriores a la correccion guardaban el TEXTO del combo, que con la
+    interfaz en ingles era "fixed"/"sliding", y el ensayo decidia con
+    startswith("empotr"): "fixed" ejecutaba el apoyo DESLIZANTE. Aqui se
+    aplica esa misma regla, asi que el informe dice lo que se calculo, no lo
+    que decia la etiqueta.
+    """
+    if apoyo is None or str(apoyo).strip() == "":
+        return "—"
+    clave = ("empotrado" if str(apoyo).strip().lower().startswith("empotr")
+             else "deslizante")
+    return clave if idioma == "es" else APOYO_EN[clave]
+
+
 class _Redactor:
     def __init__(self, idioma):
         self.idioma = idioma
@@ -1401,7 +1421,8 @@ def parrafos_metodos(doc, idioma="es", r=None):
             "radius.",
             ejes=", ".join(ejes) or "—", n=_i(rec.get("resolucion")),
             E=r.n((_f(rec, "E_s_Pa") or np.nan) / 1e9, ".4g"),
-            nu=r.n(rec.get("nu_s"), ".3g"), ap=rec.get("apoyo") or "—",
+            nu=r.n(rec.get("nu_s"), ".3g"),
+            ap=nombre_apoyo(rec.get("apoyo"), r.idioma),
             c=r.c("pistoia2002"), fr=r.n(FRAC_CRITICA * 100, ".3g"),
             eps=r.n(EPS_CRITICA * 100, ".3g")))
 
@@ -1447,7 +1468,8 @@ def parrafos_metodos(doc, idioma="es", r=None):
             "\"{ap}\".",
             prot=rec.get("protocolo") or "—", n=_i(rec.get("resolucion")),
             E=r.n(rec.get("E_s_Pa"), ".4g"), nu=r.n(rec.get("nu_s"), ".3g"),
-            F=r.n(rec.get("carga_N"), ".4g"), ap=rec.get("apoyo") or "—"))
+            F=r.n(rec.get("carga_N"), ".4g"),
+            ap=nombre_apoyo(rec.get("apoyo"), r.idioma)))
     for t in dict.fromkeys(textos):
         P.append(t)
 
