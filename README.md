@@ -523,14 +523,38 @@ vistas a la publicación de este repositorio; hasta entonces la copia incluida
 en el ejecutable es solo para uso interno del laboratorio. El código fuente de
 FEBio es MIT ([febiosoftware/FEBio](https://github.com/febiosoftware/FEBio)).
 
-**Lo que ya está medido con la malla suave**
-([`comparativa_febio_tet/INFORME.md`](comparativa_febio_tet/INFORME.md)): FEBio
-lee los TET10 en el mismo orden que spinpy (3,9·10⁻¹⁰ con un campo cuadrático
-exacto) y un bloque macizo da E_app = E_s a 10⁻⁹. En una cavidad esférica,
-**la rigidez es estable (< 0,2 %) pero el pico de von Mises no converge**: con
-el suavizado por omisión se pasa un 12 % a 40³ y cambia varios puntos con las
-iteraciones de Taubin. La malla suave quita los escalones, pero no resuelve por
-sí sola la dependencia del pico respecto de la malla.
+### Informe: malla suave (TET10) frente a ladrillos
+
+📄 **[Informe completo en PDF](comparativa_febio_tet/INFORME.pdf)** ·
+[versión Markdown](comparativa_febio_tet/INFORME.md) ·
+[datos](comparativa_febio_tet/resultados/cavidad.jsonl)
+
+| resultado | valor |
+|---|---|
+| FEBio lee los TET10 en el orden de spinpy (campo cuadrático exacto) | 3,9·10⁻¹⁰ |
+| bloque macizo, E_app = E_s (hex8 y TET10) | ≤ 1,5·10⁻⁹ |
+| FEBio hex8 frente a la app, VOI proximal de H4 a 32³ | 8,7·10⁻⁸ |
+| cavidad esférica: rigidez con malla suave frente a la analítica | < 0,5 % |
+| cavidad esférica: **pico de von Mises** con malla suave, 40³ | **+12 %, no converge** |
+| VOI proximal de H4 a 32³: E_app TET10 / E_app hex8 | **0,44** (2,3× más blanda) |
+
+<p align="center"><img src="comparativa_febio_tet/figs/fig_cavidad_pico.png" alt="Pico y p99 de von Mises en la pared de una cavidad esférica frente a la resolución, con ladrillos, malla suave y la referencia analítica" width="90%"></p>
+
+Tres conclusiones medidas:
+
+- **Con ladrillos, FEBio y la app resuelven el mismo problema** (≤ 10⁻⁷).
+- **La malla suave no hace converger el pico de von Mises**: en la cavidad
+  esférica oscila como el de los ladrillos y depende en varios puntos de las
+  iteraciones de suavizado. La rigidez sí es estable.
+- **En hueso real a 32³ la malla suave no es fiable**: con puntales de dos
+  vóxeles, el suavizado los estrecha y el VOI sale 2,3 veces más blando que con
+  ladrillos; el análisis no lineal ni siquiera converge. La comparación útil es
+  a 48³ o más (≈ 7 GB con TET10), pendiente; la ventana avisa por debajo de 48³.
+
+Además, el trabajo encontró y corrigió tres fallos: `solido.malla_tet10`
+rellenaba los poros cerrados, la corrección de volumen dejaba caer a tetgen, y
+con TET10 FEBio declaraba «no converge» por un criterio de residuo por debajo
+del piso de redondeo.
 
 ---
 

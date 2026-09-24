@@ -224,6 +224,11 @@ class _BaseFEBio(QtWidgets.QDialog):
         self.spin_ntet.setRange(16, 96)
         self.spin_ntet.setValue(febio.N_TET_DEF)
         self.spin_ntet.setSuffix(" vox")
+        self.spin_ntet.setToolTip(_(
+            "Por debajo de 48³ los puntales tienen ~2 vóxeles y el suavizado "
+            "los estrecha: en el VOI proximal de H4 a 32³ la malla suave salió "
+            "2,3 veces más blanda que la de ladrillos. A 48³ hacen falta ~7 GB "
+            "de memoria."))
         f.addWidget(self.spin_ntet)
         f.addStretch(1)
         gl.addLayout(f)
@@ -764,6 +769,11 @@ class DialogoFEMAuto(_BaseFEBio):
                             g=f"{d['angulo_deg']:.0f}"))
                 except Exception:
                     pass
+        if "tet10" in self.mallas() and self.spin_ntet.value() < 48:
+            a.append(_("Mallado suave a {n}³, por debajo de 48³: en el VOI "
+                       "proximal de H4 a 32³ el suavizado estrecha los "
+                       "puntales y la malla sale 2,3 veces más blanda que la de "
+                       "ladrillos.").format(n=self.spin_ntet.value()))
         if "hex8" in self.mallas() and self.spin_nhex.value() < 40:
             a.append(_("Ladrillos a {n}³, por debajo de 40³: la rigidez del "
                        "VOI proximal de H4 cae ~10 % a 32³.").format(

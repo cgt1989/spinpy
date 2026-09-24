@@ -27,8 +27,11 @@ binarios.
    y verificar que la autocomprobación DEL EJECUTABLE pase la prueba de FEBio
    (proceso hijo de `mallar_aislado` dentro del ejecutable congelado).
 2. Calibrar `tiempos.py` con el equipo tranquilo: `calibrar_tiempos.py`.
-3. TET10 del VOI real a 40-48³ (~5-7 GB) con el equipo libre; ver §5 del
-   INFORME para lo medido a 32³.
+3. TET10 del VOI real a 48³ (~7 GB) con el equipo libre. A 32³ (§5 del
+   INFORME) la malla suave sale 2,3× más blanda que la de ladrillos y el no
+   lineal con fuerza diverge: a esa resolución no sirve. `actualizar.ps1`
+   (compilación completa) ya se corrió; tras esto solo se sincronizaron las
+   fuentes (el aviso de <48³ del diálogo no está aún en el ejecutable).
 4. Probar a mano las dos ventanas con pantalla (la prueba de humo fue sin
    pantalla).
 5. Cuando la otra sesión termine: `comparativa_febio/*.py` pueden importar de

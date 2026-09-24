@@ -106,17 +106,21 @@ responde por sí sola a la objeción de regularidad para el pico.
 Datos: `resultados/cavidad.jsonl`; registros de consola en `cavidad*.log`.
 Figuras: `python comparativa_febio_tet/figuras_tet.py`.
 
-## 5. VOI proximal de H4 a 32³ (preliminar)
+## 5. VOI proximal de H4 a 32³
 
-Ensayo de la app, desde la línea de comandos (`python -m spinpy.febio`).
+Ensayo de la app (1 MPa, deslizante, 20 GPa), desde la línea de comandos
+(`python -m spinpy.febio`), las dos mallas sobre la MISMA máscara remuestreada
+a 32³ (Tb.Th/h ≈ 2).
 
 | magnitud | app (hex8) | FEBio hex8 | FEBio TET10 |
 |---|---|---|---|
 | E_app, definición de la app (media de nodos del techo) | 699,77 MPa | 699,77 MPa (Δ 8,7·10⁻⁸) | — |
-| E_app, techo ponderado por área | — | 766,05 MPa | pendiente |
-| p99 de von Mises en la superficie | 27,10 MPa | 27,10 MPa | pendiente |
-| σ de fallo (Pistoia) | 6,62 MPa | 6,62 MPa | pendiente |
-| no lineal, fuerza a 1 MPa, frente al lineal | — | −13,8 % | en curso |
+| E_app, techo ponderado por área | — | 766,05 MPa | **337,25 MPa** |
+| p99 de von Mises en la superficie | 27,10 MPa | 27,10 MPa | 62,47 MPa |
+| σ de fallo (Pistoia) | 6,62 MPa | 6,62 MPa | 3,85 MPa |
+| volumen frente a los vóxeles portantes | 100 % | 100 % | −3,6 % (con corrección) |
+| equilibrio de fuerzas (dF) | — | 1,8·10⁻¹⁰ | 1,6·10⁻⁷ |
+| no lineal, fuerza a 1 MPa, frente al lineal | — | −13,8 % | **no converge** |
 
 Con ladrillos, FEBio reproduce la app (8,7·10⁻⁸ en E_app con la misma
 definición). Las dos definiciones de E_app difieren un 9 % en este VOI: los
@@ -124,6 +128,27 @@ voladizos del techo se hunden más que el resto, y la media simple de nodos los
 pesa distinto que la integral por área. Por eso la tabla de la aplicación
 compara la implementación con la definición de la app y la malla con la
 integral por área.
+
+**A 32³ la malla suave no es fiable en hueso real.** Sobre la misma máscara,
+la malla TET10 es 2,3 veces más blanda que la de ladrillos, concentra 2,3 veces
+más tensión en la superficie y falla (Pistoia) a un 58 % de la carga. A 32³
+los puntales tienen unos dos vóxeles de espesor: el suavizado los estrecha en
+cuellos, y la corrección de volumen, que desplaza TODA la superficie por
+igual, repone el volumen perdido en otros sitios pero no el de los cuellos
+(queda además un −3,6 %, por encima del umbral de reservas). Es la misma
+tendencia que a 24³, donde la malla suave salió 33 veces más blanda. En la
+cavidad esférica, un sólido denso sin puntales, esto no ocurre (§4).
+
+El no lineal con fuerza impuesta a 1 MPa sobre la malla TET10 **no converge**:
+tras 70 minutos y 14 recortes de paso, el incremento de desplazamiento de
+Newton llegaba a 223 mm en un VOI de 1,6 mm de lado y el residuo crecía. Los
+cuellos se comportan como un mecanismo casi libre en grandes desplazamientos,
+algo que el problema lineal no ve.
+
+**Consecuencia práctica.** La comparación ladrillos frente a malla suave en
+hueso real tiene que hacerse a 48³ o más (≈ 7 GB de memoria con TET10), que
+queda pendiente. Mientras, la ventana de la aplicación avisa cuando se pide
+malla suave por debajo de 48³.
 
 **Un tercer fallo encontrado y corregido.** Con TET10 el lineal a la carga
 menor se declaraba no convergido: la solución había convergido en la tercera
@@ -133,5 +158,7 @@ encima de la tolerancia 10⁻¹²; FEBio agotó las 50 reformas en 9 minutos. Co
 TET10 la tolerancia de residuo es ahora 10⁻¹⁰ (`escribe.RTOL`); con hex8 sigue
 la validada.
 
-> Con ladrillos, FEBio y la app dan lo mismo. La
-> comparación con la malla suave en el hueso real está corriendo.
+> Con ladrillos, FEBio y la app dan lo mismo. Con la malla suave, a una
+> resolución en la que las trabéculas tienen dos vóxeles de grosor, el
+> suavizado las adelgaza y el hueso sale más del doble de blando: hay que
+> mallar más fino para que la comparación diga algo.

@@ -1527,6 +1527,10 @@ EN = {
         'here once it is.',
 
     # -- FEBio: FEM automatico y «Analizar con FEBio…» ----------------
+    'Mallado suave a {n}³, por debajo de 48³: en el VOI proximal de H4 a 32³ el suavizado estrecha los puntales y la malla sale 2,3 veces más blanda que la de ladrillos.':
+        'Smooth mesh at {n}³, below 48³: on the H4 proximal VOI at 32³ smoothing narrows the struts and the mesh comes out 2.3 times softer than the brick mesh.',
+    'Por debajo de 48³ los puntales tienen ~2 vóxeles y el suavizado los estrecha: en el VOI proximal de H4 a 32³ la malla suave salió 2,3 veces más blanda que la de ladrillos. A 48³ hacen falta ~7 GB de memoria.':
+        'Below 48³ the struts are ~2 voxels thick and smoothing narrows them: on the H4 proximal VOI at 32³ the smooth mesh came out 2.3 times softer than the brick mesh. 48³ needs ~7 GB of memory.',
     '(no generado)':
         '(not generated)',
     '* con reservas; † no citable (ver el informe de publicación). E<sub>app</sub> de FEBio con el desplazamiento del techo ponderado por área; «Δ implementación» compara FEBio con ladrillos y la app con la definición de la app y debe ser ~0. Los desvíos no lineales son frente al lineal de la misma malla.':
