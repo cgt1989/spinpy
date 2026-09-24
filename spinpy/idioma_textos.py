@@ -350,6 +350,27 @@ EN = {
     ".inp  (Abaqus)": ".inp  (Abaqus)",
     ".apdl  (ANSYS)": ".apdl  (ANSYS)",
     ".stl": ".stl",
+    ".feb  (FEBio)": ".feb  (FEBio)",
+    ("Ensayo de compresión en z listo para FEBio 4: la misma malla, "
+     "el mismo apoyo y la misma carga (1 MPa sobre la sección bruta) "
+     "que el ensayo de la app. Solo el hueso portante, como ese "
+     "ensayo. Validado contra FEBio en comparativa_febio/."):
+        ("Compression test along z ready for FEBio 4: the same mesh, "
+         "support and load (1 MPa over the gross section) as the app's "
+         "test. Load-bearing bone only, like that test. Validated against "
+         "FEBio in comparativa_febio/."),
+    ("Solo disponible con la malla hexaédrica: es la que resuelve "
+     "el ensayo de la app, y la única con la que se validó."):
+        ("Only available with the hexahedral mesh: it is the one the app's "
+         "test solves, and the only one it was validated with."),
+    ("El .feb es el ensayo completo (apoyo, 1 MPa, "
+     "salidas): se corre tal cual con febio4 -i. FEBio es "
+     "no lineal geométricamente; con voladizos en el "
+     "techo se aparta del ensayo lineal de la app."):
+        ("The .feb is the complete test (support, 1 MPa, outputs): run it "
+         "as is with febio4 -i. FEBio is geometrically nonlinear; with "
+         "cantilevers on the top face it departs from the app's linear "
+         "test."),
     "Exportar solido…": "Export solid…",
 
     # -- lote --------------------------------------------------------------

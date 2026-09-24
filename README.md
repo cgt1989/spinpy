@@ -57,7 +57,7 @@ pila TIFF de micro-CT
  → ensayo de compresión FE
      von Mises, Pistoia
  → informe y exportación
-     PDF, STL, VTU, Abaqus, ANSYS
+     PDF, STL, VTU, Abaqus, ANSYS, FEBio
 ```
 
 </td>
@@ -113,7 +113,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 | **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. |
 | **Simula** | Pérdida ósea *in silico* (adelgazamiento, trabéculas finas, desuso, recuperación) y fallo progresivo sobre el gemelo digital del VOI. |
 | **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad y huella SHA-256 para reproducir cada máscara. |
-| **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL. |
+| **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL, y el ensayo de compresión completo a FEBio 4 (`.feb`). |
 | **Procesa lotes** | Descompone la varianza entre y dentro de especímenes, con ICC, N efectivo y equivalencia por TOST. |
 
 Todo con interfaz gráfica (`visor.py`) o desde Python.
@@ -323,6 +323,41 @@ implementaciones.** Mover el umbral un ±15 % mueve Tb.Th un 62 %, frente al
 
 ---
 
+## Comparación con FEBio
+
+El ensayo de compresión de spinpy, exportado a FEBio 4.5 y resuelto allí, sobre
+tres VOIs de hueso (BV/TV 0,28 a 0,77, a 32³ y 48³) y un espinodoide ajustado:
+
+- **El cálculo coincide en siete u ocho cifras.** Módulo aparente, campo de
+  desplazamientos, tensiones, p99 de von Mises en la capa superficial y carga
+  de fallo de Pistoia difieren entre 10⁻⁶ y 10⁻¹⁰, dentro de tolerancias
+  declaradas antes de medir. Los dos programas plantean el mismo problema
+  discreto y lo resuelven con métodos distintos (multigrid frente a
+  factorización directa).
+- **FEBio es no lineal geométricamente y spinpy es lineal**, y eso tiene
+  consecuencias en el hueso más poroso. En los VOIs de BV/TV 0,55 y 0,77 la
+  respuesta no lineal a 1 MPa se aparta un 0,06 % de la lineal. En el de
+  BV/TV 0,28 se aparta un 16 % a 32³ y un 48 % a 48³. Los tres VOIs son de
+  un solo espécimen (el sesamoideo H4): es un caso medido, no una tasa
+  general.
+- **La causa es la forma de cargar, no la estructura.** Con fuerza impuesta,
+  las trabéculas cortadas por la cara cargada del VOI trabajan como
+  voladizos. Con un plato rígido el desvío baja al 0,8 %, y en ese VOI el
+  propio módulo lineal es 2,1 veces mayor. En VOIs muy porosos, el módulo
+  aparente y la carga de fallo deben citarse declarando la condición de
+  carga.
+
+Lo que esta comparación **no** demuestra: coincidir con FEBio prueba que
+spinpy resuelve bien el problema que plantea, no que ese problema represente
+el hueso real. La malla de vóxeles, el tejido homogéneo de 20 GPa y las
+condiciones de contorno son supuestos que los dos programas comparten; eso
+solo lo contrasta un ensayo físico.
+
+`tests/test_25_febio.py` reproduce la comparación en pequeño y se salta si
+FEBio no está instalado.
+
+---
+
 ## Documentación
 
 `docs/MANUAL_spinpy.pdf` documenta cada módulo y cada función, y se genera
@@ -341,8 +376,7 @@ medidos y las trampas que costó encontrar.
   característica da un espesor trabecular uniforme, y el hueso no lo es. Un
   spinodoide que iguala BV/TV, Tb.Th y DA puede ser bastante más blando que el
   hueso al que se ajustó; spinpy lo mide y lo dice.
-- La exportación a FEBio y los optimizadores de Pareto, bayesiano y MOBO
-  siguen solo en MATLAB.
+- Los optimizadores de Pareto, bayesiano y MOBO siguen solo en MATLAB.
 - Por debajo de ρ ≈ 0,25 (clase isótropa) la homogeneización periódica no
   alcanza la tolerancia declarada: es una propiedad del régimen cercano al
   umbral de rigidez, y la aplicación lo reporta.

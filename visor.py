@@ -227,13 +227,14 @@ from spinpy.idioma import (IDIOMAS, _, aplicar, capturar,  # noqa: E402
 from spinpy.idioma import idioma as idioma_actual             # noqa: E402
 from spinpy.espesor import (espesor_local, muestrear_en_puntos,  # noqa: E402
                             estadisticas as estadisticas_esp)
-from spinpy.resistencia import (EJES, EPS_CRITICA,  # noqa: E402
+from spinpy.resistencia import (APOYOS, EJES, EPS_CRITICA,  # noqa: E402
+                                _solo_portante,
                                 criterio_pistoia, ensayo_compresion,
                                 cuantiles_vm_superficie,
                                 ensayo_compresion_eje, estadisticos_vm,
                                 estudio_convergencia)
 from spinpy.escribe import (escribir_abaqus, escribir_apdl,  # noqa: E402
-                            escribir_stl, escribir_vtu)
+                            escribir_febio, escribir_stl, escribir_vtu)
 from spinpy.morphometry import morfometria_malla, tensor_mil  # noqa: E402
 from spinpy.avisos import desalineacion, voi_no_trabecular   # noqa: E402
 from spinpy import informe as informe_pub                   # noqa: E402
@@ -604,6 +605,18 @@ PAPER_E_S = 18e9          # Pa, modulo del tejido
 PAPER_NU = 0.30
 PAPER_CARGA_N = 100.0     # N, carga axial de compresion
 PAPER_APOYO = "empotrado"  # "fixed support" en la cara opuesta
+
+
+def apoyo_de_combo(cmb):
+    """Clave CANONICA del apoyo ("deslizante"/"empotrado") de un combo de apoyo.
+
+    Se lee por INDICE, nunca por texto: con la interfaz en ingles el texto es
+    "fixed"/"sliding", y `ensayo_compresion` no lo entiende (antes lo tomaba en
+    silencio por deslizante; ahora lanza ValueError). Lo que se pasa al ensayo
+    y lo que se guarda en los registros es siempre esta clave; para mostrarla
+    en pantalla, `_(clave)`.
+    """
+    return APOYOS[max(0, int(cmb.currentIndex()))]
 PAPER_REF = ("Tapia, Gonzalez, Vidal &amp; Salinas, <i>Biology</i> 2026;15:722 "
              "— 18 GPa, &nu; = 0.30, 100 N axiales, apoyo empotrado")
 
@@ -1934,7 +1947,7 @@ class DialogoSimulacion(DialogoFigura):
                + _("Estructura: {e} · malla mecanica {n}³ · apoyo {a} · "
                    "eje {x} · {t} s").format(
                    e=res.get("estructura", ""), n=p.get("n_mec"),
-                   a=p.get("apoyo"), x="XYZ"[int(p.get("eje", 2))],
+                   a=_(p.get("apoyo") or ""), x="XYZ"[int(p.get("eje", 2))],
                    t=res.get("tiempo_s")) + "</p>")
         return (cabecera + "<table cellpadding=3 cellspacing=0 border=1 "
                 "style='border-collapse:collapse;font-size:10px'>" + cab
@@ -2879,7 +2892,7 @@ class DialogoInformeAuto(QtWidgets.QDialog):
                 "ensayo": self.chk_fe.isChecked(),
                 "res_fe": self.spin_fe.value(),
                 "eje_fe": self.cmb_eje.currentText(),
-                "apoyo": self.cmb_apoyo.currentText(),
+                "apoyo": apoyo_de_combo(self.cmb_apoyo),
                 "comparado": self.chk_comp.isChecked(),
                 "dispersion": self.chk_disp.isChecked(),
                 "k": self.spin_k.value(),
@@ -3630,6 +3643,7 @@ class Visor(QtWidgets.QMainWindow):
         f = QtWidgets.QHBoxLayout()
         f.addWidget(QtWidgets.QLabel("Apoyo:"))
         self.cmb_apoyo = QtWidgets.QComboBox()
+        # Mismo orden que resistencia.APOYOS: `apoyo_de_combo` lee el INDICE.
         self.cmb_apoyo.addItems(["deslizante", "empotrado"])
         self.cmb_apoyo.setToolTip(
             "deslizante: uz=0 en la base, sin friccion. Estado uniaxial.\n"
@@ -3849,11 +3863,13 @@ class Visor(QtWidgets.QMainWindow):
             "TECHO. Es el archivo mas pesado con diferencia.")
         self.chk_apdl = QtWidgets.QCheckBox(".apdl  (ANSYS)")
         self.chk_stl = QtWidgets.QCheckBox(".stl")
+        self.chk_feb = QtWidgets.QCheckBox(".feb  (FEBio)")
         # Columna izquierda los formatos para mirar e imprimir, derecha los de
         # solver. Los dos rotulos largos van juntos en la derecha: en la
         # izquierda invadian la casilla vecina, que solo son 165 px.
         for c, fila, col in ((self.chk_vtu, 0, 0), (self.chk_inp, 0, 1),
-                             (self.chk_stl, 1, 0), (self.chk_apdl, 1, 1)):
+                             (self.chk_stl, 1, 0), (self.chk_apdl, 1, 1),
+                             (self.chk_feb, 2, 1)):
             c.setChecked(True)
             rej.addWidget(c, fila, col)
         rej.setColumnStretch(0, 1)
@@ -5789,7 +5805,7 @@ class Visor(QtWidgets.QMainWindow):
         if not self._confirmar_orientacion():
             return
         n = int(self.spin_res_fe.value())
-        apoyo = self.cmb_apoyo.currentText()
+        apoyo = apoyo_de_combo(self.cmb_apoyo)
         BW_s = self.BW_vista
         sp_s = self._spacing(BW_s.shape[0]) if BW_s is not None else None
         VOI, sp_v = self.VOI, self.VOI_spacing
@@ -5860,7 +5876,7 @@ class Visor(QtWidgets.QMainWindow):
         # Sin los campos 3D: son cientos de megas y no caben en un CSV.
         self._res[self._clave_res("resistencia")] = {
             "resolucion": int(self.spin_res_fe.value()),
-            "apoyo": self.cmb_apoyo.currentText(),
+            "apoyo": apoyo_de_combo(self.cmb_apoyo),
             "E_s_Pa": E_S_PA, "nu_s": NU_S,
             "por_estructura": {
                 k: {"ejes": {n: {kk: vv for kk, vv in p.items()
@@ -5953,7 +5969,7 @@ class Visor(QtWidgets.QMainWindow):
                 "estructuras poco densas: a BV/TV 0.28 se midio 700, 797 y "
                 "365 MPa a 32³, 48³ y 64³. Haz un estudio de convergencia "
                 "antes de citar un valor.<br>Resuelto en {t} s.").format(
-                    apoyo=self.cmb_apoyo.currentText(),
+                    apoyo=_(apoyo_de_combo(self.cmb_apoyo)),
                     t=f"{transcurrido:.0f}")
             + "</p>")
 
@@ -6446,7 +6462,7 @@ class Visor(QtWidgets.QMainWindow):
                   "de 12. Sube la resolucion del ensayo.").format(n=n_max))
             return
 
-        apoyo = self.cmb_apoyo.currentText()
+        apoyo = apoyo_de_combo(self.cmb_apoyo)
         i = self.cmb_eje_fe.currentIndex()
         eje = 2 if i in (0, 3) else (0, 1)[i - 1]
 
@@ -6576,7 +6592,7 @@ class Visor(QtWidgets.QMainWindow):
             return
         kw = dict(protocolo=protocolo, pasos=pasos, perdida_paso=paso,
                   n_mec=int(self.spin_res_fe.value()), eje=self._eje_ensayo(),
-                  E_s=E_S_PA, nu_s=NU_S, apoyo=self.cmb_apoyo.currentText(),
+                  E_s=E_S_PA, nu_s=NU_S, apoyo=apoyo_de_combo(self.cmb_apoyo),
                   semilla=int(self.spin_semilla.value()))
         total = 1 + pasos * (2 if protocolo == "recuperacion" else 1)
 
@@ -6601,7 +6617,7 @@ class Visor(QtWidgets.QMainWindow):
         pasos = int(self.spin_sim_pasos.value())
         kw = dict(pasos=pasos, n_mec=int(self.spin_res_fe.value()),
                   eje=self._eje_ensayo(), E_s=E_S_PA, nu_s=NU_S,
-                  apoyo=self.cmb_apoyo.currentText())
+                  apoyo=apoyo_de_combo(self.cmb_apoyo))
 
         codigo = self._codigo_simulacion()
 
@@ -6650,6 +6666,15 @@ class Visor(QtWidgets.QMainWindow):
             _("Solo disponible con la malla TET10. La hexaedrica solo puede "
               "dar la piel escalonada de los voxeles, que no interesa "
               "imprimir."))
+        self.chk_feb.setEnabled(not tet)
+        self.chk_feb.setToolTip(
+            _("Ensayo de compresión en z listo para FEBio 4: la misma malla, "
+              "el mismo apoyo y la misma carga (1 MPa sobre la sección bruta) "
+              "que el ensayo de la app. Solo el hueso portante, como ese "
+              "ensayo. Validado contra FEBio en comparativa_febio/.")
+            if not tet else
+            _("Solo disponible con la malla hexaédrica: es la que resuelve "
+              "el ensayo de la app, y la única con la que se validó."))
 
     def exportar_solido(self):
         """Exporta cada familia activa, una detras de otra, a su archivo."""
@@ -6662,7 +6687,8 @@ class Visor(QtWidgets.QMainWindow):
         quiere = {"vtu": self.chk_vtu.isChecked(),
                   "inp": self.chk_inp.isChecked(),
                   "apdl": self.chk_apdl.isChecked(),
-                  "stl": self.chk_stl.isChecked() and tet}
+                  "stl": self.chk_stl.isChecked() and tet,
+                  "feb": self.chk_feb.isChecked() and not tet}
         if not any(quiere.values()):
             QtWidgets.QMessageBox.information(
                 self, _("Ningun formato marcado"),
@@ -6743,6 +6769,17 @@ class Visor(QtWidgets.QMainWindow):
             if quiere["vtu"]:
                 salidas.append(escribir_vtu(nod, ele,
                                             base.with_suffix(".vtu")))
+            if quiere["feb"]:
+                # El ensayo de la app, no la malla entera: solo el hueso que
+                # une base y techo (las islas dejarian a FEBio con un sistema
+                # singular) y la seccion BRUTA del cubo, que es la del VOI
+                # aunque el filtro vacie una columna del borde.
+                n_f, e_f, _i = malla_hex(_solo_portante(BW), sp)
+                salidas.append(escribir_febio(
+                    n_f, e_f, base.with_suffix(".feb"), E_s=E_S_PA, nu_s=NU_S,
+                    sigma_app=1e6,
+                    A_bruta=float(BW.shape[0] * sp[0] * BW.shape[1] * sp[1]),
+                    apoyo=apoyo_de_combo(self.cmb_apoyo)))
             return inf, salidas, base
 
         hilo._fn = tarea
@@ -6832,6 +6869,11 @@ class Visor(QtWidgets.QMainWindow):
         if any(Path(s["ruta"]).suffix == ".inp" for s in salidas):
             pie.append(_("El .inp lleva los conjuntos de nodos BASE y TECHO "
                          "para aplicar el apoyo y la carga con un clic."))
+        if any(Path(s["ruta"]).suffix == ".feb" for s in salidas):
+            pie.append(_("El .feb es el ensayo completo (apoyo, 1 MPa, "
+                         "salidas): se corre tal cual con febio4 -i. FEBio es "
+                         "no lineal geométricamente; con voladizos en el "
+                         "techo se aparta del ensayo lineal de la app."))
         pie.append(_("Generado en {t} s.").format(t=f"{transcurrido:.1f}"))
         t.append("<p style='color:#666;font-size:10px'>"
                  + "<br>".join(pie) + "</p>")
@@ -6983,6 +7025,7 @@ class Visor(QtWidgets.QMainWindow):
                "extra": "chk_extra", "mecanico": "chk_mec",
                "fmt_vtu": "chk_vtu", "fmt_inp": "chk_inp",
                "fmt_apdl": "chk_apdl", "fmt_stl": "chk_stl",
+               "fmt_feb": "chk_feb",
                "poro": "chk_poro", "ef": "chk_ef"}
 
     def _procedencia_controles(self):
@@ -8219,10 +8262,11 @@ def autocomprobacion():
             escribir_vtu(n, e, d / "p.vtu")
             escribir_abaqus(n, e, d / "p.inp", E_s=E_S_PA, nu_s=NU_S)
             escribir_apdl(n, e, d / "p.dat", E_s=E_S_PA, nu_s=NU_S)
+            escribir_febio(n, e, d / "p.feb", E_s=E_S_PA, nu_s=NU_S)
             escribir_stl(estado["tet"][2], d / "p.stl")
             tam = {f.suffix: f.stat().st_size for f in d.iterdir()}
         return " ".join(f"{k}{v//1024}kB" for k, v in sorted(tam.items()))
-    prueba("escribir VTU / INP / DAT / STL", _escribir)
+    prueba("escribir VTU / INP / DAT / FEB / STL", _escribir)
 
     def _lote():
         # Se ejercita con la MISMA politica que usa el lote de verdad

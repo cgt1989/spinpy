@@ -20,9 +20,11 @@ Ensaya a compresion en X, Y o Z y estima la carga de fallo con el criterio de
 Pistoia, devolviendo los campos de deformacion efectiva y de von Mises
 (ensayo_compresion, ensayo_compresion_eje, ensayo_triaxial, criterio_pistoia).
 
-Lo que NO cubre (sigue solo en MATLAB): exportacion FEBio y los otros cuatro
-optimizadores (Pareto, bayesiano, MOBO y el best-fit rapido con termino
-mecanico).
+Exporta el ensayo de compresion a FEBio 4 (`escribe.escribir_febio`),
+validado contra FEBio en `comparativa_febio/`.
+
+Lo que NO cubre (sigue solo en MATLAB): los otros cuatro optimizadores
+(Pareto, bayesiano, MOBO y el best-fit rapido con termino mecanico).
 """
 
 # Una sola fuente de la version dentro del paquete; `tests/test_16` comprueba

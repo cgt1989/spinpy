@@ -28,6 +28,8 @@ from pathlib import Path
 import numpy as np
 import pyvista as pv
 
+from .resistencia import normalizar_apoyo
+
 TIPO_ABAQUS = {8: "C3D8", 10: "C3D10"}
 TIPO_ANSYS = {8: "SOLID185", 10: "SOLID187"}
 TIPO_VTK = {8: pv.CellType.HEXAHEDRON, 10: pv.CellType.QUADRATIC_TETRA}
@@ -167,6 +169,185 @@ def escribir_abaqus(nodos, elems, ruta, E_s=20e9, nu_s=0.30, nombre="SOLIDO",
     return {"ruta": str(ruta), "MB": ruta.stat().st_size / 1e6, "tipo": tipo,
             "n_nodos": int(nodos.shape[0]), "n_elems": int(elems.shape[0]),
             "E_MPa": E_MPa, "unidades": "mm-N-MPa"}
+
+
+def escribir_febio(nodos, elems, ruta, E_s=20e9, nu_s=0.30, sigma_app=1e6,
+                   A_bruta=None, apoyo="deslizante", datos=True,
+                   eps_plato=None):
+    """Ensayo de compresion en z listo para correr en FEBio 4 (`febio4 -i`).
+
+    No es solo la malla: reproduce el MISMO problema que resuelve
+    `resistencia.ensayo_compresion`, para que el resultado de FEBio pueda
+    enfrentarse numero a numero con el de spinpy.
+
+      material   'isotropic elastic' de FEBio (St. Venant-Kirchhoff): se reduce
+                 a la elasticidad lineal de spinpy para deformaciones pequenas.
+                 La diferencia es de orden de la deformacion del tejido; con
+                 cargas pequenas es despreciable y, como el problema es lineal,
+                 se puede cargar poco y reescalar.
+      carga      presion NO seguidora (`linear` = 1) sobre las caras superiores
+                 de los elementos que tocan el techo. La fuerza total es
+                 sigma_app * A_bruta, repartida sobre el area osea del techo:
+                 misma convencion de seccion BRUTA que spinpy. FEBio integra la
+                 presion por su cuenta, asi que tambien pone a prueba el reparto
+                 por area tributaria de spinpy (un cuarto por nodo y cara).
+      apoyo      'deslizante': uz = 0 en la base, (ux, uy) en la esquina
+                 (min x, min y) y uy en la (max x, min y), las mismas esquinas
+                 geometricas que elige spinpy. 'empotrado': base fija entera.
+      solver     un paso, Newton completo (max_ups = 0), Pardiso directo:
+                 independiente del AMG + CG de spinpy.
+
+    `A_bruta` es la seccion del VOI en mm^2. Si no se da, se toma la caja de
+    los nodos, que COINCIDE con la del VOI salvo que el filtro de portantes
+    haya vaciado una columna del borde: en ese caso hay que pasarla.
+
+    Con `datos` se piden al logfile los desplazamientos nodales
+    (`<ruta>_u.txt`) y las tensiones de Cauchy por elemento en orden Voigt del
+    proyecto, xx yy zz yz xz xy (`<ruta>_s.txt`). FEBio da la media de los
+    ocho puntos de Gauss, que en un hexaedro rectangular es exactamente el
+    valor en el centro que usa spinpy. Las reacciones NO se piden: FEBio 4.5
+    las escribe como cero en los GDL de un `zero displacement` (comprobado
+    tambien con la variable del plotfile). El equilibrio se comprueba con la
+    integral de volumen: sum(sigma_zz * V_e) = -F * H, exacta en el problema
+    discreto.
+
+    `eps_plato` cambia el control de carga: en lugar de la presion, un PLATO
+    RIGIDO sin friccion impone el mismo uz = -eps_plato * H a todos los nodos
+    del techo (ux, uy libres). No es el ensayo de la app —que controla la
+    fuerza— sino su contrapunto: con fuerza impuesta, una trabecula cortada por
+    la cara del VOI recibe carga en su extremo libre y trabaja en voladizo; con
+    el plato, ese extremo se mueve con el resto del techo. `sigma_app` se
+    ignora en ese caso; la fuerza se mide despues, por la misma integral de
+    volumen de la tension.
+
+    Unidades mm - N - MPa, como el resto de escritores: E y sigma se reciben en
+    Pa y se escriben en MPa.
+    """
+    ruta = Path(ruta)
+    nodos = np.asarray(nodos, float)
+    elems = np.asarray(elems, dtype=np.int64)
+    if elems.shape[1] != 8:
+        raise ValueError("escribir_febio solo escribe hexaedros de 8 nodos; "
+                         f"se recibieron elementos de {elems.shape[1]}")
+    E_MPa = float(E_s) / 1e6
+    base, techo = _caras_z(nodos)
+
+    z = nodos[:, 2]
+    tolz = 1e-9 * max(float(z.max() - z.min()), 1.0)
+    caras = elems[np.all(z[elems[:, 4:8]] >= z.max() - tolz, axis=1), 4:8]
+    if caras.shape[0] == 0:
+        raise ValueError("Ningun elemento llega al techo: no hay donde cargar.")
+    p0, p1, p3 = nodos[caras[:, 0]], nodos[caras[:, 1]], nodos[caras[:, 3]]
+    A_osea = float(np.linalg.norm(np.cross(p1 - p0, p3 - p0), axis=1).sum())
+    if A_bruta is None:
+        A_bruta = float(np.ptp(nodos[:, 0]) * np.ptp(nodos[:, 1]))
+    F_N = float(sigma_app) / 1e6 * float(A_bruta)
+    p_MPa = F_N / A_osea
+
+    cb = nodos[base]
+    ancla_xy = int(base[int(np.argmin(cb[:, 0] + cb[:, 1]))])
+    ancla_y = int(base[int(np.argmax(cb[:, 0] - cb[:, 1]))])
+    empotrado = normalizar_apoyo(apoyo) == "empotrado"
+    stem = ruta.stem
+
+    with open(ruta, "w", encoding="utf-8") as fh:
+        w = fh.write
+        w('<?xml version="1.0" encoding="ISO-8859-1"?>\n')
+        w("<!-- Ensayo de compresion en z generado por spinpy/escribe.py.\n")
+        w("     Unidades mm-N-MPa. E = %g MPa, nu = %g, sigma_app = %g MPa,\n"
+          % (E_MPa, nu_s, float(sigma_app) / 1e6))
+        w("     A_bruta = %.9g mm2, F = %.9g N, apoyo %s. -->\n"
+          % (A_bruta, F_N, "empotrado" if empotrado else "deslizante"))
+        w('<febio_spec version="4.0">\n')
+        w('\t<Module type="solid">\n\t\t<units>mm-N-s</units>\n\t</Module>\n')
+        w("\t<Control>\n\t\t<analysis>STATIC</analysis>\n")
+        w("\t\t<time_steps>1</time_steps>\n\t\t<step_size>1</step_size>\n")
+        w("\t\t<solver>\n\t\t\t<max_refs>50</max_refs>\n")
+        w('\t\t\t<qn_method type="BFGS">\n\t\t\t\t<max_ups>0</max_ups>\n'
+          "\t\t\t</qn_method>\n\t\t\t<dtol>1e-9</dtol>\n")
+        w("\t\t\t<etol>1e-12</etol>\n\t\t\t<rtol>1e-12</rtol>\n")
+        w("\t\t\t<lstol>0.9</lstol>\n")
+        w('\t\t\t<linear_solver type="pardiso"/>\n\t\t</solver>\n')
+        w("\t</Control>\n")
+        w('\t<Material>\n\t\t<material id="1" name="hueso" '
+          'type="isotropic elastic">\n')
+        w(f"\t\t\t<E>{E_MPa:.9g}</E>\n\t\t\t<v>{nu_s:.9g}</v>\n")
+        w("\t\t</material>\n\t</Material>\n")
+
+        w('\t<Mesh>\n\t\t<Nodes name="todos">\n')
+        w("".join(f'\t\t\t<node id="{i}">{p[0]:.12g},{p[1]:.12g},{p[2]:.12g}'
+                  "</node>\n" for i, p in enumerate(nodos, start=1)))
+        w('\t\t</Nodes>\n\t\t<Elements type="hex8" name="solido">\n')
+        e1 = elems + 1
+        w("".join(f'\t\t\t<elem id="{i}">' + ",".join(map(str, c))
+                  + "</elem>\n" for i, c in enumerate(e1.tolist(), start=1)))
+        w("\t\t</Elements>\n")
+        for nom, ids in (("base", base), ("techo", techo),
+                         ("ancla_xy", [ancla_xy]), ("ancla_y", [ancla_y])):
+            w(f'\t\t<NodeSet name="{nom}">\n')
+            ids = np.asarray(ids, dtype=np.int64) + 1
+            for i in range(0, ids.size, 16):
+                w("\t\t\t" + ", ".join(map(str, ids[i:i + 16].tolist()))
+                  + ("," if i + 16 < ids.size else "") + "\n")
+            w("\t\t</NodeSet>\n")
+        w('\t\t<Surface name="techo_carga">\n')
+        w("".join(f'\t\t\t<quad4 id="{i}">' + ",".join(map(str, c))
+                  + "</quad4>\n"
+                  for i, c in enumerate((caras + 1).tolist(), start=1)))
+        w("\t\t</Surface>\n\t</Mesh>\n")
+        w('\t<MeshDomains>\n\t\t<SolidDomain name="solido" mat="hueso"/>\n'
+          "\t</MeshDomains>\n")
+
+        w("\t<Boundary>\n")
+        bcs = ([("base", 1, 1, 1)] if empotrado else
+               [("base", 0, 0, 1), ("ancla_xy", 1, 1, 0), ("ancla_y", 0, 1, 0)])
+        for ns, bx, by, bz in bcs:
+            w(f'\t\t<bc name="fijo_{ns}" type="zero displacement" '
+              f'node_set="{ns}">\n')
+            w(f"\t\t\t<x_dof>{bx}</x_dof>\n\t\t\t<y_dof>{by}</y_dof>\n"
+              f"\t\t\t<z_dof>{bz}</z_dof>\n\t\t</bc>\n")
+        if eps_plato is not None:
+            uz = -float(eps_plato) * float(z.max() - z.min())
+            w('\t\t<bc name="plato" type="prescribed displacement" '
+              'node_set="techo">\n')
+            w(f'\t\t\t<dof>z</dof>\n\t\t\t<value lc="1">{uz:.17g}</value>\n'
+              "\t\t\t<relative>0</relative>\n\t\t</bc>\n")
+        w("\t</Boundary>\n")
+        if eps_plato is None:
+            w('\t<Loads>\n\t\t<surface_load name="compresion" '
+              'type="pressure" surface="techo_carga">\n')
+            w(f'\t\t\t<pressure lc="1">{p_MPa:.17g}</pressure>\n')
+            w("\t\t\t<linear>1</linear>\n")
+            w("\t\t\t<symmetric_stiffness>1</symmetric_stiffness>\n")
+            w("\t\t</surface_load>\n\t</Loads>\n")
+        w('\t<LoadData>\n\t\t<load_controller id="1" name="rampa" '
+          'type="loadcurve">\n')
+        w("\t\t\t<interpolate>LINEAR</interpolate>\n\t\t\t<points>\n")
+        w("\t\t\t\t<point>0,0</point>\n\t\t\t\t<point>1,1</point>\n")
+        w("\t\t\t</points>\n\t\t</load_controller>\n\t</LoadData>\n")
+        w("\t<Output>\n")
+        w('\t\t<plotfile type="febio">\n'
+          '\t\t\t<var type="displacement"/>\n\t\t\t<var type="stress"/>\n'
+          "\t\t</plotfile>\n")
+        if datos:
+            w("\t\t<logfile>\n")
+            w(f'\t\t\t<node_data data="ux;uy;uz" delim=" " '
+              f'file="{stem}_u.txt"/>\n')
+            w(f'\t\t\t<element_data data="sx;sy;sz;syz;sxz;sxy" delim=" " '
+              f'file="{stem}_s.txt"/>\n')
+            w("\t\t</logfile>\n")
+        w("\t</Output>\n</febio_spec>\n")
+
+    return {"ruta": str(ruta), "MB": ruta.stat().st_size / 1e6,
+            "tipo": "hex8", "n_nodos": int(nodos.shape[0]),
+            "n_elems": int(elems.shape[0]), "n_caras_techo": int(caras.shape[0]),
+            "A_bruta_mm2": float(A_bruta), "A_osea_techo_mm2": A_osea,
+            "F_N": F_N, "presion_MPa": p_MPa, "E_MPa": E_MPa,
+            "control": "fuerza" if eps_plato is None else "plato",
+            "eps_plato": eps_plato,
+            "apoyo": "empotrado" if empotrado else "deslizante",
+            "ancla_xy": ancla_xy, "ancla_y": ancla_y,
+            "unidades": "mm-N-MPa"}
 
 
 def escribir_apdl(nodos, elems, ruta, E_s=20e9, nu_s=0.30):
