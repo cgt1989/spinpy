@@ -158,7 +158,7 @@ def main():
     salida = Path(a.salida)
     salida.parent.mkdir(parents=True, exist_ok=True)
     carpeta = Path(a.corridas)
-    print(f"spinpy {VERSION_SPINPY}; Goodier (medio infinito) vm/sigma0 = "
+    print(f"spinpy V{VERSION_SPINPY}; Goodier (medio infinito) vm/sigma0 = "
           f"{goodier():.4f}")
 
     def anotar(fila):

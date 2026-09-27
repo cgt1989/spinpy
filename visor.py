@@ -2184,7 +2184,7 @@ class DialogoBienvenida(QtWidgets.QDialog):
 
         v.addWidget(self._txt("spinpy", "color:white; font-size:28pt;"
                               " font-weight:bold;", False))
-        v.addWidget(self._txt(_("versión") + " " + _version_spinpy(),
+        v.addWidget(self._txt("V" + _version_spinpy(),
                               "color:#8fb3cc; font-size:10pt;", False))
         v.addSpacing(18)
         v.addWidget(self._txt(_("AUTORES"),

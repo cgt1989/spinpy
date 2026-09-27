@@ -113,12 +113,12 @@ def seccion_modelos(doc, idioma, r, numero):
     L.append(f"## {numero}. " + T("Modelos matemáticos y métodos numéricos",
                                   "Mathematical models and numerical methods"))
     L.append("")
-    par(f"Esta sección describe cada cálculo tal como lo ejecuta spinpy "
+    par(f"Esta sección describe cada cálculo tal como lo ejecuta spinpy V"
         f"{__version__}: las ecuaciones son las del código, no las de una "
         "referencia genérica, y las constantes numéricas del texto se leen "
         "del propio código al escribir el informe. Solo se describen los "
         "cálculos que contiene esta sesión.",
-        f"This section describes every computation exactly as spinpy "
+        f"This section describes every computation exactly as spinpy V"
         f"{__version__} executes it: the equations are those of the code, "
         "not of a generic reference, and the numerical constants in the text "
         "are read from the code itself when the report is written. Only the "
