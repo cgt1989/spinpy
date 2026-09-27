@@ -1379,9 +1379,9 @@ def parrafos_metodos(doc, idioma="es", r=None):
     from . import __version__
 
     P.append(r.t(
-        "Los análisis se realizaron con spinpy {v} ({aut}; repositorio {rep}; "
+        "Los análisis se realizaron con spinpy V{v} ({aut}; repositorio {rep}; "
         "DOI {doi}), en Python {py} con NumPy {npv} {c}.",
-        "Analyses were performed with spinpy {v} ({aut}; repository {rep}; "
+        "Analyses were performed with spinpy V{v} ({aut}; repository {rep}; "
         "DOI {doi}), on Python {py} with NumPy {npv} {c}.",
         v=proc.get("spinpy") or __version__, aut=_autores_cortos(idioma),
         rep=REPOSITORIO, doi=DOI_ARCHIVO,
@@ -2061,9 +2061,9 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
     L.append("# " + T("Informe para publicación", "Publication report")
              + (f" — {voi['nombre']}" if voi.get("nombre") else ""))
     L.append("")
-    L.append(T(f"Generado con spinpy {__version__} el "
+    L.append(T(f"Generado con spinpy V{__version__} el "
                f"{time.strftime('%Y-%m-%d %H:%M')}.",
-               f"Generated with spinpy {__version__} on "
+               f"Generated with spinpy V{__version__} on "
                f"{time.strftime('%Y-%m-%d %H:%M')}."))
     L.append("")
 
@@ -2178,9 +2178,9 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
         a["apellidos"] + " " + "".join(p[0] for p in
                                        a["nombre"].replace(".", " ").split())
         for a in AUTORES)
-    L.append(T(f"{autores}. spinpy, versión {__version__}. Repositorio: "
+    L.append(T(f"{autores}. spinpy V{__version__}. Repositorio: "
                f"{REPOSITORIO}. DOI: {DOI_ARCHIVO}.",
-               f"{autores}. spinpy, version {__version__}. Repository: "
+               f"{autores}. spinpy V{__version__}. Repository: "
                f"{REPOSITORIO}. DOI: {DOI_ARCHIVO}."))
     L.append("")
     for a in AUTORES:

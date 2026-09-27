@@ -312,7 +312,7 @@ def main():
         sys.exit(f"No se encuentra FEBio en {FEBIO}")
     salida = Path(a.salida)
     salida.parent.mkdir(parents=True, exist_ok=True)
-    print(f"spinpy {VERSION_SPINPY}  ->  {salida}")
+    print(f"spinpy V{VERSION_SPINPY}  ->  {salida}")
     for clave in a.casos:
         fila = comparar(clave, Path(a.corridas))
         with open(salida, "a", encoding="utf-8") as fh:

@@ -19,7 +19,7 @@
 #>
 param(
     [string]$Trabajo = "$env:USERPROFILE\spinpy_build",
-    [string]$Version = "0.1.0",
+    [string]$Version = "1.0.0",
     [switch]$SaltarEntorno,
     [switch]$SoloZip
 )
@@ -28,7 +28,7 @@ $ErrorActionPreference = "Stop"
 $AQUI = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RAIZ = Split-Path -Parent $AQUI
 
-Write-Host "== spinpy $Version ==" -ForegroundColor Cyan
+Write-Host "== spinpy V$Version ==" -ForegroundColor Cyan
 Write-Host "codigo   : $RAIZ"
 Write-Host "trabajo  : $Trabajo"
 
@@ -93,7 +93,7 @@ if ($p.ExitCode -ne 0) { throw "El EJECUTABLE no pasa su autocomprobacion (codig
 
 # --- 6. zip portable --------------------------------------------------------
 Write-Host "-> zip portable" -ForegroundColor Yellow
-$zip = Join-Path $Trabajo "spinpy-$Version-windows.zip"
+$zip = Join-Path $Trabajo "spinpy-V$Version-windows.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Copy-Item (Join-Path $AQUI "LEEME.txt") $dist -Force
 Copy-Item (Join-Path $AQUI "LICENCIA_BINARIO.txt") $dist -Force
@@ -122,5 +122,5 @@ $rc = $LASTEXITCODE
 Pop-Location
 if ($rc -ne 0) { throw "Inno Setup fallo" }
 
-$inst = Join-Path $AQUI "salida\spinpy-$Version-instalador.exe"
+$inst = Join-Path $AQUI "salida\spinpy-V$Version-instalador.exe"
 Write-Host "listo: $inst ($([math]::Round((Get-Item $inst).Length/1MB,0)) MB)" -ForegroundColor Green

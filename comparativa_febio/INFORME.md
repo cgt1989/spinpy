@@ -2,7 +2,7 @@
 
 Carlos González-Torres · Universidad de Valparaíso · 23 de septiembre de 2026
 
-Validación cruzada del ensayo de compresión de spinpy 0.2.0
+Validación cruzada del ensayo de compresión de spinpy V1.0.0
 (`resistencia.ensayo_compresion`) con FEBio 4.5.0, sobre los tres VOIs de H4
 (proximal, medio y distal, los mismos de la comparación con BoneJ) y sobre el
 espinodoide ajustado al VOI proximal. Las tolerancias se escribieron en
