@@ -17,14 +17,14 @@
 ;   del asistente lo dice antes de instalar nada.
 ;
 ; Compilar:
-;   ISCC.exe /DFUENTE="C:\...\dist\spinpy" /DVERSION=0.1.0 spinpy.iss
+;   ISCC.exe /DFUENTE="C:\...\dist\spinpy" /DVERSION=1.0.0 spinpy.iss
 ; ---------------------------------------------------------------------------
 
 #ifndef FUENTE
   #define FUENTE "..\..\..\..\spinpy_build\dist\spinpy"
 #endif
 #ifndef VERSION
-  #define VERSION "0.1.0"
+  #define VERSION "1.0.0"
 #endif
 
 #define NOMBRE "spinpy"
@@ -36,7 +36,7 @@
 AppId={{7B3F2A64-9C1D-4E58-A0F2-5C9D8E1B4A37}
 AppName={#NOMBRE}
 AppVersion={#VERSION}
-AppVerName={#NOMBRE} {#VERSION}
+AppVerName={#NOMBRE} V{#VERSION}
 AppPublisher={#AUTOR}
 AppPublisherURL={#URL}
 AppSupportURL={#URL}
@@ -55,10 +55,10 @@ LicenseFile=LICENCIA_BINARIO.txt
 InfoBeforeFile=ANTES_DE_INSTALAR.txt
 SetupIconFile=spinpy.ico
 UninstallDisplayIcon={app}\spinpy.exe
-UninstallDisplayName={#NOMBRE} {#VERSION}
+UninstallDisplayName={#NOMBRE} V{#VERSION}
 
 OutputDir=.\salida
-OutputBaseFilename={#NOMBRE}-{#VERSION}-instalador
+OutputBaseFilename={#NOMBRE}-V{#VERSION}-instalador
 ; LZMA2 al maximo: son ~650 MB de bibliotecas cientificas, muy comprimibles.
 ; Comprimir tarda varios minutos; descargar 300 MB en vez de 650 los ahorra
 ; en cada persona que lo instale.
