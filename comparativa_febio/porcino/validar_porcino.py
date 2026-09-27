@@ -639,7 +639,7 @@ def main():
     if not FEBIO.exists():
         sys.exit(f"No se encuentra FEBio en {FEBIO}")
     doc = sesion()
-    print(f"spinpy {VERSION_SPINPY}; sesion {SESION}")
+    print(f"spinpy V{VERSION_SPINPY}; sesion {SESION}")
     estructuras = {e: cargar(e) for e in a.estructuras}
     for an in a.analisis:
         for est, (BW, spc) in estructuras.items():

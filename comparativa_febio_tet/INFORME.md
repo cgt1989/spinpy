@@ -1,6 +1,6 @@
 # Malla suave (TET10) en FEBio: validación
 
-Fecha: 2026-09-24. spinpy 0.2.0, FEBio 4.5.0 (FEBio Studio 2). Código:
+Fecha: 2026-09-24. spinpy V1.0.0, FEBio 4.5.0 (FEBio Studio 2). Código:
 `spinpy/febio.py`, `spinpy/escribe.escribir_febio_ensayo`,
 `spinpy/solido.malla_tet10`. Pruebas repetibles: bloque 27
 (`tests/test_27_febio_tet10.py`).
