@@ -140,3 +140,21 @@ Y para saber que DLL le faltan a una carpeta ya construida, sin recompilar:
 ```powershell
 python dlls_conda.py C:\ruta\dist\spinpy\_internal
 ```
+
+## Instalador en cada release
+
+`.github/workflows/instalador.yml` construye el instalador y el zip portable en
+un Windows de GitHub Actions cada vez que se publica una release, y los
+adjunta a ella. Antes comprueba que la etiqueta (`v1.0.0`, `V1.0.0`) coincide
+con la version de `pyproject.toml`; si no, no construye nada.
+
+Para una release que ya estaba publicada, o para repetir la construccion:
+Actions → «Instalador de Windows» → *Run workflow*, con la etiqueta. En ese
+caso se construye desde la rama elegida en el formulario, no desde la
+etiqueta.
+
+Ese ejecutable sale **sin FEBio**: la release es publica y la licencia de
+FEBio no permite redistribuir sus binarios. La autocomprobacion lo acepta
+porque no hay carpeta `febio` en el paquete; si la hubiera, exigiria que se
+use esa copia. Se construye con el CPython oficial, asi que `dlls_conda.py`
+no interviene.

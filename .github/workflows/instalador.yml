@@ -1,0 +1,66 @@
+# Construye el instalador de Windows y lo adjunta a la release.
+#
+# Se dispara al publicar una release. Para una release ya publicada (o para
+# repetir la construccion) se lanza a mano desde Actions -> "Instalador de
+# Windows" -> Run workflow, indicando la etiqueta.
+#
+# El ejecutable se construye SIN FEBio: la FEBio Software License no permite
+# redistribuir sus binarios (ver instalador/LICENCIA_FEBIO.txt). Quien lo
+# necesite instala FEBio Studio y spinpy lo encuentra solo.
+#
+# Se usa el CPython oficial, no Anaconda: asi `dlls_conda.py` no tiene nada
+# que resolver (ver instalador/LEEME_DESARROLLO.md, trampa 2).
+
+name: Instalador de Windows
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      etiqueta:
+        description: "Etiqueta de la release a la que se adjunta (p. ej. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  construir:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      ETIQUETA: ${{ github.event.release.tag_name || inputs.etiqueta }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Version de la etiqueta frente a la del paquete
+        shell: pwsh
+        run: |
+          $v = $env:ETIQUETA -replace '^[vV]', ''
+          $paquete = (Select-String -Path pyproject.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($v -ne $paquete) {
+              throw "La etiqueta $env:ETIQUETA no coincide con la version del paquete ($paquete)"
+          }
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Construir
+        shell: pwsh
+        run: .\instalador\construir.ps1 -Trabajo "$env:RUNNER_TEMP\spinpy_build" -Version $env:VERSION
+
+      - name: Adjuntar a la release
+        shell: pwsh
+        run: |
+          gh release upload $env:ETIQUETA `
+            "instalador\salida\spinpy-V$env:VERSION-instalador.exe" `
+            "$env:RUNNER_TEMP\spinpy_build\spinpy-V$env:VERSION-windows.zip" `
+            --clobber

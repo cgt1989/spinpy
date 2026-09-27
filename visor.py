@@ -8644,14 +8644,20 @@ def autocomprobacion():
         # pasa por el proceso hijo de `mallar_aislado`, que en un ejecutable
         # congelado depende de `freeze_support`: se prueba lo que se usa.
         from spinpy import febio
+        # El ejecutable de las releases publicas se construye SIN FEBio (su
+        # licencia no permite redistribuirlo, ver LICENCIA_FEBIO.txt): no
+        # lleva carpeta `febio`, y entonces vale lo mismo que desde el codigo.
+        # Si la carpeta viaja, en cambio, tiene que ser la que se use.
         exe = febio.localizar()
+        con_copia = getattr(sys, "frozen", False) and any(
+            c.parent.is_dir() for c in febio._candidatas_empaquetadas())
         if exe is None:
-            if getattr(sys, "frozen", False):
+            if con_copia:
                 raise RuntimeError("no se encontro la copia empaquetada de "
                                    "FEBio")
-            return "FEBio no instalado (desde el codigo no es obligatorio)"
+            return "FEBio no instalado (no es obligatorio sin copia empaquetada)"
         org = febio.origen(exe)
-        if getattr(sys, "frozen", False) and org != "empaquetado":
+        if con_copia and org != "empaquetado":
             raise RuntimeError(f"FEBio no es el empaquetado: {exe}")
         out = []
         # Cubo con una cavidad esferica: malla de forma fiable a 16^3 (un
