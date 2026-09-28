@@ -11,8 +11,9 @@
 
 clear; clc;
 
-AQUI   = fileparts(mfilename('fullpath'));
-PROY   = fileparts(AQUI);
+AQUI   = fileparts(mfilename('fullpath'));   % validacion_matlab/
+RAIZ   = fileparts(AQUI);                     % raiz del repositorio
+PROY   = fileparts(RAIZ);
 GIBBON = 'C:\Users\carlo\OneDrive\Escritorio\Adds-On Matlab\GIBBON-master\lib';
 APPLIB = fullfile(PROY, 'Validacion_Anexo', 'applib');
 addpath(GIBBON); addpath(APPLIB);
@@ -20,7 +21,7 @@ addpath(GIBBON); addpath(APPLIB);
 global APPCTX APPFIG %#ok<GVMIS>
 APPCTX = struct(); APPCTX.VOI = []; APPFIG = [];
 
-SALIDA = fullfile(AQUI, 'resultados');
+SALIDA = fullfile(RAIZ, 'resultados');
 S = load(fullfile(SALIDA, 'casos_elastico.mat'));
 
 nombres = S.nombres;

@@ -68,13 +68,12 @@ homogeneizacion periodica y distinta del DA del MIL, que es geometrico.
 
 from __future__ import annotations
 
-import time
 
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import LinearOperator, cg, splu
 
-from .elastic import UMBRAL_DIRECTO, VOID_SCALE, hex8_ke
+from .elastic import UMBRAL_DIRECTO, hex8_ke
 
 E_S_DEF, NU_S_DEF = 20e9, 0.30
 SIGMA0_DEF = 1e6          # 1 MPa de tension aparente de referencia
@@ -481,7 +480,6 @@ def ensayo_compresion(BW, spacing, E_s=E_S_DEF, nu_s=NU_S_DEF,
         spacing = np.repeat(spacing, 3)
     dx, dy, dz = spacing
     nx, ny, nz = BW.shape
-    nel = nx * ny * nz
     v_elem = float(dx * dy * dz)
     nnx, nny, nnz = nx + 1, ny + 1, nz + 1
     ndof = 3 * nnx * nny * nnz

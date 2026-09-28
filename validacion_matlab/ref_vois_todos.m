@@ -21,15 +21,16 @@
 
 clear; clc;
 
-AQUI   = fileparts(mfilename('fullpath'));
-PROY   = fileparts(AQUI);
+AQUI   = fileparts(mfilename('fullpath'));   % validacion_matlab/
+RAIZ   = fileparts(AQUI);                     % raiz del repositorio
+PROY   = fileparts(RAIZ);
 GIBBON = 'C:\Users\carlo\OneDrive\Escritorio\Adds-On Matlab\GIBBON-master\lib';
 APPLIB = fullfile(PROY, 'Validacion_Anexo', 'applib');
 BANCO  = 'C:\Users\carlo\OneDrive\Escritorio\VOIs Caballos';
 
 addpath(GIBBON); addpath(APPLIB);
 
-SALIDA = fullfile(AQUI,'resultados');
+SALIDA = fullfile(RAIZ,'resultados');
 if ~exist(SALIDA,'dir'), mkdir(SALIDA); end
 
 global APPCTX APPFIG %#ok<GVMIS>

@@ -19,8 +19,8 @@ QUE COMPRUEBA
   3. Marcadores {} que no cuadran entre las dos versiones: un {n} que se
      pierde en la traduccion es un KeyError en marcha, no una fealdad.
 
-Uso:   python idioma_revisar.py            (resumen)
-       python idioma_revisar.py -v         (lista completa, con repr)
+Uso:   python herramientas/idioma_revisar.py       (resumen)
+       python herramientas/idioma_revisar.py -v    (lista completa, con repr)
 Devuelve 1 si falta algo por traducir.
 """
 from __future__ import annotations
@@ -32,7 +32,8 @@ import re
 import sys
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parent
+# La raiz del proyecto, un nivel por encima de `herramientas/`.
+RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
 MARCADOR = re.compile(r"\{([a-zA-Z_][a-zA-Z_0-9]*)")
@@ -57,7 +58,7 @@ def _textos_de_replicas():
     silencio, que es exactamente el fallo que este guion existe para evitar.
     """
     try:
-        from dialogo_validacion import REPLICAS
+        from interfaz.dialogo_validacion import REPLICAS
     except Exception:
         return set()
     fuera = set()
@@ -147,8 +148,10 @@ def main():
     # aqui son casi todos los mensajes largos-: no aparecian como pendientes
     # porque el comprobador ni siquiera sabia que existian. Un comprobador con
     # puntos ciegos es peor que no tenerlo: da tranquilidad falsa.
-    for ruta in (RAIZ / "visor.py", RAIZ / "dialogo_metodos.py",
-                 RAIZ / "dialogo_validacion.py", RAIZ / "dialogo_febio.py"):
+    for ruta in (RAIZ / "visor.py",
+                 RAIZ / "interfaz" / "dialogo_metodos.py",
+                 RAIZ / "interfaz" / "dialogo_validacion.py",
+                 RAIZ / "interfaz" / "dialogo_febio.py"):
         if not ruta.exists():
             continue
         arbol = ast.parse(ruta.read_text(encoding="utf-8"))

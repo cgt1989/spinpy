@@ -26,7 +26,7 @@ seria enganarse:
   del propio generador, ya medida en Validacion_Anexo. Dos ejecuciones de
   MATLAB con semillas distintas tampoco coinciden entre si.
 
-Uso:  python validar_ajuste.py   (requiere resultados/ajuste_matlab.json)
+Uso:  python validacion_matlab/validar_ajuste.py   (requiere resultados/ajuste_matlab.json)
 """
 
 from __future__ import annotations
@@ -37,10 +37,13 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy import ajustar_spinodoide, leer_voi, morfometria   # noqa: E402
 
-RAIZ = Path(__file__).parent
+# Los guiones viven en `validacion_matlab/`; la raiz del proyecto esta un nivel
+# por encima, y con ella `resultados/` y la carpeta hermana `H4/`.
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "ajuste_matlab.json"
 VOIDIR = RAIZ.parent / "H4" / "Segmentadas"
@@ -63,7 +66,7 @@ def _arr(v):
 
 def main():
     if not REF.exists():
-        print(f"Falta {REF}.\nEjecuta:  matlab -batch \"cd('{RAIZ}'); validar_ajuste_matlab\"")
+        print(f"Falta {REF}.\nEjecuta:  matlab -batch \"cd('{AQUI}'); validar_ajuste_matlab\"")
         return 2
 
     ref = json.loads(REF.read_text(encoding="utf-8"))

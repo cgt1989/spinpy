@@ -28,7 +28,7 @@ Se contrastan tres cosas:
   3. MATLAB voxel-primero vs MATLAB ruta-malla -> cuanto cuesta el rodeo por
      la malla, que es lo que el port se ahorra.
 
-Uso:  python comparar.py         (requiere resultados/referencia_matlab.json)
+Uso:  python validacion_matlab/comparar.py         (requiere resultados/referencia_matlab.json)
 """
 
 from __future__ import annotations
@@ -41,10 +41,13 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy import generar_mascara, morfometria   # noqa: E402
 
-RAIZ = Path(__file__).parent
+# Los guiones viven en `validacion_matlab/`; la raiz del proyecto esta un nivel
+# por encima, y con ella `resultados/` y la carpeta hermana `H4/`.
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "referencia_matlab.json"
 RUIDO = RAIZ.parent / "Validacion_Anexo" / "resultados" / "ruido_estocastico.csv"
@@ -186,7 +189,7 @@ def precalcular(n_rep):
 
 def main():
     if not REF.exists():
-        print(f"Falta {REF}.\nEjecuta primero:  matlab -batch \"cd('{RAIZ}'); gen_referencia\"")
+        print(f"Falta {REF}.\nEjecuta primero:  matlab -batch \"cd('{AQUI}'); gen_referencia\"")
         return 2
 
     ref = json.loads(REF.read_text(encoding="utf-8"))

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="versión V1.0.0" src="https://img.shields.io/badge/versi%C3%B3n-V1.0.0-e8a33d">
+  <img alt="versión V1.0.1" src="https://img.shields.io/badge/versi%C3%B3n-V1.0.1-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
@@ -227,7 +227,7 @@ DA, SMI…), que son notación internacional (Bouxsein et al. 2010).
 Después de tocar cualquier texto hay que pasar el comprobador del diccionario:
 
 ```
-python idioma_revisar.py
+python herramientas/idioma_revisar.py
 ```
 
 ### Desde Python
@@ -292,8 +292,8 @@ espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
 suite: los bloques 04 y 05 tienen fallos conocidos y documentados.
 
-Contra la implementación MATLAB original (`validar_*.py`, salidas de
-referencia en `resultados/`):
+Contra la implementación MATLAB original (`validacion_matlab/validar_*.py`,
+salidas de referencia en `resultados/`):
 
 | Qué se comprueba | Resultado |
 |---|---|
@@ -571,6 +571,27 @@ La validación mecánica frente a FEBio está en
 del propio código (`python docs/generar_manual.py`). Los docstrings de este
 proyecto no son un resumen: llevan las decisiones de diseño, los sesgos
 medidos y las trampas que costó encontrar.
+
+### Estructura del repositorio
+
+```
+visor.py               aplicación gráfica (punto de entrada)
+interfaz/              ventanas secundarias que abre el visor
+spinpy/                núcleo: generación, morfometría, ajuste, mecánica,
+                       informe (sin Qt, importable desde cualquier script)
+tests/                 suite de verificación (pytest)
+Test/                  réplicas de los resultados publicados (menú Validación)
+validacion_matlab/     contraste con la implementación MATLAB original
+                       (guiones .py y .m, figuras del contraste)
+resultados/            salidas de referencia de la verificación (JSON)
+comparativa_febio/     validación mecánica frente a FEBio (H4 y porcino)
+comparativa_febio_tet/ informe de malla suave (TET10) frente a ladrillos
+docs/                  manual, anexo de validación y medios del README
+herramientas/          utilidades de desarrollo (revisión del diccionario)
+instalador/            receta de PyInstaller e instalador de Windows
+```
+
+Los cambios entre versiones se resumen en [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 

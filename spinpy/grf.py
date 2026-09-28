@@ -41,7 +41,8 @@ las dos implementaciones disponibles resuelven distinto:
 Coinciden solo si todos los conos activos tienen el mismo angulo (o hay uno
 solo, o el caso es isotropo). Con thetas=(15,45,0) el rechazo manda ~90% de
 las ondas al cono de 45 grados y el equitativo un 50%. Producen anisotropias
-DISTINTAS para los mismos thetas nominales; ver validar_analitico.py.
+DISTINTAS para los mismos thetas nominales; ver
+validacion_matlab/validar_analitico.py.
 
 Ninguna es "la correcta": son dos definiciones de la misma familia. Lo que no
 se puede es cruzar resultados entre ambas sin declarar cual se uso.

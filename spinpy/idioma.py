@@ -29,7 +29,7 @@ espanola. Tres consecuencias, dos buenas y una que hay que vigilar:
   - Si alguien edita un texto espanol en `visor.py` y no toca el
     diccionario, la traduccion inglesa se pierde en silencio. Para eso esta
     `revisar()`, que compara ambos lados y lista los descuadres; el guion
-    `idioma_revisar.py` lo ejecuta.
+    `herramientas/idioma_revisar.py` lo ejecuta.
 
 COMO SE APLICA UN CAMBIO DE IDIOMA
 -----------------------------------

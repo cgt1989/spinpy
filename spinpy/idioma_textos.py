@@ -9,7 +9,7 @@ REGLAS AL ANADIR O CAMBIAR UN TEXTO
     angulares y sus puntos suspensivos de un solo caracter. Una diferencia de
     un caracter deja el texto sin traducir, en silencio.
   * Los marcadores {} tienen que aparecer en los DOS idiomas y con el mismo
-    nombre. `idioma_revisar.py` lo comprueba.
+    nombre. `herramientas/idioma_revisar.py` lo comprueba.
   * Los nombres de metrica no se traducen: BV/TV, Tb.Th, Tb.Sp, Tb.N, BS/BV,
     DA, SMI, Conn.D son notacion internacional (Parfitt / Bouxsein et al.
     2010). Traducirlos haria la tabla ilegible para un lector de hueso.
@@ -17,7 +17,7 @@ REGLAS AL ANADIR O CAMBIAR UN TEXTO
   * Las citas se dejan como estan. 'Salmon et al. 2015' no tiene version
     espanola.
 
-Comprobar el estado:  python idioma_revisar.py
+Comprobar el estado:  python herramientas/idioma_revisar.py
 """
 
 EN = {
@@ -521,8 +521,6 @@ EN = {
         'Confirm the batch',
     'Convergencia en {t} s — {n} de {tot} mallas resueltas.':
         'Convergence in {t} s — {n} of {tot} meshes solved.',
-    'Desempate mecanico':
-        'Mechanical tie-break',
     'El ajuste necesita un VOI de referencia. Cargalo primero.':
         'The fit needs a reference VOI. Load one first.',
     'El analisis comparado necesita las DOS: carga un VOI y genera el spinodoide.':
@@ -852,7 +850,7 @@ EN = {
     '{n} metrica/s fuera de banda (|z|>=2)':
         '{n} metric(s) out of band (|z|>=2)',
 
-    # -- ventana de comparacion de metodos (dialogo_metodos.py) ---------
+    # -- ventana de comparacion de metodos (interfaz/dialogo_metodos.py) -
     '<b>Ajustando el VOI con {n} metodos a la vez.</b>':
         '<b>Fitting the VOI with {n} methods at once.</b>',
     '<b>Elige con que ajuste seguir.</b> El resto se descarta.':
@@ -914,7 +912,7 @@ EN = {
         "Smoothed, repaired and closed surface: this is the one that gets "
         "printed.",
 
-    # -- menu Validacion y su ventana (dialogo_validacion.py) ----------
+    # -- menu Validacion y su ventana (interfaz/dialogo_validacion.py) -
     '&Validacion':
         '&Validation',
     '(sin imagen)':

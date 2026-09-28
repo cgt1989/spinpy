@@ -12,15 +12,16 @@
 
 clear; clc;
 
-AQUI   = fileparts(mfilename('fullpath'));
-PROY   = fileparts(AQUI);
+AQUI   = fileparts(mfilename('fullpath'));   % validacion_matlab/
+RAIZ   = fileparts(AQUI);                     % raiz del repositorio
+PROY   = fileparts(RAIZ);
 APPLIB = fullfile(PROY, 'Validacion_Anexo', 'applib');
 addpath(APPLIB);
 
 global APPCTX APPFIG %#ok<GVMIS>
 APPCTX = struct(); APPCTX.VOI = []; APPFIG = [];
 
-SALIDA = fullfile(AQUI,'resultados');
+SALIDA = fullfile(RAIZ,'resultados');
 d = jsondecode(fileread(fullfile(SALIDA,'pares_error.json')));
 campos = cellstr(d.campos);
 pares  = d.pares;

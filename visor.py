@@ -116,13 +116,13 @@ EL DICCIONARIO VA INDEXADO POR LA CADENA ESPANOLA (`spinpy/idioma_textos.py`).
 Eso mantiene el codigo legible y hace que un texto sin traducir salga en
 espanol en vez de romperse, pero tiene un filo: cambiar una tilde en un texto
 espanol y no tocar el diccionario pierde la traduccion inglesa SIN NINGUN
-ERROR. Para eso esta `idioma_revisar.py`, que construye la ventana de verdad,
-recorre sus widgets, saca del codigo las cadenas envueltas en `_()` y lista lo
-que falta, lo que sobra y los marcadores {} que no cuadran entre las dos
-versiones. Hay que ejecutarlo despues de tocar cualquier texto:
+ERROR. Para eso esta `herramientas/idioma_revisar.py`, que construye la
+ventana de verdad, recorre sus widgets, saca del codigo las cadenas envueltas
+en `_()` y lista lo que falta, lo que sobra y los marcadores {} que no cuadran
+entre las dos versiones. Hay que ejecutarlo despues de tocar cualquier texto:
 
-    python idioma_revisar.py              (resumen; devuelve 1 si falta algo)
-    python idioma_revisar.py --esqueleto  (deja las claves listas para pegar)
+    python herramientas/idioma_revisar.py              (resumen; 1 si falta algo)
+    python herramientas/idioma_revisar.py --esqueleto  (claves listas para pegar)
 
 QUE NO SE TRADUCE, A PROPOSITO:
   * los nombres de metrica -BV/TV, Tb.Th, Tb.Sp, Tb.N, BS/BV, DA, SMI,
@@ -215,7 +215,6 @@ from spinpy.estadistica import informe      # noqa: E402
 from spinpy.lote import (METRICAS, correr_lote,  # noqa: E402
                          dispersion_semillas)
 from spinpy.metodos import COMPARADAS as COMPARADAS_MET  # noqa: E402
-from spinpy.metodos import REGISTRO                       # noqa: E402
 from spinpy.metodos import REGISTROS                      # noqa: E402
 from spinpy.metodos import comparar_resultados            # noqa: E402
 # `_` es la funcion de traduccion en todo este modulo. NO usarla como
@@ -245,9 +244,9 @@ from spinpy.simulacion import TBTH_H_MIN                     # noqa: E402
 from spinpy.simulacion import fallo_progresivo, simular_perdida  # noqa: E402
 from spinpy.solido import (malla_hex, malla_tet10,           # noqa: E402
                            volumen_hex)
-from dialogo_febio import (DialogoFEBio, DialogoFEMAuto,     # noqa: E402
-                           DialogoResultadosFEBio, escribir_csv,
-                           figura_validacion)
+from interfaz.dialogo_febio import (DialogoFEBio, DialogoFEMAuto,  # noqa: E402
+                                    DialogoResultadosFEBio, escribir_csv,
+                                    figura_validacion)
 
 RAIZ = Path(__file__).parent
 
@@ -3119,12 +3118,12 @@ class Visor(QtWidgets.QMainWindow):
     def abrir_validacion(self, clave=None):
         """Abre la ventana de replicas, en la pestana `clave` si se pide.
 
-        El dialogo vive en `dialogo_validacion.py` y cada replica en su
-        `Test/replicar_*.py`, que se pueden correr sin interfaz. Aqui solo se
-        abre.
+        El dialogo vive en `interfaz/dialogo_validacion.py` y cada replica en
+        su `Test/replicar_*.py`, que se pueden correr sin interfaz. Aqui solo
+        se abre.
         """
         try:
-            from dialogo_validacion import DialogoValidacion
+            from interfaz.dialogo_validacion import DialogoValidacion
         except Exception:
             QtWidgets.QMessageBox.critical(
                 self, _("No se pudo abrir la validación"),
@@ -5637,7 +5636,7 @@ class Visor(QtWidgets.QMainWindow):
                 _("El ajuste necesita un VOI de referencia. Cargalo "
                   "primero."))
             return
-        from dialogo_metodos import DialogoMetodos
+        from interfaz.dialogo_metodos import DialogoMetodos
 
         m_voi = self.m_voi
         if m_voi is None:
@@ -7244,7 +7243,6 @@ class Visor(QtWidgets.QMainWindow):
         sp = self._spacing(res)
         m_voi = self.m_voi
         extra = self.chk_extra.isChecked()
-        poro = self.chk_poro.isChecked()
 
         self._ocupado(True, f"{K} realizaciones a {res}³…",
                       determinada=True, total=K)
@@ -8303,7 +8301,7 @@ class Visor(QtWidgets.QMainWindow):
         if d.exec_() != QtWidgets.QDialog.Accepted:
             return
         op = d.opciones()
-        from dialogo_febio import etiqueta_estructura, etiqueta_malla
+        from interfaz.dialogo_febio import etiqueta_estructura, etiqueta_malla
         pasos, estimados = [], []
         for est in op["por_ajustar"]:
             pasos.append(("ajuste", _("Mejor ajuste al VOI") + " · "
@@ -8437,7 +8435,7 @@ def _replicar(clave, rapido=False):
     """
     import importlib.util
     try:
-        from dialogo_validacion import replica_por_clave, ruta_test
+        from interfaz.dialogo_validacion import replica_por_clave, ruta_test
     except Exception:
         traceback.print_exc()
         return 2

@@ -29,6 +29,10 @@ spinodoide.stl
 # Lotes con marca de tiempo: se generan en cada corrida
 resultados/lote_*_20*.csv
 
+# Salidas de las replicas de `Test/` (JSON y figuras): cada guion las rehace,
+# y el instalador tampoco las empaqueta.
+Test/resultados/
+
 # Pilas TIFF para BoneJ: derivadas de los VOIs con un comando. El
 # `manifiesto.csv` y `bonej_resultados.csv` SI se versionan — son las medidas,
 # que es lo que hay que poder contrastar despues.
@@ -41,7 +45,8 @@ comparativa_bonej/tif/*.tif
 # regenerar sin MATLAB, GIBBON y el arnes de Validacion_Anexo, asi que son
 # datos primarios de la validacion, no artefactos. Pesan menos de 1 MB en
 # total.
-# `figs/*.png` tampoco: son las figuras del contraste ya publicado.
+# `validacion_matlab/figs/*.png` tampoco: son las figuras del contraste ya
+# publicado.
 
 # Sistema
 Thumbs.db

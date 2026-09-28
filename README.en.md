@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="version V1.0.0" src="https://img.shields.io/badge/version-V1.0.0-e8a33d">
+  <img alt="version V1.0.1" src="https://img.shields.io/badge/version-V1.0.1-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
@@ -226,7 +226,7 @@ al. 2010).
 After touching any text, run the dictionary checker:
 
 ```
-python idioma_revisar.py
+python herramientas/idioma_revisar.py
 ```
 
 ### From Python
@@ -294,8 +294,8 @@ thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 Mises surface layer… A failure here is a finding, not a bug in the suite:
 blocks 04 and 05 have known, documented failures.
 
-Against the original MATLAB implementation (`validar_*.py`, reference
-outputs in `resultados/`):
+Against the original MATLAB implementation
+(`validacion_matlab/validar_*.py`, reference outputs in `resultados/`):
 
 | What is checked | Result |
 |---|---|
@@ -572,6 +572,27 @@ generated from the code itself (`python docs/generar_manual.py`). The
 docstrings of this project are not a summary: they carry the design
 decisions, the measured biases and the pitfalls that took effort to find.
 Code, docstrings and reports are in Spanish.
+
+### Repository layout
+
+```
+visor.py               graphical application (entry point)
+interfaz/              secondary windows opened by the viewer
+spinpy/                core: generation, morphometry, fitting, mechanics,
+                       report (no Qt, importable from any script)
+tests/                 verification suite (pytest)
+Test/                  replications of published results (Validation menu)
+validacion_matlab/     comparison with the original MATLAB implementation
+                       (.py and .m scripts, comparison figures)
+resultados/            reference outputs of the verification (JSON)
+comparativa_febio/     mechanical validation against FEBio (H4 and porcine)
+comparativa_febio_tet/ smooth mesh (TET10) versus bricks report
+docs/                  manual, validation annex and README media
+herramientas/          development utilities (dictionary check)
+instalador/            PyInstaller recipe and Windows installer
+```
+
+Changes between versions are summarised in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 

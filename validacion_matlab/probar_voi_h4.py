@@ -14,7 +14,7 @@ real del port. Lo unico que se admite es el sesgo conocido del variante de
 marching cubes en BS (sub-1%, creciente con la densidad), que se propaga a
 BS/BV, Tb.Th y Tb.N por ser funciones de BS.
 
-Uso:  python probar_voi_h4.py        (requiere resultados/referencia_voi_h4.json)
+Uso:  python validacion_matlab/probar_voi_h4.py        (requiere resultados/referencia_voi_h4.json)
 """
 
 from __future__ import annotations
@@ -26,10 +26,13 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy import leer_vtk_voi, morfometria   # noqa: E402
 
-RAIZ = Path(__file__).parent
+# Los guiones viven en `validacion_matlab/`; la raiz del proyecto esta un nivel
+# por encima, y con ella `resultados/` y la carpeta hermana `H4/`.
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "referencia_voi_h4.json"
 VOIDIR = RAIZ.parent / "H4" / "Segmentadas"
@@ -50,7 +53,7 @@ def _aplanar(c):
 
 def main():
     if not REF.exists():
-        print(f"Falta {REF}.\nEjecuta primero:  matlab -batch \"cd('{RAIZ}'); ref_voi_h4\"")
+        print(f"Falta {REF}.\nEjecuta primero:  matlab -batch \"cd('{AQUI}'); ref_voi_h4\"")
         return 2
 
     ref = json.loads(REF.read_text(encoding="utf-8"))

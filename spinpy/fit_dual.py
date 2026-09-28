@@ -4,8 +4,9 @@ fit_dual.py — Ajuste de un dual-lattice a un VOI por busqueda escalonada.
 Es la misma busqueda que `fit.ajustar_spinodoide` —etapas A, B, C y D, el
 desempate K2 por orientacion, la alineacion impuesta L2, el objetivo O1 y la
 incertidumbre U1— aplicada a la otra familia. Se escribe aparte: el ajuste del
-spinodoide esta contrastado contra `AppFinal_V2.m` (`validar_ajuste.py`), y lo
-que aqui se reutiliza de `fit.py` se importa tal cual.
+spinodoide esta contrastado contra `AppFinal_V2.m`
+(`validacion_matlab/validar_ajuste.py`), y lo que aqui se reutiliza de
+`fit.py` se importa tal cual.
 
 LAS VARIABLES DE BUSQUEDA, UNA A UNA FRENTE AL SPINODOIDE
 --------------------------------------------------------

@@ -14,4 +14,5 @@ el nucleo spinpy no depende de Qt. Ver LICENSE.
 
 Este manual documenta el software, no valida los resultados obtenidos con el.
 La verificacion numerica contra soluciones manufacturadas esta en
-validar_analitico.py y en el anexo de validacion del proyecto.
+validacion_matlab/validar_analitico.py y en el anexo de validacion del
+proyecto.

@@ -9,7 +9,7 @@ Se incluye ademas la comparacion de los dos esquemas de muestreo de ondas
 (rechazo vs equitativo), que es la discrepancia de fondo entre AppFinal_V2 y el
 repositorio TPMS-Scaffolds-generator.
 
-Uso:  python validar_analitico.py
+Uso:  python validacion_matlab/validar_analitico.py
 """
 
 from __future__ import annotations
@@ -20,10 +20,13 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy import morfometria, tensor_mil, wave_directions   # noqa: E402
 
-RAIZ = Path(__file__).parent
+# Los guiones viven en `validacion_matlab/`; la raiz del proyecto esta un nivel
+# por encima, y con ella `resultados/` y la carpeta hermana `H4/`.
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parent
 SALIDA = RAIZ / "resultados"
 SALIDA.mkdir(exist_ok=True)
 

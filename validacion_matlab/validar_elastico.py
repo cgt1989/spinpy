@@ -20,9 +20,9 @@ Dos verificaciones independientes, en este orden:
      sobre VOIs.
 
 Uso:
-    python validar_elastico.py --exportar   genera casos_elastico.mat
-    matlab -batch "cd('...'); validar_elastico_matlab"
-    python validar_elastico.py              compara
+    python validacion_matlab/validar_elastico.py --exportar   genera casos_elastico.mat
+    matlab -batch "cd('validacion_matlab'); validar_elastico_matlab"
+    python validacion_matlab/validar_elastico.py              compara
 """
 
 from __future__ import annotations
@@ -34,12 +34,15 @@ from pathlib import Path
 import numpy as np
 from scipy.io import loadmat, savemat
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy import generar_mascara                                  # noqa: E402
 from spinpy.elastic import (backus_laminado, constantes_ingenieria,  # noqa: E402
                             homogeneizar)
 
-RAIZ = Path(__file__).parent
+# Los guiones viven en `validacion_matlab/`; la raiz del proyecto esta un nivel
+# por encima, y con ella `resultados/` y la carpeta hermana `H4/`.
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parent
 SALIDA = RAIZ / "resultados"
 CASOS = SALIDA / "casos_elastico.mat"
 REF_MAT = SALIDA / "elastico_matlab.json"
@@ -79,7 +82,7 @@ def construir_casos():
     print(f"{len(casos)} casos -> {CASOS}")
     for k, v in casos.items():
         print(f"   {k:12s} {v.shape}  fraccion solida = {v.mean():.4f}")
-    print(f"\nAhora:  matlab -batch \"cd('{RAIZ}'); validar_elastico_matlab\"")
+    print(f"\nAhora:  matlab -batch \"cd('{AQUI}'); validar_elastico_matlab\"")
     return casos
 
 

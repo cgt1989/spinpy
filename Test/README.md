@@ -608,6 +608,6 @@ llevan además la cita en el propio código.
 
 No sustituye a la suite de pruebas (`tests/`, bloques 01–09 contra
 soluciones cerradas) ni a la validación contra la app de MATLAB
-(`validar_ajuste.py`) ni a la comparación con BoneJ. Aquellas comprueban que
+(`validacion_matlab/validar_ajuste.py`) ni a la comparación con BoneJ. Aquellas comprueban que
 el código hace bien **sus** cuentas; ésta comprueba que **el método es el
 publicado**. Son preguntas distintas y hacen falta las dos.

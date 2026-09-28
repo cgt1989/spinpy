@@ -15,9 +15,9 @@ Se incluyen ademas casos con NaN inyectado, que es donde vive la invariante C6
 y donde un port ingenuo se separa.
 
 Uso:
-    python validar_error.py --exportar     genera pares_error.json
-    matlab -batch "cd('...'); validar_error_matlab"
-    python validar_error.py                compara
+    python validacion_matlab/validar_error.py --exportar     genera pares_error.json
+    matlab -batch "cd('validacion_matlab'); validar_error_matlab"
+    python validacion_matlab/validar_error.py                compara
 """
 
 from __future__ import annotations
@@ -28,10 +28,13 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy.error import error_morfometrico   # noqa: E402
 
-RAIZ = Path(__file__).parent
+# Los guiones viven en `validacion_matlab/`; la raiz del proyecto esta un nivel
+# por encima, y con ella `resultados/` y la carpeta hermana `H4/`.
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "referencia_vois_todos.json"
 PARES = SALIDA / "pares_error.json"
@@ -86,7 +89,7 @@ def construir_pares():
     PARES.write_text(json.dumps({"campos": CAMPOS, "pares": pares}, indent=1),
                      encoding="utf-8")
     print(f"{len(pares)} pares -> {PARES}")
-    print(f"Ahora ejecuta:  matlab -batch \"cd('{RAIZ}'); validar_error_matlab\"")
+    print(f"Ahora ejecuta:  matlab -batch \"cd('{AQUI}'); validar_error_matlab\"")
 
 
 def comparar():

@@ -32,15 +32,16 @@
 clear; clc;
 warning('off','MATLAB:MKDIR:DirectoryExists');
 
-AQUI    = fileparts(mfilename('fullpath'));
-PROY    = fileparts(AQUI);
+AQUI    = fileparts(mfilename('fullpath'));   % validacion_matlab/
+RAIZ    = fileparts(AQUI);                     % raiz del repositorio
+PROY    = fileparts(RAIZ);
 GIBBON  = 'C:\Users\carlo\OneDrive\Escritorio\Adds-On Matlab\GIBBON-master\lib';
 APPLIB  = fullfile(PROY, 'Validacion_Anexo', 'applib');
 
 addpath(GIBBON);
 addpath(APPLIB);
 
-SALIDA = fullfile(AQUI, 'resultados');
+SALIDA = fullfile(RAIZ, 'resultados');
 if ~exist(SALIDA,'dir'), mkdir(SALIDA); end
 
 % --- Contexto de la app: VOI de 64^3 a 0.02 mm/voxel (1.28 mm de lado) ----

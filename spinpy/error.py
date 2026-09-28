@@ -47,9 +47,9 @@ entero (Wang et al. 2025; Otto et al. 2025, perdida logaritmica). El argumento
 
 `pesos=None` (por omision) recorre EXACTAMENTE el mismo camino de siempre, en
 el mismo orden de sumas, y el error es bit a bit el validado contra MATLAB
-(`validar_error.py`, 1173 pares; el bloque 17 de `tests/` lo repite). Un
-termino opcional ausente en alguno de los dos dicts se salta y renormaliza
-(C6), igual que los base.
+(`validacion_matlab/validar_error.py`, 1173 pares; el bloque 17 de `tests/`
+lo repite). Un termino opcional ausente en alguno de los dos dicts se salta
+y renormaliza (C6), igual que los base.
 
 Como se mide cada termino, para que sumen en la misma escala que las
 diferencias relativas al cuadrado de los terminos base:

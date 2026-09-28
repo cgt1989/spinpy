@@ -31,7 +31,7 @@ from pathlib import Path
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy.idioma import _                                 # noqa: E402
 from spinpy.metodos import (COMPARADAS, REGISTRO,  # noqa: E402
                             comparar_resultados, generar_replicas,

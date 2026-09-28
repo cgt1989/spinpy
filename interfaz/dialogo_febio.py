@@ -17,8 +17,8 @@ FEBio hex8 vs FEBio TET10 con citabilidad) y DialogoMapasFEBio (von Mises con
 UNA escala para todos los paneles).
 
 Nada aqui calcula: construye «tareas» (dict) que el visor ejecuta. Los textos
-van a `_()` como LITERALES, porque `idioma_revisar.py` los recoge del arbol
-sintactico de este archivo.
+van a `_()` como LITERALES, porque `herramientas/idioma_revisar.py` los recoge
+del arbol sintactico de este archivo.
 """
 
 from __future__ import annotations

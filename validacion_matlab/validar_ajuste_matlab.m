@@ -32,14 +32,15 @@
 
 clear; clc;
 
-AQUI  = fileparts(mfilename('fullpath'));
-PROY  = fileparts(AQUI);
+AQUI  = fileparts(mfilename('fullpath'));   % validacion_matlab/
+RAIZ  = fileparts(AQUI);                     % raiz del repositorio
+PROY  = fileparts(RAIZ);
 CODE  = fullfile(PROY, 'Validacion_Anexo', 'code');
 
 addpath(CODE);
 ctx = opt_setup('Quiet', false);   %#ok<NASGU>
 
-SALIDA = fullfile(AQUI, 'resultados');
+SALIDA = fullfile(RAIZ, 'resultados');
 if ~exist(SALIDA,'dir'), mkdir(SALIDA); end
 
 % --- Valores de partida, identicos en los dos lados ----------------------

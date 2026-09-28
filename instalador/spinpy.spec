@@ -77,8 +77,8 @@ ocultos += [
 datos = [(str(ICONO), ".")] if ICONO.exists() else []
 
 # La carpeta `Test` viaja como DATO, no como codigo: sus guiones se importan
-# por ruta en tiempo de ejecucion (ver dialogo_validacion.py) y sus figuras de
-# referencia son mapas de bits. Sin esto, el menu Validacion del ejecutable no encuentra
+# por ruta en tiempo de ejecucion (ver interfaz/dialogo_validacion.py) y sus
+# figuras de referencia son mapas de bits. Sin esto, el menu Validacion del ejecutable no encuentra
 # nada y la unica prueba de que el metodo es el publicado se queda fuera.
 _test = RAIZ / "Test"
 if _test.is_dir():

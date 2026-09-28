@@ -9,7 +9,7 @@ CORRECCION L1 — LA ORIENTACION SE MIDE, NO SE SUPONE
 -----------------------------------------------------
 Es la PRIMERA correccion que no viene de MATLAB: `AppFinal_V2.m` no la lleva.
 Quien contraste contra MATLAB tiene que pasar `alinear_fabrica=False`, y asi lo
-hace `validar_ajuste.py`.
+hace `validacion_matlab/validar_ajuste.py`.
 
   L1. `R_fit` salia de `dir_a_euler(m_voi['dir_principal'])`, que lleva el eje
       z DEL CANDIDATO sobre la direccion principal del VOI. Eso presupone que

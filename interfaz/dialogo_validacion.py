@@ -52,7 +52,7 @@ from pathlib import Path
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from spinpy.idioma import _                                   # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ def ruta_test():
     emp = getattr(sys, "_MEIPASS", None)
     if emp:
         cand.append(Path(emp) / "Test")
-    cand.append(Path(__file__).resolve().parent / "Test")
+    cand.append(Path(__file__).resolve().parents[1] / "Test")
     for c in cand:
         try:
             if (c / "replicar_kumar2020.py").is_file():
@@ -225,7 +225,7 @@ def orden_replica(rapido, clave="kumar2020"):
     args = [rep["opcion"]] + (["--rapido"] if rapido else [])
     if getattr(sys, "frozen", False):
         return sys.executable, args
-    visor = Path(__file__).resolve().parent / "visor.py"
+    visor = Path(__file__).resolve().parents[1] / "visor.py"
     return sys.executable, [str(visor)] + args
 
 

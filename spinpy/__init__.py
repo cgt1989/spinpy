@@ -30,7 +30,7 @@ Lo que NO cubre (sigue solo en MATLAB): los otros cuatro optimizadores
 # Una sola fuente de la version dentro del paquete; `tests/test_16` comprueba
 # que coincide con `pyproject.toml`. Viaja en el bloque de procedencia de cada
 # resultado (`spinpy.procedencia`).
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from .grf import (campo_grf, canonicalizar_thetas, derivadas_grf, euler_R,
                   generar_mascara, level_set, region_degenerada,
@@ -75,6 +75,7 @@ __all__ = [
     "canonicalizar_thetas",
     "clase_anisotropia", "constantes_principales", "distancia_log_euclidea",
     "PESOS_DISCRIMINANTES", "TERMINOS_OPCIONALES", "metricas_forma",
+    "morfometria_malla",
     "curvaturas_de_campo", "curvaturas_implicitas", "curvaturas_malla",
     "perfil_curvaturas", "resumen_curvaturas",
     "desalineacion", "voi_no_trabecular",
