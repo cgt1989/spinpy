@@ -47,6 +47,12 @@ un criterio nuestro, y se declaran como tal: `DESCONEXION_RESERVAS` y
 hueso desconectado y la estructura patologica de beta = 15 un 13.8 %; donde
 poner la frontera entre ambos es una decision, no un resultado.
 
+LISTA DE CHEQUEO DE REPORTE
+---------------------------
+La ultima seccion contrasta el informe con Bouxsein et al. 2010 (micro-TC) y
+Erdemir et al. 2012 (elementos finitos), item por item y con los datos de la
+sesion. La logica y los textos estan en `lista_chequeo.py`.
+
 EL TEXTO DE METODOS
 -------------------
 Se redacta con los valores del documento, frase a frase segun lo que exista:
@@ -569,6 +575,18 @@ REFERENCIAS = {
     "harris2020": ("Harris CR, Millman KJ, van der Walt SJ, et al. (2020). "
                    "Array programming with NumPy. Nature 585:357–362.",
                    "10.1038/s41586-020-2649-2"),
+    # Guias de reporte de la lista de chequeo (`lista_chequeo.py`).
+    # Comprobadas en PubMed (PMID 22236526 y 34167708).
+    "erdemir2012": ("Erdemir A, Guess TM, Halloran J, Tadepalli SC, "
+                    "Morrison TM (2012). Considerations for reporting finite "
+                    "element analysis studies in biomechanics. Journal of "
+                    "Biomechanics 45(4):625–633.",
+                    "10.1016/j.jbiomech.2011.11.038"),
+    "oefner2021": ("Oefner C, Herrmann S, Kebbach M, Lange H-E, Kluess D, "
+                   "Woiczinski M (2021). Reporting checklist for verification "
+                   "and validation of finite element analysis in orthopedic "
+                   "and trauma biomechanics. Medical Engineering & Physics "
+                   "92:25–32.", "10.1016/j.medengphy.2021.03.011"),
 }
 
 
@@ -2050,11 +2068,19 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
     red = _Redactor(idioma)
     P, refs = parrafos_metodos(doc, idioma, red)
     # Las citas de la seccion de modelos continuan la numeracion de los
-    # metodos, y `refs` es la misma lista, asi que las recoge sola. Se redacta
-    # aqui, antes que nada, para saber si existe y en que numero cae.
+    # metodos. `parrafos_metodos` devuelve una COPIA de `red.orden`, asi que la
+    # lista de referencias se lee de `red.orden` al final, no de `refs`. Se
+    # redacta aqui, antes que nada, para saber si existe y en que numero cae.
     sec_modelos = 5 if figuras else 4
     from .informe_modelos import seccion_modelos
     modelos = seccion_modelos(doc, idioma, red, sec_modelos)
+    # La lista de chequeo va la ultima, pero cita guias: se redacta ahora para
+    # que sus referencias entren en la lista numerada.
+    from .lista_chequeo import seccion as seccion_chequeo
+    sec_refs = sec_modelos + (1 if modelos else 0)
+    chequeo = seccion_chequeo(doc, idioma, red, sec_refs + 3, {
+        "modelos": sec_modelos if modelos else None,
+        "cita": sec_refs + 1, "reproduccion": sec_refs + 2})
     voi = doc.get("voi") or {}
     from . import __version__
     L = []
@@ -2166,7 +2192,7 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
 
     L.append(f"## {sec}. " + T("Referencias", "References"))
     L.append("")
-    for k, clave in enumerate(refs, 1):
+    for k, clave in enumerate(red.orden, 1):
         txt, doi = REFERENCIAS[clave]
         L.append(f"{k}. {txt}" + (f" https://doi.org/{doi}" if doi else ""))
     L.append("")
@@ -2233,6 +2259,7 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
         "gets the same signature, they got exactly the same structure, voxel "
         "by voxel."))
     L.append("")
+    L += chequeo
     return "\n".join(L)
 
 

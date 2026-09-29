@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 22 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-22%20bloques-5b6b7f">
+  <img alt="Verificación: 26 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-26%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -116,7 +116,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 | **Homogeneiza** | El tensor elástico por celda unidad periódica sobre la rejilla de vóxeles, con multigrid algebraico y comprobación del residuo. |
 | **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. |
 | **Simula** | Pérdida ósea *in silico* (adelgazamiento, trabéculas finas, desuso, recuperación) y fallo progresivo sobre el gemelo digital del VOI. |
-| **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad y huella SHA-256 para reproducir cada máscara. |
+| **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad, lista de chequeo de reporte (Bouxsein et al. 2010 para micro-TC, Erdemir et al. 2012 para elementos finitos) y huella SHA-256 para reproducir cada máscara. |
 | **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL, y el ensayo de compresión completo a FEBio 4 (`.feb`). |
 | **Procesa lotes** | Descompone la varianza entre y dentro de especímenes, con ICC, N efectivo y equivalencia por TOST. |
 
@@ -286,11 +286,15 @@ python Test/replicar_kumar2020.py --rapido   # ~1,5 min
 python -m pytest tests/ -q
 ```
 
-22 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+26 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
-suite: los bloques 04 y 05 tienen fallos conocidos y documentados.
+suite. Los dos hallazgos ya documentados (la losa del bloque 04 sale un vóxel
+más gruesa y el exponente de Gibson-Ashby del bloque 05 sale ≈ 3,9) están
+marcados como `xfail` estricto: la suite queda en verde, el registro los sigue
+anotando como fallidos y, si alguno empezara a pasar, la suite fallaría para
+obligar a revisar su documentación.
 
 Contra la implementación MATLAB original (`validar_*.py`, salidas de
 referencia en `resultados/`):
