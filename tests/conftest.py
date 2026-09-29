@@ -12,7 +12,11 @@ la justificacion escrita al lado. Es el mismo criterio que siguio la comparacion
 con BoneJ en `comparativa_bonej/PREDICCIONES.md`.
 
 Una prueba que falla aqui no es un error de la suite: es un hallazgo. Se deja
-fallar, se anota en el registro y se explica en el informe.
+fallar, se anota en el registro y se explica en el informe. Una vez explicado
+en el propio modulo, se marca `xfail(strict=True)`: el registro lo sigue
+anotando como fallido, la suite no se queda en rojo por algo ya sabido, y si
+el hallazgo desapareciera la prueba pasaria y `strict` la haria fallar para
+que se revise la explicacion.
 
 REGISTRO
 --------
