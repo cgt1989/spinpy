@@ -53,7 +53,10 @@ ESTADOS = {CUMPLE: ("Cumple", "Met"),
            NO_CUMPLE: ("No cumple", "Not met"),
            NO_APLICA: ("No aplica", "Not applicable")}
 
-GUIAS = {"bouxsein2010": "Bouxsein 2010", "erdemir2012": "Erdemir 2012"}
+TITULOS = {"bouxsein2010": ("Bouxsein et al. 2010: morfometría por micro-TC",
+                            "Bouxsein et al. 2010: micro-CT morphometry"),
+           "erdemir2012": ("Erdemir et al. 2012: elementos finitos",
+                           "Erdemir et al. 2012: finite elements")}
 
 # Dominios de Erdemir et al. 2012, con sus nombres en el articulo.
 DOMINIOS = {
@@ -743,15 +746,20 @@ def seccion(doc, idioma, r, numero, secciones=None):
                f"**{c[NO_CUMPLE]}** not met, **{c[NO_APLICA]}** not "
                f"applicable."))
     L.append("")
-    L.append("| " + " | ".join(T(*h) for h in (
-        ("Guía", "Guideline"), ("Ítem", "Item"), ("Estado", "Status"),
-        ("En este informe", "In this report"),
-        ("Qué falta", "What is missing"))) + " |")
-    L.append("|---|---|---|---|---|")
-    for f in filas:
-        guia = GUIAS[f["guia"]] + ", " + f["dominio"][i]
-        L.append("| " + " | ".join((
-            guia, f["item"], ESTADOS[f["estado"]][i], f["donde"],
-            f["accion"] or "")) + " |")
-    L.append("")
+    # Una tabla por guia: la columna del dominio queda corta y el nombre de
+    # la guia no se repite en cada fila.
+    for k, (guia, titulo) in enumerate(TITULOS.items(), 1):
+        propias = [f for f in filas if f["guia"] == guia]
+        L.append(f"### {numero}.{k} " + titulo[i])
+        L.append("")
+        L.append("| " + " | ".join(T(*h) for h in (
+            ("Dominio", "Domain"), ("Ítem", "Item"), ("Estado", "Status"),
+            ("En este informe", "In this report"),
+            ("Qué falta", "What is missing"))) + " |")
+        L.append("|---|---|---|---|---|")
+        for f in propias:
+            L.append("| " + " | ".join((
+                f["dominio"][i], f["item"], ESTADOS[f["estado"]][i],
+                f["donde"], f["accion"] or "")) + " |")
+        L.append("")
     return L

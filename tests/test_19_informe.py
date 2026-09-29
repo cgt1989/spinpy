@@ -412,7 +412,9 @@ def test_lista_chequeo_en_el_informe(registro):
           and all(doi in md_en for doi in ("10.1002/jbmr.141",
                                            "10.1016/j.jbiomech.2011.11.038",
                                            "10.1016/j.medengphy.2021.03.011"))
-          and md_en.rstrip().splitlines()[-1].startswith("| Erdemir 2012"))
+          and md_en.rstrip().splitlines()[-1].startswith("| multiscale |")
+          and md_en.index("Bouxsein et al. 2010: micro-CT")
+          < md_en.index("Erdemir et al. 2012: finite elements"))
     registro.anotar(BLOQUE, "lista de chequeo: ES = EN, citada, al final",
                     "Bouxsein 2010; Erdemir 2012", None, float(len(es)),
                     "exacto", "mismos estados en los dos idiomas", ok,
