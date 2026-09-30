@@ -153,6 +153,9 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
     except (TypeError, IndexError, ValueError):
         pass
     lado = I._lado_voi(doc)
+    sens = (res.get("sensibilidad_superficie") or {}).get(
+        "por_estructura") or {}
+    sens_voi = "voi" in sens
     dims = "×".join(str(int(x)) for x in forma) if forma else None
 
     F = []
@@ -239,6 +242,20 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
                              "Global threshold of {u} (image units), "
                              "recorded when the stack was loaded.",
                              u=r.n(umbral, ".6g")), accion_seg))
+        elif sens_voi:
+            F.append(_fila(B, D["procesado"], t("Segmentación",
+                                                "Segmentation"), PARCIAL,
+                           t("El VOI llegó ya binarizado; {s} cuantifica la "
+                             "sensibilidad de las métricas a desplazar su "
+                             "superficie, como sustituto del umbral.",
+                             "The VOI arrived already binarised; {s} "
+                             "quantifies the sensitivity of the metrics to "
+                             "moving its surface, as a threshold surrogate.",
+                             s=sec("metodos")),
+                           t("Declarar el método de segmentación y el umbral "
+                             "usados.",
+                             "State the segmentation method and threshold "
+                             "used.")))
         else:
             F.append(_fila(B, D["procesado"], t("Segmentación",
                                                 "Segmentation"), NO_CUMPLE,
@@ -405,6 +422,11 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
     if ela:
         cc.append(t("condiciones periódicas en la homogeneización",
                     "periodic conditions in the homogenisation"))
+    if isinstance(res.get("condiciones_contorno"), dict):
+        cc.append(t("comparación del módulo con las tres condiciones sobre "
+                    "la misma rejilla",
+                    "comparison of the modulus under the three conditions "
+                    "on the same grid"))
     F.append(_fila(E, D["estructura"],
                    t("Condiciones de contorno y carga",
                      "Boundary and loading conditions"), CUMPLE,
@@ -630,14 +652,24 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
                     "does not control: segmentation threshold, E_s and "
                     "ν_s.")
     from .incertidumbre import K_MIN
-    if K >= K_MIN or n_disp:
+    if sens:
+        accion_sens = t("Añadir la sensibilidad a E_s y ν_s, las entradas "
+                        "del modelo que no se han variado.",
+                        "Add the sensitivity to E_s and ν_s, the model "
+                        "inputs that have not been varied.")
+    if K >= K_MIN or n_disp or sens:
+        partes = []
+        if K >= K_MIN or n_disp:
+            partes.append(t("variabilidad del generador estocástico con {k} "
+                            "semillas", "variability of the stochastic "
+                            "generator with {k} seeds", k=max(K, n_disp)))
+        if sens:
+            partes.append(t("sensibilidad a la posición de la superficie",
+                            "sensitivity to the position of the surface"))
         F.append(_fila(E, D["validacion"], t("Incertidumbre y sensibilidad",
                                              "Uncertainty and sensitivity"),
-                       PARCIAL,
-                       t("{s}: variabilidad del generador estocástico con "
-                         "{k} semillas.",
-                         "{s}: variability of the stochastic generator with "
-                         "{k} seeds.", s=sec("metodos"), k=max(K, n_disp)),
+                       PARCIAL, t("{s}: {p}.", "{s}: {p}.", s=sec("metodos"),
+                                  p="; ".join(partes)),
                        accion_sens))
     else:
         F.append(_fila(E, D["validacion"], t("Incertidumbre y sensibilidad",

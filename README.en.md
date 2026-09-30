@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 26 blocks" src="https://img.shields.io/badge/verification-26%20blocks-5b6b7f">
+  <img alt="Verification: 27 blocks" src="https://img.shields.io/badge/verification-27%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -288,7 +288,7 @@ python Test/replicar_kumar2020.py --rapido   # ~1.5 min
 python -m pytest tests/ -q
 ```
 
-26 blocks with tolerances **declared before measuring**: topology, SMI,
+27 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.
