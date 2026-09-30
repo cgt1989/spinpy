@@ -8767,6 +8767,8 @@ def autocomprobacion():
     if os.name == "nt":
         from spinpy import _msvc
         lineas.append(f" runtime C++: {_msvc.CARGADO or 'sin precargar'}")
+        for nombre, ruta, ver in _msvc.cargados():
+            lineas.append(f"   {nombre:22s} {ver:16s} {ruta}")
     lineas.append("=" * 78)
     lineas.append("")
     lineas.append(" MODULOS")

@@ -172,6 +172,54 @@ a = Analysis(                                        # noqa: F821
 a.datas = [d for d in a.datas
            if not d[0].replace("\\", "/").lower().startswith("netgen_occt-")]
 
+# --- Un solo runtime de Visual C++, el mas reciente ------------------------
+# PyQt5-Qt5 5.15.2 trae msvcp140/vcruntime140 14.26 (2020); netgen y NGSolve,
+# msvcp140 14.50 con el mismo nombre. PyInstaller deja en la raiz de
+# `_internal` la primera copia que encuentra (la de Qt va primero en su
+# busqueda), el interprete arranca con ese vcruntime140 viejo y netgen muere
+# al importarse (0xC0000005). Aqui cada DLL del runtime, en la raiz o en la
+# carpeta de un paquete, se sustituye por la version mas alta disponible en
+# la maquina de compilacion (ruedas instaladas, Python y System32).
+import importlib.util as _ilu2  # noqa: E402
+import sysconfig as _sc  # noqa: E402
+_spec_msvc = _ilu2.spec_from_file_location("_msvc_build",
+                                           RAIZ / "spinpy" / "_msvc.py")
+_msvc = _ilu2.module_from_spec(_spec_msvc)
+_spec_msvc.loader.exec_module(_msvc)
+_dirs_rt = [Path(_sc.get_paths()["purelib"]), Path(sys.base_prefix),
+            Path(os.environ.get("SystemRoot", "C:/Windows")) / "System32"]
+_mejor_rt = {}
+for _d in _dirs_rt:
+    if not _d.is_dir():
+        continue
+    _it = _d.rglob("*.dll") if _d.name.lower() != "system32" else \
+        (_d / _n for _n in _msvc.RUNTIME)
+    for _f in _it:
+        _n = _f.name.lower()
+        if _n not in _msvc.RUNTIME or not _f.is_file():
+            continue
+        _v = _msvc.version_dll(_f)
+        if _v is not None and (_n not in _mejor_rt or _v > _mejor_rt[_n][1]):
+            _mejor_rt[_n] = (str(_f), _v)
+if sys.platform == "win32":
+    for _n in ("msvcp140.dll", "vcruntime140.dll"):
+        if _n not in _mejor_rt:
+            raise SystemExit(f"[spinpy] No se encontro {_n} para el ejecutable.")
+_nuevos, _raiz = [], set()
+for _dest, _src, _tipo in a.binaries:
+    _n = Path(_dest).name.lower()
+    if _n in _mejor_rt:
+        _src = _mejor_rt[_n][0]
+        if Path(_dest).parent == Path("."):
+            _raiz.add(_n)
+    _nuevos.append((_dest, _src, _tipo))
+for _n, (_src, _v) in _mejor_rt.items():
+    if _n not in _raiz:
+        _nuevos.append((_n, _src, "BINARY"))
+a.binaries = _nuevos
+print("[spinpy] runtime de Visual C++: " + ", ".join(
+    f"{_n} {'.'.join(map(str, _v))}" for _n, (_s, _v) in sorted(_mejor_rt.items())))
+
 # --- DLL del interprete de Anaconda -----------------------------------------
 # Sin esto el ejecutable se construye sin un aviso y muere al arrancar con
 # "ImportError: DLL load failed while importing _ctypes", porque los .pyd de
