@@ -1,19 +1,22 @@
 """
-Bloque 27 — FEBio dentro de spinpy: malla suave TET10 y estadisticos por volumen.
+Bloque 27 — Malla suave TET10 y estadisticos por volumen.
 
 REFERENCIA
-  `PLAN_Analizar_con_FEBio.md` §9 y `spinpy/febio.py`. El camino hex8 ya esta
-  validado contra la app en el bloque 25 y en `comparativa_febio/`.
+  `PLAN_Analizar_con_FEBio.md` §9 y `spinpy/fem.py`. Nacio con la integracion
+  con FEBio; desde V1.1.0 los ensayos los resuelven los motores internos
+  (`spinpy.motores`, bloque 29) y las pruebas que ejecutaban `febio4.exe`
+  se sustituyeron por su equivalente sin programa externo.
 
 LO QUE SE VERIFICA
-  (1) Orden de nodos TET10 de FEBio (con FEBio): un solo elemento con un campo
-      de desplazamientos CUADRATICO impuesto en sus diez nodos. En el orden
-      C3D10 —el de `solido.malla_tet10`— la tension media del elemento es la
-      exacta en el centroide; con los nodos intermedios permutados FEBio
-      aborta o da otra tension. Un campo lineal no lo detectaria: un elemento
-      isoparametrico reproduce campos lineales con cualquier geometria.
-  (2) Bloque macizo (con FEBio): E_app = E_s con hex8 y con TET10, y la
-      fuerza de la integral de volumen de sigma_zz igual a la aplicada.
+  (1) Orden de nodos TET10 (C3D10) en el postproceso: un solo elemento con un
+      campo de desplazamientos CUADRATICO en sus diez nodos. En el orden
+      C3D10 —el de `solido.malla_tet10`— `fem.tension_elemental` da la tension
+      exacta en el centroide; con los nodos intermedios permutados, otra. Un
+      campo lineal no lo detectaria: un elemento isoparametrico reproduce
+      campos lineales con cualquier geometria.
+  (2) Bloque macizo (con un motor que resuelva TET10): E_app = E_s con hex8 y
+      con TET10, y la fuerza de la integral de volumen de sigma_zz igual a la
+      aplicada, por el camino completo `fem.mallar` + `fem.ensayo`.
   (3) Estadisticos ponderados (sin FEBio): con pesos iguales, `criterio_
       pistoia` y `estadisticos_vm` dan BIT A BIT lo mismo con y sin
       `vol_solido`; la formula ponderada con pesos iguales coincide con numpy
@@ -24,8 +27,6 @@ LO QUE SE VERIFICA
       las lineas salvo el comentario de cabecera), asi que hereda su
       validacion; con TET10 las caras tri6 del techo miran a +z, presion por
       area osea = sigma_app * A_bruta, y la regla va como ATRIBUTO.
-  (5) Lectura sin FEBio: `leer` toma el ULTIMO bloque de un logfile de
-      ejemplo, ordenado por identificador, y pasa MPa a Pa.
   (6) Malla (sin FEBio): una cavidad cerrada NO se rellena (antes PyMeshFix
       borraba su pared y tetgen la mallaba maciza); la correccion de volumen
       lleva la malla al volumen de voxeles; la capa superficial excluye las
@@ -33,8 +34,6 @@ LO QUE SE VERIFICA
   (7) El protocolo de Tapia de `febio.PROTOCOLOS_FEBIO` es el de
       `visor.PAPER_*` (leido del fuente, sin importar Qt), y editar un valor
       lo renombra «Tapia (modificado)».
-  (8) Homogeneizacion (con FEBio): en un bloque macizo las cotas KUBC y SUBC
-      con TET10 coinciden con la matriz D isotropa.
   (9) Calificacion (sin FEBio): `informe.comprobar` gradua los registros de
       FEBio con los motivos declarados (fallo, equilibrio, perdida de volumen,
       cotas, pico con malla suave, protocolo modificado).
@@ -42,18 +41,16 @@ LO QUE SE VERIFICA
       calibracion (`tiempos`, FEBio) con el error del propio ajuste.
 
 TOLERANCIAS DECLARADAS ANTES DE MEDIR
-  (1) 1e-6 relativa al maximo de la tension exacta (extrapolada a amplitud
-      nula); con orden erroneo: aborta o error > 1e-2.
+  (1) 1e-10 relativa al maximo de la tension exacta; con orden erroneo:
+      error > 1e-2.
   (2) E_app 1e-6 relativa; fuerza 1e-6 relativa.
   (3) bit a bit (==) con pesos iguales; 1e-12 de max|v| la formula frente a
       numpy (se declaro «relativa» al valor, lo que no tiene sentido cerca
       de cero: ver la prueba); el caso a mano exacto a 1e-15.
   (4) igualdad de lineas; area x presion 1e-12 relativa.
-  (5) exacto.
   (6) cavidad: volumen de la malla a 1 % del de voxeles (sin la cavidad
       seria +3.4 %); correccion: 0.5 %.
   (7) exacto.
-  (8) 1e-6 del maximo de D.
   (9) exacto (estados y motivos).
   (10) memoria: 10 % hex8, 30 % TET10 (residuo maximo del ajuste: 5 y 29 %);
       tamano de la malla TET10: 5 % en estructuras trabeculares (residuo 4 %).
@@ -67,7 +64,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from spinpy import febio
+from spinpy import fem as febio
+from spinpy import motores
 from spinpy.escribe import area_caras, escribir_febio, escribir_febio_ensayo
 from spinpy.resistencia import (_matriz_D, criterio_pistoia, estadisticos_vm,
                                 cuantiles_vm_superficie, percentil_ponderado)
@@ -75,8 +73,11 @@ from spinpy.solido import malla_hex, malla_tet10
 
 BLOQUE = "27 FEBio TET10"
 REF = "PLAN_Analizar_con_FEBio.md §9"
-EXE = febio.localizar()
-con_febio = pytest.mark.skipif(EXE is None, reason="FEBio 4 no esta instalado")
+# Un motor que resuelva TET10 (la app no): el recomendado si esta instalado.
+MOTOR_TET = next((m for m in (motores.RECOMENDADO, "fenicsx", "skfem",
+                              "sfepy") if m in motores.disponibles()), None)
+con_motor = pytest.mark.skipif(MOTOR_TET is None,
+                               reason="ningun motor TET10 instalado")
 VISOR = Path(__file__).resolve().parent.parent / "visor.py"
 
 
@@ -107,37 +108,25 @@ def _campo():
     return u, _matriz_D(20e9, 0.3) @ eps
 
 
-def _sigma_elemento(orden, d):
+def _sigma_elemento(orden):
     u, _ = _campo()
-    s = {}
-    for a in (1e-6, 2e-6):
-        f = d / f"t_{a:g}.feb"
-        febio.escribir_prescrito(_X, np.array([orden]), a * u(_X), f)
-        febio.correr(f, exe=EXE)
-        s[a] = febio.leer(f)["sigma"][0] / a
-    return 2 * s[1e-6] - s[2e-6]
+    return febio.tension_elemental(_X, np.array([orden]), u(_X), 20e9,
+                                   0.3)[0]
 
 
-@con_febio
-def test_orden_nodos_tet10(registro, tmp_path):
+def test_orden_nodos_tet10(registro):
     _, sig = _campo()
-    err = float(np.abs(_sigma_elemento(list(range(10)), tmp_path) - sig).max()
+    err = float(np.abs(_sigma_elemento(list(range(10))) - sig).max()
                 / np.abs(sig).max())
     _anotar(registro, "TET10 en orden C3D10: tension exacta con campo "
-            "cuadratico", 0.0, err, err, "1e-6", err < 1e-6)
-    assert err < 1e-6
+            "cuadratico", 0.0, err, err, "1e-10", err < 1e-10)
+    assert err < 1e-10
     # Orden erroneo: intermedios de las aristas (1,2) y (0,2) intercambiados
-    d = tmp_path / "mal"
-    d.mkdir()
-    try:
-        e2 = float(np.abs(_sigma_elemento([0, 1, 2, 3, 4, 6, 5, 7, 8, 9], d)
-                          - sig).max() / np.abs(sig).max())
-        detectado = e2 > 1e-2
-    except febio.ErrorFEBio:
-        e2, detectado = float("inf"), True
-    _anotar(registro, "orden erroneo detectado (aborta o error > 1e-2)", 1,
-            int(detectado), 0.0, "aborta o > 1e-2", detectado,
-            nota=f"error {e2:.3g}")
+    e2 = float(np.abs(_sigma_elemento([0, 1, 2, 3, 4, 6, 5, 7, 8, 9]) - sig)
+               .max() / np.abs(sig).max())
+    detectado = e2 > 1e-2
+    _anotar(registro, "orden erroneo detectado (error > 1e-2)", 1,
+            int(detectado), 0.0, "> 1e-2", detectado, nota=f"error {e2:.3g}")
     assert detectado
 
 
@@ -145,12 +134,12 @@ def test_orden_nodos_tet10(registro, tmp_path):
 # (2) Bloque macizo
 # ---------------------------------------------------------------------------
 
-@con_febio
+@con_motor
 @pytest.mark.parametrize("tipo", ["hex8", "tet10"])
 def test_bloque_macizo(registro, tmp_path, tipo):
     m = febio.mallar(np.ones((5, 5, 7), bool), np.full(3, 0.1), tipo)
     r = febio.ensayo(m, febio.protocolo("app"), tmp_path, ("lineal",),
-                     exe=EXE)
+                     motor=MOTOR_TET, aislado=False)
     lin = r["lineal"]
     dE = abs(lin["E_app"] / 20e9 - 1.0)
     _anotar(registro, f"bloque macizo {tipo}: E_app = E_s", 20e9,
@@ -311,26 +300,6 @@ def test_escritor_tet10(registro, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# (5) Lectura
-# ---------------------------------------------------------------------------
-
-def test_leer_logfile(registro, tmp_path):
-    u = ("*Step  = 0\n*Time  = 0\n*Data  = ux;uy;uz\n1 0 0 0\n2 0 0 0\n"
-         "*Step  = 1\n*Time  = 1\n*Data  = ux;uy;uz\n2 4 5 6\n1 1 2 3\n")
-    s = ("*Step  = 0\n*Time  = 0\n*Data  = sx;sy;sz;syz;sxz;sxy\n"
-         "1 0 0 0 0 0 0\n*Step  = 1\n*Time  = 1\n"
-         "*Data  = sx;sy;sz;syz;sxz;sxy\n1 1 2 3 4 5 6\n")
-    (tmp_path / "m_u.txt").write_text(u)
-    (tmp_path / "m_s.txt").write_text(s)
-    r = febio.leer(tmp_path / "m.feb")
-    ok = (np.array_equal(r["u"], [[1, 2, 3], [4, 5, 6]])
-          and np.array_equal(r["sigma"], [[1e6, 2e6, 3e6, 4e6, 5e6, 6e6]]))
-    _anotar(registro, "leer: ultimo paso, ordenado, MPa -> Pa", 1, int(ok),
-            0.0, "exacto", ok)
-    assert ok
-
-
-# ---------------------------------------------------------------------------
 # (6) Malla
 # ---------------------------------------------------------------------------
 
@@ -386,20 +355,6 @@ def _constantes_visor():
     return out
 
 
-@con_febio
-def test_homogeneizacion_bloque(registro, tmp_path):
-    D = _matriz_D(20e9, 0.3)
-    r = febio.homogeneizar(np.ones((3, 3, 3), bool), np.full(3, 0.1),
-                           febio.protocolo("homogeneizacion"), malla="tet10",
-                           carpeta=tmp_path, n=3, exe=EXE, comparar_app=False)
-    for k in ("C_KUBC", "C_SUBC"):
-        err = float(np.abs(r[k] - D).max() / np.abs(D).max())
-        _anotar(registro, f"bloque macizo TET10: {k} = D isotropa", 0.0, err,
-                err, "1e-6 del max de D", err < 1e-6)
-        assert err < 1e-6
-    assert not r["fallos"]
-
-
 def _doc(*registros):
     return {"resultados": {"febio": {"registros": list(registros)}},
             "procedencia": {"version_formato": 99}}
@@ -408,7 +363,7 @@ def _doc(*registros):
 def test_calificacion_febio(registro):
     from spinpy import informe
     base = {"estructura": "voi", "nombre": "App", "eje_nombre": "Z",
-            "fallos": []}
+            "fallos": [], "motor": {"clave": "ngsolve", "nombre": "NGSolve"}}
     lin = {"E_app": 1e9, "dF_rel": 1e-9,
            "pistoia": {"ok": True, "sigma_fallo": 5e6, "vm_max": 1e8,
                        "vm_p99_superficie": 5e7, "vm_n_superficie": 5000}}
@@ -453,9 +408,9 @@ def test_calificacion_febio(registro):
         _anotar(registro, "calificacion: " + nombre, 1, int(ok), 0.0,
                 "exacto", ok)
     assert all(ok for _n, ok in casos), [n for n, ok in casos if not ok]
-    # Las etiquetas distinguen protocolo y malla.
+    # Las etiquetas distinguen motor, protocolo y malla.
     it = informe.comprobar(_doc(tet_perd))[0]
-    assert "FEBio App, tet10" in informe.etiqueta_item(it)
+    assert "NGSolve · App, tet10" in informe.etiqueta_item(it)
 
 
 # (gdl, memoria MB) medidos: cavidad.jsonl, 2026-09-24.

@@ -153,8 +153,9 @@ Actions → «Instalador de Windows» → *Run workflow*, con la etiqueta. En es
 caso se construye desde la rama elegida en el formulario, no desde la
 etiqueta.
 
-Ese ejecutable sale **sin FEBio**: la release es publica y la licencia de
-FEBio no permite redistribuir sus binarios. La autocomprobacion lo acepta
-porque no hay carpeta `febio` en el paquete; si la hubiera, exigiria que se
-use esa copia. Se construye con el CPython oficial, asi que `dlls_conda.py`
-no interviene.
+Desde V1.1.0 el ejecutable no lleva ni busca FEBio: los ensayos los resuelven
+los motores internos (`spinpy.motores`). Viajan NGSolve (con las DLL de MKL
+para su PARDISO) y scikit-fem, los unicos con rueda para Windows en PyPI; la
+autocomprobacion resuelve el mismo ensayo con todos los motores presentes y
+exige que coincidan (prueba «Motores FEM»). Se construye con el CPython
+oficial, asi que `dlls_conda.py` no interviene.

@@ -1,19 +1,21 @@
 """
-dialogo_febio.py — Las ventanas de FEBio del visor.
+dialogo_febio.py — Las ventanas de elementos finitos del visor.
 
-Dos puertas, un solo camino de calculo (`spinpy.febio.analizar` y
-`febio.homogeneizar`, que el visor encadena en `Visor._febio_una`):
+(El nombre del archivo es el de antes de los motores internos; FEBio ya no se
+ejecuta.) Dos puertas, un solo camino de calculo (`spinpy.fem.analizar` y
+`fem.homogeneizar`, que el visor encadena en `Visor._febio_una`):
 
-  DialogoFEMAuto   «FEM automatico (FEBio)…», en la barra superior junto al
+  DialogoFEMAuto   «Informe FEM (Auto)…», en la barra superior junto al
                    informe automatico. Corrida desatendida: estructuras x
-                   protocolos x mallas, con tiempo y memoria estimados.
-  DialogoFEBio     «Analizar con FEBio…», en la seccion Analisis mecanico. La
+                   protocolos x mallas x MOTORES, con tiempo y memoria
+                   estimados y tabla comparativa entre motores.
+  DialogoFEBio     «Comparar motores…», en la seccion Analisis mecanico. La
                    version corta: la estructura activa y los controles del
-                   panel (resolucion, direccion, apoyo).
+                   panel (resolucion, direccion, apoyo, motor).
 
 Y las de apoyo: DialogoParametrosProtocolo (valores editables, en naranja los
 que difieren del protocolo publicado), DialogoResultadosFEBio (tabla app vs
-FEBio hex8 vs FEBio TET10 con citabilidad) y DialogoMapasFEBio (von Mises con
+motores con hex8 y TET10, con citabilidad) y DialogoMapasFEBio (von Mises con
 UNA escala para todos los paneles).
 
 Nada aqui calcula: construye «tareas» (dict) que el visor ejecuta. Los textos
@@ -31,7 +33,8 @@ from pathlib import Path
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from spinpy import febio, tiempos
+from spinpy import fem as febio
+from spinpy import motores, tiempos
 from spinpy.idioma import _
 
 NARANJA = "#b06000"
@@ -75,18 +78,13 @@ def descripcion_protocolo(p):
 
 
 def factores_febio():
-    """Factores real/estimado de las etapas de FEBio en ESTE equipo."""
+    """Factores real/estimado de las etapas FEM en ESTE equipo."""
     try:
         crudo = QtCore.QSettings(*AJUSTES).value("tiempos/factores", "")
         f = json.loads(crudo) if crudo else {}
     except (TypeError, ValueError):
         f = {}
     return {k: v for k, v in f.items() if str(k).startswith("febio")}
-
-
-def ruta_febio_guardada():
-    v = QtCore.QSettings(*AJUSTES).value("febio/ruta", "")
-    return str(v) if v else None
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +99,7 @@ class DialogoParametrosProtocolo(QtWidgets.QDialog):
     def __init__(self, padre, clave, cambios=None):
         super().__init__(padre)
         self.clave = clave
-        self.base = febio.PROTOCOLOS_FEBIO[clave]
+        self.base = febio.PROTOCOLOS_FEM[clave]
         actual = dict(self.base)
         actual.update(cambios or {})
         self.setWindowTitle(_("Parámetros del protocolo"))
@@ -291,12 +289,12 @@ class _BaseFEBio(QtWidgets.QDialog):
             w.setEnabled(suave)
         self.spin_nhex.setEnabled(not self.rb_tet.isChecked())
         self.lab_malla.setText(
-            _("Ambas separa el efecto del programa (app frente a FEBio con "
-              "ladrillos, debe dar ~0) del efecto de la malla (ladrillos "
-              "frente a tetraedros, mismo programa y carga).")
+            _("Ambas separa el efecto del programa (app frente a los motores "
+              "con ladrillos, debe dar ~0) del efecto de la malla (ladrillos "
+              "frente a tetraedros, mismo motor y carga).")
             if self.rb_ambas.isChecked() else
-            _("Ladrillos: la malla que resuelve la app, validada contra "
-              "FEBio a 1e-6. Conserva los escalones.")
+            _("Ladrillos: la malla que resuelve la app; los motores la "
+              "reproducen a ~1e-10. Conserva los escalones.")
             if self.rb_hex.isChecked() else
             _("Mallado suave: quita los escalones, pero su borde es una de "
               "muchas superficies compatibles con la imagen; el pico de von "
@@ -363,51 +361,61 @@ class _BaseFEBio(QtWidgets.QDialog):
         self.spin_pasos.setRange(1, 50)
         self.spin_pasos.setValue(1)
         self.spin_pasos.setToolTip(_(
-            "Con recorte automático si Newton no converge. Medido en el VOI "
-            "proximal de H4: 1, 5 y 10 pasos dan la misma respuesta con 5, "
-            "20 y 40 iteraciones."))
+            "Incrementos de carga del análisis no lineal. Con cargas "
+            "moderadas basta uno; si Newton no converge, subirlos."))
         gl.addRow(_("Pasos de carga (no lineal):"), self.spin_pasos)
-        f = QtWidgets.QHBoxLayout()
-        self.ed_exe = QtWidgets.QLineEdit()
-        exe = febio.localizar(ruta_febio_guardada())
-        self.ed_exe.setText(str(exe) if exe else "")
-        self.ed_exe.textChanged.connect(self._actualizar)
-        f.addWidget(self.ed_exe, 1)
-        b = QtWidgets.QPushButton(_("Buscar…"))
-        b.clicked.connect(self._elegir_exe)
-        f.addWidget(b)
-        gl.addRow(_("FEBio:"), f)
-        nota = QtWidgets.QLabel(_("Solver directo Pardiso; tolerancias las "
-                                  "validadas (Newton completo, 1e-9/1e-12)."))
+        self.cmb_solver = QtWidgets.QComboBox()
+        self.cmb_solver.addItem(_("Automático (según el tamaño)"), "auto")
+        self.cmb_solver.addItem(_("Directo"), "directo")
+        self.cmb_solver.addItem(_("Iterativo (multigrid)"), "iterativo")
+        gl.addRow(_("Resolvedor lineal:"), self.cmb_solver)
+        nota = QtWidgets.QLabel(_(
+            "Todo se resuelve dentro de spinpy, sin programas externos. "
+            "Newton completo con tangente consistente; tolerancia 1e-10."))
         nota.setWordWrap(True)
         nota.setStyleSheet("color:#666; font-size:10px;")
         gl.addRow(nota)
         return g
 
-    def _elegir_exe(self):
-        r, _f = QtWidgets.QFileDialog.getOpenFileName(
-            self, _("Elige febio4.exe"), self.ed_exe.text(),
-            "febio4 (febio4.exe febio4)")
-        if r:
-            self.ed_exe.setText(r)
+    def _construir_motores(self, varios=True):
+        """Casillas de los motores FEM: los instalados, habilitados; los
+        demas, en gris con «(no instalado)». La app va siempre."""
+        g = QtWidgets.QGroupBox(_("Motores FEM"))
+        gl = QtWidgets.QVBoxLayout(g)
+        self.chk_mot = {}
+        disp = motores.disponibles()
+        for k in motores.MOTORES:
+            ver = motores.version(k) if k in disp else None
+            t = motores.ETIQUETAS[k] + (f" {ver}" if ver else "")
+            if k == motores.RECOMENDADO:
+                t += "  " + _("(recomendado para TET10 y no lineal)")
+            if k not in disp:
+                t += "  " + _("(no instalado)")
+            c = QtWidgets.QCheckBox(t)
+            c.setEnabled(k in disp)
+            c.setChecked(k in ("app", motores.RECOMENDADO) and k in disp)
+            self.chk_mot[k] = c
+            gl.addWidget(c)
+        nota = QtWidgets.QLabel(_(
+            "Cada motor resuelve la MISMA malla: la tabla compara los motores "
+            "entre sí y con la app. La app solo resuelve ladrillos en lineal; "
+            "en lo demás su columna queda «no disponible»."))
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color:#666; font-size:10px;")
+        gl.addWidget(nota)
+        return g
 
-    def exe(self):
-        t = self.ed_exe.text().strip()
-        return Path(t) if t and Path(t).is_file() else None
+    def motores_sel(self):
+        return [k for k, c in self.chk_mot.items()
+                if c.isChecked() and c.isEnabled()]
 
     def _cabecera_febio(self):
-        exe = self.exe()
-        if exe is None:
+        ms = self.motores_sel()
+        if not ms:
             return ("<span style='color:#b62324'><b>"
-                    + _("No se encontró FEBio.") + "</b> "
-                    + _("Elige febio4.exe abajo, en «Material y solver».")
-                    + "</span>")
-        ver = febio.version(exe) or "?"
-        return _("Resuelve en <b>FEBio {ver}</b> ({origen})").format(
-            ver=html.escape(ver),
-            origen=html.escape({"empaquetado": _("incluido en spinpy"),
-                                "FEBio Studio": _("de FEBio Studio")}.get(
-                febio.origen(exe), _("ruta elegida"))))
+                    + _("Ningún motor elegido.") + "</b></span>")
+        return _("Resuelve dentro de spinpy con <b>{m}</b>").format(
+            m=html.escape(", ".join(motores.ETIQUETAS[k] for k in ms)))
 
     def comunes(self):
         return {"mallas": self.mallas(), "analisis": self.analisis(),
@@ -418,11 +426,8 @@ class _BaseFEBio(QtWidgets.QDialog):
                 "material": self.cmb_mat.currentData(),
                 "hilos": int(self.spin_hilos.value()),
                 "pasos": int(self.spin_pasos.value()),
-                "exe": str(self.exe()) if self.exe() else None}
-
-    def _guardar_exe(self):
-        if self.exe() is not None:
-            QtCore.QSettings(*AJUSTES).setValue("febio/ruta", str(self.exe()))
+                "motores": self.motores_sel(),
+                "solver": self.cmb_solver.currentData()}
 
 
 # ---------------------------------------------------------------------------
@@ -432,7 +437,8 @@ class _BaseFEBio(QtWidgets.QDialog):
 def estimar_tareas(tareas, tamanos, factores=None):
     """[(segundos, MB de pico)] de cada tarea, con `spinpy.tiempos`.
 
-    `tamanos[(estructura, malla, n)]` es `febio.tamano_previsto`.
+    `tamanos[(estructura, malla, n)]` es `fem.tamano_previsto`. El modelo es
+    el medido con FEBio (PARDISO); cada motor adicional suma una resolucion.
     """
     f = factores or {}
     out = []
@@ -452,6 +458,7 @@ def estimar_tareas(tareas, tamanos, factores=None):
                                      n_ejes=len(t["ejes"]),
                                      conv_malla=t.get("conv_malla"))
         s *= float(f.get(f"febio_{t['malla']}", 1.0))
+        s *= max(1, len(t.get("motores") or [1]))
         out.append((s, tam["memoria_MB"] * (2 if t.get("conv_malla")
                                             and t["malla"] == "tet10"
                                             else 1)))
@@ -463,17 +470,17 @@ def estimar_tareas(tareas, tamanos, factores=None):
 # ---------------------------------------------------------------------------
 
 class DialogoFEMAuto(_BaseFEBio):
-    """«FEM automatico (FEBio)»: la maqueta aprobada, `Maqueta_FEM_automatico
+    """«Informe FEM (Auto)»: la maqueta aprobada, `Maqueta_FEM_automatico
     .html`. Mismo formato que `DialogoInformeAuto`: dos columnas, tiempo
     estimado abajo y Empezar/Cancelar."""
 
     def __init__(self, v, carpeta_def=""):
         super().__init__(v)
         self.v = v
-        self._cambios = {k: {} for k in febio.PROTOCOLOS_FEBIO}
+        self._cambios = {k: {} for k in febio.PROTOCOLOS_FEM}
         self._tamanos = {}
         self._ocupado_act = False
-        self.setWindowTitle(_("FEM automático (FEBio)"))
+        self.setWindowTitle(_("Informe FEM (Auto)"))
         raiz = QtWidgets.QVBoxLayout(self)
         self.intro = QtWidgets.QLabel()
         self.intro.setWordWrap(True)
@@ -515,7 +522,7 @@ class DialogoFEMAuto(_BaseFEBio):
         g = QtWidgets.QGroupBox(_("Protocolos"))
         gl = QtWidgets.QGridLayout(g)
         self.chk_prot, self.lab_prot = {}, {}
-        for i, (clave, p) in enumerate(febio.PROTOCOLOS_FEBIO.items()):
+        for i, (clave, p) in enumerate(febio.PROTOCOLOS_FEM.items()):
             c = QtWidgets.QCheckBox(self._etq_protocolo(clave))
             c.setChecked(clave != "homogeneizacion")
             self.chk_prot[clave] = c
@@ -532,6 +539,7 @@ class DialogoFEMAuto(_BaseFEBio):
         izq.addWidget(self._construir_analisis(True))
         izq.addStretch(1)
 
+        der.addWidget(self._construir_motores())
         der.addWidget(self._construir_malla(v, febio.N_HEX_DEF))
         der.addWidget(self._construir_solver())
 
@@ -539,7 +547,8 @@ class DialogoFEMAuto(_BaseFEBio):
         g = QtWidgets.QGroupBox(_("Salidas"))
         gl = QtWidgets.QVBoxLayout(g)
         self.chk_tabla = QtWidgets.QCheckBox(_(
-            "Tabla comparativa app vs FEBio, con citabilidad"))
+            "Tabla comparativa entre motores y frente a la app, con "
+            "citabilidad"))
         self.chk_tabla.setChecked(True)
         self.chk_tabla.setEnabled(False)
         self.chk_fig = QtWidgets.QCheckBox(_(
@@ -550,7 +559,7 @@ class DialogoFEMAuto(_BaseFEBio):
             "Mapas 3D de von Mises con una sola escala"))
         self.chk_mapas.setChecked(True)
         self.chk_conservar = QtWidgets.QCheckBox(_(
-            "Conservar .feb / .xplt para abrirlos en FEBio Studio (pesan)"))
+            "Guardar los campos (desplazamientos) de cada motor (pesan)"))
         self.chk_sesion = QtWidgets.QCheckBox(_(
             "Incluir los resultados en el informe de publicación"))
         self.chk_sesion.setChecked(True)
@@ -655,7 +664,8 @@ class DialogoFEMAuto(_BaseFEBio):
                         "opciones_malla": com["opciones_malla"],
                         "conv_malla": com["conv_malla"] and m == "tet10",
                         "material": com["material"], "pasos": com["pasos"],
-                        "hilos": com["hilos"], "exe": com["exe"],
+                        "hilos": com["hilos"], "motores": com["motores"],
+                        "solver": com["solver"],
                         "carpeta": carpeta,
                         "conservar": self.chk_conservar.isChecked(),
                         "comparar_app": True})
@@ -739,7 +749,7 @@ class DialogoFEMAuto(_BaseFEBio):
         av = self.avisos(tareas)
         self.lab_avisos.setText("\n".join("⚠ " + a for a in av))
         self.lab_avisos.setVisible(bool(av))
-        self.b_ok.setEnabled(bool(tareas) and self.exe() is not None
+        self.b_ok.setEnabled(bool(tareas) and bool(self.motores_sel())
                              and bool(self.ed_carpeta.text())
                              and bool(self.analisis() or all(
                                  t["protocolo"]["tipo"] == "homogeneizacion"
@@ -749,8 +759,11 @@ class DialogoFEMAuto(_BaseFEBio):
         from spinpy.avisos import desalineacion, voi_no_trabecular
         v = self.v
         a = []
-        if self.exe() is None:
-            a.append(_("FEBio no encontrado: elige febio4.exe."))
+        if not self.motores_sel():
+            a.append(_("Elige al menos un motor FEM."))
+        if "tet10" in self.mallas() and self.motores_sel() == ["app"]:
+            a.append(_("La app no resuelve la malla suave: marca otro motor "
+                       "para TET10."))
         if v.m_voi:
             nt = voi_no_trabecular(v.m_voi)
             if nt.get("aviso"):
@@ -802,7 +815,7 @@ class DialogoFEMAuto(_BaseFEBio):
 
     def _elegir_carpeta(self):
         d = QtWidgets.QFileDialog.getExistingDirectory(
-            self, _("Carpeta de resultados de FEBio"), self.ed_carpeta.text())
+            self, _("Carpeta de resultados FEM"), self.ed_carpeta.text())
         if d:
             self.ed_carpeta.setText(d)
             self._actualizar()
@@ -828,6 +841,8 @@ class DialogoFEMAuto(_BaseFEBio):
                 "corr": self.chk_corr.isChecked(),
                 "conv": self.chk_conv.isChecked(),
                 "mat": self.cmb_mat.currentIndex(),
+                "motores": self.motores_sel(),
+                "solver": self.cmb_solver.currentIndex(),
                 "pasos": self.spin_pasos.value(),
                 "fig": self.chk_fig.isChecked(),
                 "mapas": self.chk_mapas.isChecked(),
@@ -865,6 +880,10 @@ class DialogoFEMAuto(_BaseFEBio):
             self.chk_corr.setChecked(bool(e["corr"]))
             self.chk_conv.setChecked(bool(e["conv"]))
             self.cmb_mat.setCurrentIndex(int(e["mat"]))
+            for k, c in self.chk_mot.items():
+                if c.isEnabled() and "motores" in e:
+                    c.setChecked(k in e["motores"])
+            self.cmb_solver.setCurrentIndex(int(e.get("solver", 0)))
             self.spin_pasos.setValue(int(e["pasos"]))
             self.chk_fig.setChecked(bool(e["fig"]))
             self.chk_mapas.setChecked(bool(e["mapas"]))
@@ -876,7 +895,6 @@ class DialogoFEMAuto(_BaseFEBio):
     def _aceptar(self):
         QtCore.QSettings(*AJUSTES).setValue("fem_auto",
                                             json.dumps(self._estado()))
-        self._guardar_exe()
         self.accept()
 
     def opciones(self):
@@ -890,7 +908,7 @@ class DialogoFEMAuto(_BaseFEBio):
 
 
 # ---------------------------------------------------------------------------
-# Analizar con FEBio (panel)
+# Comparar motores (panel)
 # ---------------------------------------------------------------------------
 
 class DialogoFEBio(_BaseFEBio):
@@ -901,7 +919,7 @@ class DialogoFEBio(_BaseFEBio):
         super().__init__(v)
         self.v = v
         self._cambios = {}
-        self.setWindowTitle(_("Analizar con FEBio"))
+        self.setWindowTitle(_("Comparar motores FEM"))
         raiz = QtWidgets.QVBoxLayout(self)
         self.intro = QtWidgets.QLabel()
         self.intro.setWordWrap(True)
@@ -911,7 +929,7 @@ class DialogoFEBio(_BaseFEBio):
         f = QtWidgets.QHBoxLayout()
         f.addWidget(QtWidgets.QLabel(_("Protocolo:")))
         self.cmb_prot = QtWidgets.QComboBox()
-        for k in febio.PROTOCOLOS_FEBIO:
+        for k in febio.PROTOCOLOS_FEM:
             self.cmb_prot.addItem({"app": _("Ensayo de la app"),
                                    "tapia2026": _("Protocolo de Tapia et al. "
                                                   "(2026)"),
@@ -944,6 +962,7 @@ class DialogoFEBio(_BaseFEBio):
         raiz.addLayout(cols)
         izq.addWidget(self._construir_analisis(False))
         izq.addWidget(self._construir_solver())
+        der.addWidget(self._construir_motores())
         der.addWidget(self._construir_malla(v, max(
             int(v.spin_res_fe.value()), 12)))
         self.lab_total = QtWidgets.QLabel()
@@ -958,6 +977,10 @@ class DialogoFEBio(_BaseFEBio):
         for c in self.findChildren(QtWidgets.QAbstractButton):
             if isinstance(c, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
                 c.toggled.connect(self._actualizar)
+        # El motor del panel viene marcado.
+        mp = getattr(v, "motor_fe", lambda: None)()
+        if mp in self.chk_mot and self.chk_mot[mp].isEnabled():
+            self.chk_mot[mp].setChecked(True)
         self._cambiar_protocolo()
 
     def _cambiar_protocolo(self, *_a):
@@ -968,7 +991,7 @@ class DialogoFEBio(_BaseFEBio):
         self._cambios = {}
         if clave == "app":
             ap = APOYOS[max(0, self.v.cmb_apoyo.currentIndex())]
-            if ap != febio.PROTOCOLOS_FEBIO["app"]["apoyo"]:
+            if ap != febio.PROTOCOLOS_FEM["app"]["apoyo"]:
                 self._cambios["apoyo"] = ap
         self._actualizar()
 
@@ -981,7 +1004,7 @@ class DialogoFEBio(_BaseFEBio):
 
     def _elegir_carpeta(self):
         d = QtWidgets.QFileDialog.getExistingDirectory(
-            self, _("Carpeta de resultados de FEBio"), self.ed_carpeta.text())
+            self, _("Carpeta de resultados FEM"), self.ed_carpeta.text())
         if d:
             self.ed_carpeta.setText(d)
             self._actualizar()
@@ -1001,13 +1024,12 @@ class DialogoFEBio(_BaseFEBio):
                 self.v.cmb_eje_fe.itemText(i))))
         for c in self.chk_an.values():
             c.setEnabled(p["tipo"] == "compresion")
-        self.b_ok.setEnabled(self.exe() is not None
+        self.b_ok.setEnabled(bool(self.motores_sel())
                              and bool(self.ed_carpeta.text())
                              and (p["tipo"] != "compresion"
                                   or bool(self.analisis())))
 
     def _aceptar(self):
-        self._guardar_exe()
         self.accept()
 
     def opciones(self):
@@ -1047,9 +1069,10 @@ def tabla_html(registros):
     t = ["<table cellpadding=4 cellspacing=0 border=1 "
          "style='border-collapse:collapse'>",
          "<tr><th>" + _("estructura") + "</th><th>" + _("protocolo")
-         + "</th><th>" + _("malla") + "</th><th>" + _("eje") + "</th>"
-         "<th>E<sub>app</sub> app [MPa]</th><th>E<sub>app</sub> FEBio "
-         "[MPa]</th><th>" + _("Δ implementación") + "</th>"
+         + "</th><th>" + _("malla") + "</th><th>" + _("eje") + "</th><th>"
+         + _("motor") + "</th>"
+         "<th>E<sub>app</sub> app [MPa]</th><th>E<sub>app</sub> "
+         + _("motor") + " [MPa]</th><th>" + _("Δ implementación") + "</th>"
          "<th>p99 " + _("superficie") + " [MPa]</th><th>σ<sub>fallo</sub> "
          "[MPa]</th><th>" + _("NL fuerza") + "</th><th>" + _("NL plato")
          + "</th><th>" + _("NL Pistoia") + "</th><th>BV/TV "
@@ -1061,7 +1084,7 @@ def tabla_html(registros):
                    else _("cotas KUBC/SUBC"))
             t.append(f"<tr><td>{html.escape(str(r.get('estructura')))}</td>"
                      f"<td>{html.escape(str(r.get('nombre')))}</td>"
-                     f"<td>{r.get('malla')}</td><td colspan=11>{txt}"
+                     f"<td>{r.get('malla')}</td><td colspan=12>{txt}"
                      + (f"; C<sub>33</sub> = {np.asarray(C)[2][2] / 1e6:.4g} "
                         "MPa" if C is not None else "")
                      + (f"; Δ app {r['dC_app_rel']:.1e}"
@@ -1074,6 +1097,7 @@ def tabla_html(registros):
             f"<tr><td>{html.escape(str(f['estructura']))}</td>"
             f"<td>{html.escape(str(f['protocolo']))}</td>"
             f"<td>{f['malla']}</td><td>{f['eje']}</td>"
+            f"<td>{html.escape(str(f.get('motor') or '—'))}</td>"
             f"<td>{c(f.get('E_app_app_MPa'))}</td>"
             f"<td>{c(f.get('E_app_MPa'))}{m}</td>"
             f"<td>{c(f.get('dE_app_implementacion'), pct=True)}</td>"
@@ -1087,10 +1111,69 @@ def tabla_html(registros):
     t.append("</table>")
     t.append("<p style='color:#666'>" + _(
         "* con reservas; † no citable (ver el informe de publicación). "
-        "E<sub>app</sub> de FEBio con el desplazamiento del techo ponderado "
-        "por área; «Δ implementación» compara FEBio con ladrillos y la app "
+        "E<sub>app</sub> del motor con el desplazamiento del techo ponderado "
+        "por área; «Δ implementación» compara el motor con ladrillos y la app "
         "con la definición de la app y debe ser ~0. Los desvíos no lineales "
         "son frente al lineal de la misma malla.") + "</p>")
+    t.append(tabla_motores_html(registros))
+    return "".join(t)
+
+
+def tabla_motores_html(registros):
+    """Tabla comparativa ENTRE MOTORES sobre la misma malla
+    (`fem.tabla_motores`). Vacia si solo hubo un motor por malla."""
+    filas = febio.tabla_motores(registros)
+    grupos = {}
+    for f in filas:
+        grupos.setdefault((f["estructura"], f["protocolo"], f["malla"],
+                           f["eje"]), []).append(f)
+    if not any(len(g) > 1 for g in grupos.values()):
+        return ""
+
+    def c(x, fmt="{:.4g}"):
+        if x is None or (isinstance(x, float) and not np.isfinite(x)):
+            return "—"
+        return fmt.format(x)
+
+    t = ["<p><b>" + _("Comparación entre motores (misma malla)") + "</b></p>",
+         "<table cellpadding=4 cellspacing=0 border=1 "
+         "style='border-collapse:collapse'><tr><th>" + _("estructura")
+         + "</th><th>" + _("malla") + "</th><th>" + _("eje") + "</th><th>"
+         + _("motor") + "</th><th>" + _("resolvedor") + "</th>"
+         "<th>E<sub>app</sub> [MPa]</th><th>p99 " + _("superficie")
+         + " [MPa]</th><th>σ<sub>fallo</sub> [MPa]</th><th>ΔE<sub>app</sub>"
+         "</th><th>Δp99</th><th>Δσ<sub>fallo</sub></th><th>"
+         + _("tiempo") + " [s]</th><th>" + _("memoria") + " [MB]</th></tr>"]
+    for g in grupos.values():
+        if len(g) < 2:
+            continue
+        for f in g:
+            if f.get("no_disponible"):
+                t.append(f"<tr><td>{html.escape(str(f['estructura']))}</td>"
+                         f"<td>{f['malla']}</td><td>{f['eje']}</td>"
+                         f"<td>{html.escape(str(f['motor']))}</td>"
+                         "<td colspan=9 style='color:#888'>"
+                         + _("no disponible con esta malla o análisis")
+                         + "</td></tr>")
+                continue
+            t.append(
+                f"<tr><td>{html.escape(str(f['estructura']))}</td>"
+                f"<td>{f['malla']}</td><td>{f['eje']}</td>"
+                f"<td>{html.escape(str(f['motor']))}</td>"
+                f"<td>{html.escape(str(f.get('solver') or '—'))}</td>"
+                f"<td>{c(f.get('E_app_MPa'))}</td>"
+                f"<td>{c(f.get('vm_p99_sup_MPa'))}</td>"
+                f"<td>{c(f.get('sigma_fallo_MPa'))}</td>"
+                f"<td>{c(f.get('dE_rel'), '{:.1e}')}</td>"
+                f"<td>{c(f.get('dp99_rel'), '{:.1e}')}</td>"
+                f"<td>{c(f.get('dfallo_rel'), '{:.1e}')}</td>"
+                f"<td>{c(f.get('tiempo_s'), '{:.1f}')}</td>"
+                f"<td>{c(f.get('memoria_MB'), '{:.0f}')}</td></tr>")
+    t.append("</table><p style='color:#666'>" + _(
+        "Diferencias relativas frente al primer motor de cada grupo. Con la "
+        "misma malla, cargas y postproceso miden solo la implementación: "
+        "lo esperable es del orden de la tolerancia del resolvedor (1e-10 a "
+        "1e-8).") + "</p>")
     return "".join(t)
 
 
@@ -1102,23 +1185,31 @@ class DialogoResultadosFEBio(QtWidgets.QDialog):
         self.registros = registros
         self.carpeta = Path(carpeta) if carpeta else None
         self.mapas = mapas or []
-        self.setWindowTitle(_("Resultados de FEBio"))
-        self.resize(1100, 560)
+        self.setWindowTitle(_("Resultados FEM"))
+        self.resize(1200, 620)
         lay = QtWidgets.QVBoxLayout(self)
-        ver = next((r.get("febio", {}).get("version") for r in registros
-                    if r.get("febio", {}).get("version")), "?")
-        cab = QtWidgets.QLabel(_("FEBio {v} · {n} registro(s) · carpeta "
-                                 "{c}").format(v=ver, n=len(registros),
+        vistos = []
+        for r in registros:
+            m = r.get("motor") or {}
+            et = " ".join(str(x) for x in (m.get("nombre"), m.get("version"))
+                          if x)
+            if et and et not in vistos:
+                vistos.append(et)
+        cab = QtWidgets.QLabel(_("{m} · {n} registro(s) · carpeta "
+                                 "{c}").format(m=", ".join(vistos) or "—",
+                                               n=len(registros),
                                                c=self.carpeta or "—"))
         cab.setWordWrap(True)
         lay.addWidget(cab)
         tb = QtWidgets.QTextBrowser()
         txt = tabla_html(registros)
-        fallos = [(r.get("estructura"), r.get("nombre"), r.get("malla"),
-                   f.get("corrida"), f.get("msg")) for r in registros
+        fallos = [(r.get("estructura"), (r.get("motor") or {}).get("nombre"),
+                   r.get("nombre"), r.get("malla"), f.get("corrida"),
+                   f.get("msg")) for r in registros
                   for f in r.get("fallos", [])]
         if fallos:
-            txt += "<p><b>" + _("Corridas que fallaron") + "</b><br>" + \
+            txt += "<p><b>" + _("Resoluciones que fallaron o no están "
+                                "disponibles") + "</b><br>" + \
                 "<br>".join(html.escape(" · ".join(str(x) for x in f))
                             for f in fallos) + "</p>"
         if figura:
@@ -1176,8 +1267,8 @@ def escribir_csv(registros, ruta):
         for k in f:
             if k not in claves:
                 claves.append(k)
-    cols = list(procedencia.COLUMNAS) + ["febio_version", "huella_malla"] \
-        + claves
+    cols = list(procedencia.COLUMNAS) + ["motor_version", "solver",
+                                         "huella_malla"] + claves
     with open(ruta, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
         w.writeheader()
@@ -1185,7 +1276,10 @@ def escribir_csv(registros, ruta):
                          if r.get("tipo") != "homogeneizacion"], filas):
             p = r.get("procedencia") or {}
             fila = {k: p.get(k) for k in procedencia.COLUMNAS}
-            fila.update(f, febio_version=(r.get("febio") or {}).get("version"),
+            mt = r.get("motor") or {}
+            fila.update(f, motor_version=mt.get("version")
+                        or (r.get("febio") or {}).get("version"),
+                        solver=mt.get("solver"),
                         huella_malla=r.get("huella_malla"))
             w.writerow(fila)
 
@@ -1238,8 +1332,8 @@ class DialogoMapasFEBio(QtWidgets.QDialog):
 
 def figura_validacion(registros, ruta):
     """Cinco columnas: E_app, p99 de superficie, tension de fallo, desvio no
-    lineal (fuerza) y BV/TV de la malla; barras app / FEBio hex8 / FEBio
-    TET10 por estructura y protocolo. Devuelve la ruta o None."""
+    lineal (fuerza) y BV/TV de la malla; barras app y una por cada (malla,
+    motor), por estructura y protocolo. Devuelve la ruta o None."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -1257,29 +1351,41 @@ def figura_validacion(registros, ruta):
                ("sigma_fallo_MPa", "sigma_fallo_app_MPa", "σ_fallo [MPa]"),
                ("dE_nl_fuerza", None, "ΔE no lineal [%]"),
                ("BVTV_malla", None, "BV/TV malla")]
-    fig, axs = plt.subplots(1, 5, figsize=(16, 3.4))
+    combos = []
+    for f in filas:
+        k = (f["malla"], f.get("motor"))
+        if k not in combos:
+            combos.append(k)
+    paleta = ["#1f4e9c", "#b06000", "#2e7d32", "#7b1fa2", "#00838f",
+              "#c62828", "#5d4037", "#455a64", "#9e9d24"]
+    series = [("app", None, "#8c8c8c")] + [
+        (f"{mo} {ma}", (ma, mo), paleta[i % len(paleta)])
+        for i, (ma, mo) in enumerate(combos)]
+    ancho = 0.8 / len(series)
+    fig, axs = plt.subplots(1, 5, figsize=(17, 3.6))
     x = np.arange(len(grupos))
-    series = [("app", "#8c8c8c"), ("hex8", "#1f4e9c"), ("tet10", "#b06000")]
     for ax, (k, k_app, titulo) in zip(axs, paneles):
-        for j, (s, col) in enumerate(series):
+        for j, (etq, combo, col) in enumerate(series):
             vals = []
             for g in grupos:
                 ff = [f for f in filas if (f["estructura"], f["protocolo"],
                                            f["eje"]) == g]
-                if s == "app":
+                if combo is None:
                     v_ = next((f.get(k_app) for f in ff if k_app
                                and f.get(k_app) is not None), None)
                 else:
-                    v_ = next((f.get(k) for f in ff if f["malla"] == s), None)
+                    v_ = next((f.get(k) for f in ff
+                               if (f["malla"], f.get("motor")) == combo), None)
                 if v_ is not None and k == "dE_nl_fuerza":
                     v_ = 100 * v_
                 vals.append(np.nan if v_ is None else v_)
-            ax.bar(x + (j - 1) * 0.27, vals, 0.27, color=col, label=s)
+            ax.bar(x + (j - (len(series) - 1) / 2) * ancho, vals, ancho,
+                   color=col, label=etq)
         ax.set_title(titulo, fontsize=9)
         ax.set_xticks(x)
         ax.set_xticklabels([f"{g[0]}\n{g[1]} {g[2]}" for g in grupos],
                            fontsize=7)
-    axs[0].legend(fontsize=7, frameon=False)
+    axs[0].legend(fontsize=6, frameon=False)
     fig.tight_layout()
     fig.savefig(ruta, dpi=200)
     plt.close(fig)

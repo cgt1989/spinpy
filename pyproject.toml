@@ -45,6 +45,15 @@ dependencies = [
 # porque el resto del paquete —generador y morfometria— funciona sin el.
 elastico = ["pyamg>=4.2"]
 
+# Motores FEM internos (spinpy.motores): malla suave TET10 y analisis no
+# lineales sin programas externos. NGSolve es el recomendado (comparativa_
+# motores/INFORME.md); `mkl` le da el directo PARDISO (sin el usa su propio
+# Cholesky). scikit-fem es Python puro. SfePy y FEniCSx se detectan si estan
+# instalados, pero no se piden: SfePy no tiene ruedas para Windows y FEniCSx
+# solo se distribuye por conda-forge.
+fem = ["ngsolve>=6.2.2601", "mkl; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
+       "scikit-fem>=11"]
+
 # Mallado TET10 para exportar solidos con superficie lisa.
 malla = ["pymeshfix>=0.16", "tetgen>=0.6"]
 
@@ -67,7 +76,7 @@ test = ["pytest>=7.4"]
 # informe se escribe igual en Markdown y avisa de lo que falta.
 informe = ["reportlab>=4.0", "matplotlib>=3.7"]
 
-todo = ["spinpy[elastico,malla,lote,gui,test,informe]"]
+todo = ["spinpy[elastico,fem,malla,lote,gui,test,informe]"]
 
 [project.urls]
 Repositorio = "https://github.com/cgt1989/spinpy"
@@ -77,7 +86,7 @@ spinpy-lote = "spinpy.cli:main_lote"
 spinpy-informe = "spinpy.informe:main"
 
 [tool.setuptools]
-packages = ["spinpy"]
+packages = ["spinpy", "spinpy.motores"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

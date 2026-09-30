@@ -51,7 +51,18 @@ class Cronometro:
 
 
 def rss_pico_MB():
-    """Pico de memoria residente del proceso (Linux: ru_maxrss en kB)."""
+    """Pico de memoria residente del proceso (Linux: VmHWM).
+
+    No `ru_maxrss`: en Linux ese maximo sobrevive a exec y el hijo heredaria
+    el del lanzador en el momento del fork.
+    """
+    try:
+        with open("/proc/self/status") as fh:
+            for linea in fh:
+                if linea.startswith("VmHWM:"):
+                    return int(linea.split()[1]) / 1024.0
+    except OSError:
+        pass
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
 
 
@@ -161,6 +172,26 @@ def escribir_salida(ruta, u, meta, **extra):
     meta = dict(meta)
     meta["rss_pico_MB"] = rss_pico_MB()
     np.savez(ruta, u=np.asarray(u, float), meta=json.dumps(meta), **extra)
+
+
+def resolver_paquete(p, motor):
+    """Caso del banco -> problema de `spinpy.motores` -> (u, meta, extra)."""
+    import os
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from spinpy import motores
+    m = p["meta"]
+    if m["analisis"] == "lineal":
+        m.setdefault("control", "fuerza")
+        m.setdefault("cargas", [m["p"]])
+    else:
+        m.setdefault("control", "plato")
+        m.setdefault("cargas", list(m["eps_plato"]))
+    os.environ.setdefault("SPINPY_HILOS", os.environ.get("OMP_NUM_THREADS",
+                                                         "1"))
+    out = motores.resolver(p, motor)
+    return out["u"], out["meta"], {"F_reac": out["F_reac"]}
 
 
 def principal(resolver):

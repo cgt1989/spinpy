@@ -379,15 +379,19 @@ MOTIVOS = {
         "a damage model of our choosing (deleting it disconnected struts), "
         "not a measured law"),
     "febio_fallo": (
-        "FEBio no terminó {n_fallos:.0f} corrida(s) de este análisis: no hay "
+        "el motor FEM no terminó {n_fallos:.0f} resolución(es) de este "
+        "análisis (fallo, no convergencia o combinación no disponible): no hay "
         "valor que citar",
-        "FEBio did not finish {n_fallos:.0f} run(s) of this analysis: there "
-        "is no value to cite"),
+        "the FE engine did not finish {n_fallos:.0f} solve(s) of this "
+        "analysis (failure, no convergence or unavailable combination): "
+        "there is no value to cite"),
     "febio_equilibrio": (
-        "la fuerza que equilibra FEBio difiere de la aplicada en {dF:.1e} "
-        "(> 1e-6, criterio nuestro): el campo no es fiable",
-        "the force FEBio balances differs from the applied one by {dF:.1e} "
-        "(> 1e-6, our criterion): the field is not reliable"),
+        "la fuerza de equilibrio (integral de volumen de la tensión) difiere "
+        "de la aplicada en {dF:.1e} (> 1e-6, criterio nuestro): el campo no "
+        "es fiable",
+        "the equilibrium force (volume integral of stress) differs from the "
+        "applied one by {dF:.1e} (> 1e-6, our criterion): the field is not "
+        "reliable"),
     "febio_perdida_volumen": (
         "la malla suave tiene un {perdida_pct:+.1f} % de volumen frente a los "
         "vóxeles (umbral {max_pct:.0f} %, criterio nuestro): la rigidez "
@@ -460,10 +464,12 @@ MAGNITUDES = {
                   "relative failure stress under simulated bone loss"),
     "fallo_progresivo": ("carga máxima del fallo progresivo",
                          "peak load of progressive failure"),
-    "febio_E_app": ("E_app en FEBio (lineal)", "E_app in FEBio (linear)"),
-    "febio_no_lineal": ("desvío no lineal en FEBio",
-                        "nonlinear deviation in FEBio"),
-    "febio_homog": ("tensor elástico en FEBio", "stiffness tensor in FEBio"),
+    "febio_E_app": ("E_app con motor FEM (lineal)",
+                    "E_app with FE engine (linear)"),
+    "febio_no_lineal": ("desvío no lineal (motor FEM)",
+                        "nonlinear deviation (FE engine)"),
+    "febio_homog": ("tensor elástico (motor FEM)",
+                    "stiffness tensor (FE engine)"),
 }
 
 ESTRUCTURAS = {"documento": ("documento", "document"), "voi": ("VOI", "VOI"),
@@ -980,13 +986,14 @@ def comprobar(doc):
 
 
 def _items_febio(doc, res):
-    """Citabilidad de los registros de FEBio (`febio.registro_json`).
+    """Citabilidad de los registros FEM (`fem.registro_json`).
 
-    `res["febio"]["registros"]` es una lista: cada registro declara su
-    estructura, protocolo, malla y eje. La procedencia de la malla y la
-    version de FEBio viajan en el propio registro.
+    `res["febio"]["registros"]` es una lista (la clave conserva el nombre de
+    las sesiones anteriores a los motores internos): cada registro declara su
+    estructura, protocolo, malla, eje y MOTOR. Los registros de FEBio de
+    sesiones antiguas se leen igual; su motor es «FEBio».
     """
-    from .febio import DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT
+    from .fem import DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT
     todos = []
     rec = res.get("febio")
     if not isinstance(rec, dict):
@@ -995,21 +1002,21 @@ def _items_febio(doc, res):
         items = []
         _items_febio_uno(doc, r, items, DESCARTE_MAX_PCT,
                          PERDIDA_VOLUMEN_MAX_PCT)
-        det = f"FEBio {r.get('nombre')}, {r.get('malla')}"
+        det = f"{nombre_motor(r)} · {r.get('nombre')}, {r.get('malla')}"
         for it in items:
             it["detalle"] = det + (f", {it['bloque'].split(' · ')[-1]}"
-                                   if it["bloque"].count(" · ") == 3 else "")
+                                   if it["bloque"].count(" · ") == 4 else "")
         todos += items
     return todos
 
 
 def _items_febio_uno(doc, r, items, DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT):
-    """Items de un registro de FEBio (ver `_items_febio`)."""
+    """Items de un registro FEM (ver `_items_febio`)."""
     est = estructura_de(r.get("estructura_codigo")
                         or r.get("estructura"), doc)
     malla = r.get("malla")
     eje = str(r.get("eje_nombre") or "z").lower()
-    bloque = f"febio · {r.get('nombre')} · {malla}"
+    bloque = f"fem · {nombre_motor(r)} · {r.get('nombre')} · {malla}"
     inf = r.get("informe_malla") or {}
     base, dat = [], {}
     if r.get("modificado"):
@@ -1099,6 +1106,15 @@ def _items_febio_uno(doc, r, items, DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT):
         items.append(_item(bloque + f" · {k}", "febio_no_lineal", est,
                            {"dE_rel": _f(nl, "dE_rel")}, m_nl, d, eje))
     return items
+
+
+def nombre_motor(r):
+    """Nombre del motor de un registro FEM; «FEBio» en los de sesiones
+    anteriores a los motores internos (llevan la clave `febio`)."""
+    m = r.get("motor")
+    if isinstance(m, dict) and m.get("nombre"):
+        return str(m["nombre"])
+    return "FEBio" if r.get("febio") else "?"
 
 
 def estructura_de(codigo, doc):
@@ -2609,16 +2625,16 @@ PIES = {
         "in each class. * The ellipsoids cover less than 95 % of the solid: "
         "the value describes only the covered part."),
     "febio": (
-        "Paridad entre spinpy y FEBio sobre la misma malla de hexaedros: "
-        "módulo aparente, percentil 99 de von Mises en la capa superficial y "
-        "tensión de fallo de Pistoia. (a) Valor de FEBio frente al de spinpy; "
-        "la diagonal es la igualdad. (b) Diferencia relativa de cada par, en "
-        "escala logarítmica.",
-        "Parity between spinpy and FEBio on the same hexahedral mesh: "
-        "apparent modulus, 99th percentile of von Mises on the surface layer "
-        "and Pistoia failure stress. (a) FEBio value against the spinpy "
-        "value; the diagonal is equality. (b) Relative difference of each "
-        "pair, on a logarithmic scale."),
+        "Paridad entre el resolvedor de la app y cada motor FEM interno "
+        "sobre la misma malla de hexaedros: módulo aparente, percentil 99 de "
+        "von Mises en la capa superficial y tensión de fallo de Pistoia. "
+        "(a) Valor del motor frente al de la app; la diagonal es la igualdad. "
+        "(b) Diferencia relativa de cada par, en escala logarítmica.",
+        "Parity between the app's solver and each built-in FE engine on the "
+        "same hexahedral mesh: apparent modulus, 99th percentile of von "
+        "Mises on the surface layer and Pistoia failure stress. (a) Engine "
+        "value against the app value; the diagonal is equality. (b) Relative "
+        "difference of each pair, on a logarithmic scale."),
     "sensibilidad": (
         "Sensibilidad de la morfometría y del módulo aparente a la posición "
         "de la superficie, como sustituto de un cambio de umbral de "
