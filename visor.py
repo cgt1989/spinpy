@@ -8709,14 +8709,41 @@ def autocomprobacion():
     Uso:  spinpy.exe --autocomprobacion       (o  python visor.py --auto...)
     Devuelve 0 si todo pasa, 1 si algo falla.
     """
+    import faulthandler
     import tempfile
 
-    lineas = []
+    # Si una biblioteca en C revienta (violacion de acceso en Windows), el
+    # proceso muere sin traza de Python y sin haber escrito nada: asi fallo la
+    # compilacion de la V2.0.0. Con faulthandler la pila sale por stderr, y
+    # cada linea se imprime en cuanto se sabe, no al final.
+    try:
+        faulthandler.enable()
+    except Exception:
+        pass
+    for flujo in (sys.stdout, sys.stderr):
+        try:
+            flujo.reconfigure(errors="backslashreplace")
+        except Exception:
+            pass
+
+    class _Lineas(list):
+        def append(self, s):
+            super().append(s)
+            try:
+                print(s, flush=True)
+            except Exception:
+                pass
+
+    lineas = _Lineas()
     fallos = 0
 
     def prueba(nombre, fn):
         nonlocal fallos
         t0 = time.time()
+        try:
+            print(f"  ...     {nombre}", flush=True)
+        except Exception:
+            pass
         try:
             detalle = fn() or ""
             lineas.append(f"  [OK   ] {nombre:38s} {time.time()-t0:6.2f} s  "
@@ -8870,7 +8897,7 @@ def autocomprobacion():
             if peor > 1e-6:
                 raise RuntimeError(f"{tipo}: los motores difieren {peor:.1e}")
             out.append(f"{tipo} E_app {ref / 1e6:.1f} MPa ({len(Es)} motores, "
-                       f"Δ {peor:.0e})")
+                       f"dif {peor:.0e})")
         return ", ".join(motores.ETIQUETAS[m] for m in disp) + "; " + \
             ", ".join(out)
     prueba("Motores FEM: ensayo lineal hex8 y TET10 16^3", _motores)
@@ -8898,7 +8925,6 @@ def autocomprobacion():
     lineas.append("=" * 78)
 
     texto = "\n".join(lineas)
-    print(texto)
     try:
         destino = DATOS / "autocomprobacion.txt"
         destino.parent.mkdir(parents=True, exist_ok=True)
