@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="version V1.1.0" src="https://img.shields.io/badge/version-V1.1.0-e8a33d">
+  <img alt="version V2.0.0" src="https://img.shields.io/badge/version-V2.0.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
@@ -288,7 +288,7 @@ python Test/replicar_kumar2020.py --rapido   # ~1.5 min
 python -m pytest tests/ -q
 ```
 
-27 blocks with tolerances **declared before measuring**: topology, SMI,
+28 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.
@@ -334,7 +334,7 @@ the ±6 % separating the two tools.
 
 ## Comparison with FEBio
 
-> Validation done with V1.0.x. Since V1.1.0 the application no longer uses
+> Validation done with V1.0.x. Since V2.0.0 the application no longer uses
 > FEBio (see "Built-in FE engines" below); these campaigns remain the external
 > validation of the app's solver, and the engine comparison reproduced their
 > brick-mesh cavity figures to 10⁻⁸.
@@ -514,7 +514,7 @@ Requires FEBio 4.5 (FEBio Studio 2). Results are left in
 
 ## Built-in FE engines: no external programs
 
-Since V1.1.0 every test is solved **inside spinpy**. FEBio is no longer used
+Since V2.0.0 every test is solved **inside spinpy**. FEBio is no longer used
 or searched for; `.feb` export is kept as an exchange format. In
 **Mechanical analysis**, "FE engine" chooses who solves, and "Mesh" and
 "Analysis" what is solved:
