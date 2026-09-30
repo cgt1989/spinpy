@@ -1738,20 +1738,21 @@ def _parrafos_estudios(res, r):
         par = rec.get("parametros") or {}
         filas = next(iter((rec.get("por_estructura") or {}).values()),
                      {}).get("filas") or []
-        d = sorted({abs(f["desplazamiento_vox"]) for f in filas
-                    if f["desplazamiento_vox"]})
+        d = sorted({abs(f["desplazamiento_um"]) for f in filas
+                    if f["desplazamiento_um"]})
         P.append(r.t(
             "Como sustituto de la incertidumbre de segmentación {c}, la "
-            "superficie de cada estructura se desplazó ±{d} vóxeles "
-            "umbralizando la máscara suavizada (σ = {sg} vóxel) a "
-            "t = Φ(−δ/σ), y se repitieron la morfometría y el ensayo de "
-            "compresión a {n}³ elementos.",
+            "superficie de cada estructura se desplazó ±{d} µm (fracciones del "
+            "vóxel del VOI, {h} µm) umbralizando la máscara suavizada "
+            "(σ = {sg} vóxel) a t = Φ(−δ/σ), y se repitieron la morfometría y "
+            "el ensayo de compresión a {n}³ elementos.",
             "As a surrogate for segmentation uncertainty {c}, the surface of "
-            "each structure was moved by ±{d} voxels by thresholding the "
-            "smoothed mask (σ = {sg} voxel) at t = Φ(−δ/σ), and the "
-            "morphometry and the compression test at {n}³ elements were "
-            "repeated.", c=r.c("hara2002"),
-            d=r.t(" y ±", " and ±").join(r.n(x, "g") for x in d) or "n/d",
+            "each structure was moved by ±{d} µm (fractions of the VOI voxel, "
+            "{h} µm) by thresholding the smoothed mask (σ = {sg} voxel) at "
+            "t = Φ(−δ/σ), and the morphometry and the compression test at "
+            "{n}³ elements were repeated.", c=r.c("hara2002"),
+            h=r.n(par.get("voxel_ref_um"), ".3g"),
+            d=r.t(" y ±", " and ±").join(r.n(x, ".3g") for x in d) or "n/d",
             sg=r.n(par.get("sigma_vox", S.SIGMA_VOX), "g"),
             n=_i(par.get("n_mec"))))
     rec = res.get("condiciones_contorno")
@@ -2621,17 +2622,20 @@ PIES = {
     "sensibilidad": (
         "Sensibilidad de la morfometría y del módulo aparente a la posición "
         "de la superficie, como sustituto de un cambio de umbral de "
-        "segmentación. La máscara se suaviza con una gaussiana de "
-        "σ = {sigma} vóxel y se umbraliza a t = Φ(−δ/σ), lo que desplaza una "
-        "interfaz plana δ vóxeles (δ > 0 engrosa); en puntales de pocos "
-        "vóxeles la equivalencia es aproximada. E_app a {n}³ con apoyo "
+        "segmentación. La superficie se desplaza ±0,5 y ±1 vóxel del VOI "
+        "({vref} µm), el mismo desplazamiento en micrómetros para todas las "
+        "estructuras: la máscara se suaviza con una gaussiana de σ = {sigma} "
+        "vóxel y se umbraliza a t = Φ(−δ/σ), lo que desplaza una interfaz "
+        "plana δ vóxeles (δ > 0 engrosa); en puntales de pocos vóxeles la "
+        "equivalencia es aproximada. E_app a {n}³ con apoyo "
         "«{ap}». Cambios relativos a δ = 0.",
         "Sensitivity of morphometry and apparent modulus to the position of "
         "the surface, as a surrogate for a change of segmentation threshold. "
-        "The mask is smoothed with a Gaussian of σ = {sigma} voxel and "
-        "thresholded at t = Φ(−δ/σ), which moves a planar interface δ voxels "
-        "(δ > 0 thickens); on struts a few voxels thick the equivalence is "
-        "approximate. E_app at {n}³ with \"{ap}\" support. Changes relative "
+        "The surface is moved by ±0.5 and ±1 VOI voxel ({vref} µm), the same "
+        "offset in micrometres for every structure: the mask is smoothed with "
+        "a Gaussian of σ = {sigma} voxel and thresholded at t = Φ(−δ/σ), "
+        "which moves a planar interface δ voxels (δ > 0 thickens); on struts "
+        "a few voxels thick the equivalence is approximate. E_app at {n}³ with \"{ap}\" support. Changes relative "
         "to δ = 0."),
     "contorno": (
         "Módulo relativo E/E_s en el eje z con tres condiciones de contorno "
@@ -2947,6 +2951,7 @@ def datos_pies(doc, idioma):
         "sigma": fm.format_field(float(S.SIGMA_VOX), "g"),
         "margen": str(S.MARGEN_CURVATURA),
         "n": str(sen.get("n_mec", S.N_MEC_DEF)),
+        "vref": fm.format_field(float(sen.get("voxel_ref_um") or 0), ".3g"),
         "ap": nombre_apoyo(sen.get("apoyo", "deslizante"), idioma),
         "lado": fm.format_field(float(lado), ".3g") if lado else "?",
         "lado_ef": fm.format_field(float(((res.get("forma") or {}).get(

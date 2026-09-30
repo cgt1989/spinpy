@@ -108,8 +108,11 @@ def fig_perdida(doc, destino, idioma="es"):
                 lw=1.0, color=TINTA if clave == "BVTV" else TINTA_2,
                 mfc=FONDO if clave != "BVTV" else TINTA, label=etq)
     ax.axhline(1.0, color=EJE, lw=0.8)
+    # Conn.D puede multiplicarse por decenas al perforarse las placas; en
+    # escala lineal aplastaria las demas curvas.
+    ax.set_yscale("log")
     _etiquetas(ax, ("paso", "step")[i],
-               ("cociente frente al paso 0", "ratio to step 0")[i])
+               ("cociente frente al paso 0 (log)", "ratio to step 0 (log)")[i])
     _titulo(ax, ("(b) morfometría en cada paso", "(b) morphometry at each "
                                                    "step")[i])
     _leyenda(ax, ncol=2)
