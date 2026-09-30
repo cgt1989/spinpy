@@ -87,30 +87,32 @@ if _test.is_dir():
             datos.append((str(_f),
                           str(Path("Test") / _f.relative_to(_test).parent)))
 
-# FEBio: el conjunto MINIMO para correr febio4.exe (19 archivos, ~103 MB de
-# los ~350 MB de la carpeta de FEBio Studio; `febio_minimo.py` lo calcula por
-# la tabla de importaciones y lo prueba aislado). Va como DATO en la carpeta
-# `febio`, donde `spinpy.febio.localizar()` lo busca primero; como binario,
-# PyInstaller lo mezclaria con sus propias DLL. Sin FEBio Studio instalado en
-# la maquina que compila, el ejecutable sale sin FEBio y lo dice aqui.
+# MOTORES FEM INTERNOS (spinpy.motores). Desde V1.1.0 el ejecutable no lleva
+# FEBio: los ensayos con malla suave y los no lineales los resuelven motores
+# que corren DENTRO del proceso de spinpy. Viajan los que tienen rueda binaria
+# para Windows en PyPI (comprobado 2026-09-30 con `pip download --platform
+# win_amd64`): NGSolve (LGPL-2.1, el recomendado) con MKL para su PARDISO, y
+# scikit-fem (BSD-3, Python puro). SfePy solo publica ruedas para Linux y
+# FEniCSx no esta en PyPI (conda-forge, y compila C en tiempo de ejecucion):
+# no viajan; si el usuario los instala en su Python, la app los detecta.
 #
-# LICENCIA: los binarios de FEBio Studio estan bajo la FEBio Software License
-# 4.0, que no permite redistribuirlos a terceros sin una licencia aparte de la
-# Universidad de Utah. Se incluyen por decision del responsable del
-# laboratorio, para uso interno, con la licencia EN TRAMITE
-# (`LICENCIA_FEBIO.txt`, que viaja al lado junto con el EULA).
-from febio_minimo import ORIGEN as _FEBIO_ORIGEN, conjunto_minimo  # noqa: E402
-if (_FEBIO_ORIGEN / "febio4.exe").exists():
-    _febio = conjunto_minimo(_FEBIO_ORIGEN)
-    datos += [(str(p), "febio") for p in _febio]
-    _eula = _FEBIO_ORIGEN.parent / "doc" / "FEBio_EULA_4.pdf"
-    if _eula.exists():
-        datos.append((str(_eula), "febio"))
-    datos.append((str(Path(SPECPATH) / "LICENCIA_FEBIO.txt"), "febio"))  # noqa: F821
-    print(f"[spinpy] FEBio empaquetado: {len(_febio)} archivos")
-else:
-    print("[spinpy] AVISO: FEBio Studio no esta instalado; el ejecutable "
-          "sale SIN FEBio")
+# NGSolve carga sus bibliotecas (libngsolve, netgen) desde su paquete y
+# `mkl_rt` en tiempo de ejecucion: PyInstaller no lo ve en ningun import.
+# La rueda `mkl` deja sus DLL en <prefijo>\Library\bin; se copian junto al
+# ejecutable. Sin ellas NGSolve cae a su `sparsecholesky` (mas lento, mismo
+# resultado) y la autocomprobacion lo dice.
+from PyInstaller.utils.hooks import collect_dynamic_libs  # noqa: E402
+ocultos += collect_submodules("ngsolve") + collect_submodules("netgen")
+ocultos += collect_submodules("skfem")
+ocultos += ["spinpy.motores.m_app", "spinpy.motores.m_ngsolve",
+            "spinpy.motores.m_skfem", "spinpy.motores.m_fenicsx",
+            "spinpy.motores.m_sfepy"]
+binarios = collect_dynamic_libs("ngsolve") + collect_dynamic_libs("netgen")
+_mkl = Path(sys.prefix) / "Library" / "bin"
+for _dll in sorted(_mkl.glob("mkl_*.dll")) + sorted(_mkl.glob("libiomp*.dll")):
+    binarios.append((str(_dll), "."))
+print(f"[spinpy] MKL: {sum(1 for b in binarios if 'mkl_' in b[0])} DLL")
+datos += collect_data_files("ngsolve") + collect_data_files("netgen")
 
 datos += collect_data_files("pyvista")
 datos += collect_data_files("vtkmodules")
@@ -122,7 +124,7 @@ datos += collect_data_files("skimage", includes=["**/*.pyi"])
 a = Analysis(                                        # noqa: F821
     [str(RAIZ / "visor.py")],
     pathex=[str(RAIZ)],
-    binaries=[],
+    binaries=binarios,
     datas=datos,
     hiddenimports=ocultos,
     hookspath=[],

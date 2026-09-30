@@ -44,6 +44,9 @@ MARCADOR = re.compile(r"\{([a-zA-Z_][a-zA-Z_0-9]*)")
 DINAMICAS = {
     "malla", "voxel",        # `_(self._modo_medida())` en la barra de estado
     "inicial",               # `_(f['fase'])` en la tabla de DialogoSimulacion
+    # Nombres de los motores FEM: los combos y casillas solo muestran los
+    # INSTALADOS, asi que en un equipo sin alguno su nombre no aparece.
+    "App (spinpy)", "NGSolve", "FEniCSx", "scikit-fem", "SfePy",
 }
 
 

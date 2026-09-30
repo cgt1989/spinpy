@@ -18,6 +18,12 @@ pyvista>=0.42
 # a CG con Jacobi, que con el contraste 1e-6 entre hueso y vacio NO converge.
 pyamg>=4.2
 
+# --- motores FEM internos (sustituyen a FEBio) -----------------------------
+# NGSolve con MKL (su PARDISO) y scikit-fem. Ver comparativa_motores/INFORME.md.
+ngsolve>=6.2.2601
+mkl; platform_machine == "x86_64" or platform_machine == "AMD64"
+scikit-fem>=11
+
 # --- mallado TET10 para exportar solidos ----------------------------------
 pymeshfix>=0.16
 tetgen>=0.6

@@ -2512,6 +2512,33 @@ class DialogoInformeAuto(QtWidgets.QDialog):
         gl.addLayout(sub, fila, 0, 1, 3)
         fila += 1
 
+        # Motores FEM: el ensayo de la etapa es el de la app (ladrillos,
+        # lineal) y los motores marcados lo repiten sobre la MISMA malla; el
+        # informe lleva la tabla comparativa entre motores. Se copian del
+        # panel (el motor elegido alli viene marcado).
+        from spinpy import motores as _mot
+        sub = QtWidgets.QHBoxLayout()
+        sub.setContentsMargins(24, 0, 0, 0)
+        sub.addWidget(QtWidgets.QLabel(_("Motores FEM (tabla comparativa):")))
+        self.chk_mot = {}
+        for k in _mot.disponibles():
+            if k == "app":
+                continue
+            c = QtWidgets.QCheckBox(_mot.ETIQUETAS[k])
+            c.setChecked(k == padre.motor_fe())
+            self.chk_mot[k] = c
+            sub.addWidget(c)
+        if not self.chk_mot:
+            sub.addWidget(QtWidgets.QLabel(_("(solo la app instalada)")))
+        self.chk_mot_tet = QtWidgets.QCheckBox(_("también malla suave (TET10)"))
+        self.chk_mot_tet.setToolTip(_(
+            "Además de los ladrillos, los motores marcados resuelven la malla "
+            "suave de tetraedros cuadráticos a la resolución del ensayo."))
+        sub.addWidget(self.chk_mot_tet)
+        sub.addStretch(1)
+        gl.addLayout(sub, fila, 0, 1, 3)
+        fila += 1
+
         self.chk_comp = QtWidgets.QCheckBox(_(
             "Analisis comparado (protocolo de Tapia et al. 2026), a la "
             "resolucion del ensayo"))
@@ -2907,6 +2934,9 @@ class DialogoInformeAuto(QtWidgets.QDialog):
                 "res_fe": self.spin_fe.value(),
                 "eje_fe": self.cmb_eje.currentText(),
                 "apoyo": apoyo_de_combo(self.cmb_apoyo),
+                "motores_fem": [k for k, c in self.chk_mot.items()
+                                if c.isChecked()],
+                "motores_tet10": self.chk_mot_tet.isChecked(),
                 "comparado": self.chk_comp.isChecked(),
                 "dispersion": self.chk_disp.isChecked(),
                 "k": self.spin_k.value(),
@@ -2951,7 +2981,7 @@ class Visor(QtWidgets.QMainWindow):
         self._esp = {}             # campos de espesor local cacheados
         self._fe = {}              # campos de deformacion efectiva
         self._vm = {}              # campos de tension de von Mises
-        # FEBio: evento para detener la corrida en curso y mapas de la ultima
+        # FEM: evento para detener el calculo en curso y mapas de la ultima
         # (malla + von Mises por elemento; en memoria, no en `_res`).
         self._febio_evento = None
         self._febio_mapas = []
@@ -3692,16 +3722,54 @@ class Visor(QtWidgets.QMainWindow):
         f.addWidget(self.cmb_eje_fe, 1)
         gl.addLayout(f)
 
+        # Motor FEM. Todos corren DENTRO de spinpy (spinpy.motores): la app
+        # con su resolvedor de siempre y, si estan instalados, NGSolve,
+        # FEniCSx, scikit-fem y SfePy. La app solo resuelve ladrillos en
+        # lineal; para la malla suave y el no lineal hace falta otro motor.
+        from spinpy import motores as _mot
+        f = QtWidgets.QHBoxLayout()
+        f.addWidget(QtWidgets.QLabel("Motor FEM:"))
+        self.cmb_motor = QtWidgets.QComboBox()
+        for k in _mot.disponibles():
+            self.cmb_motor.addItem(_mot.ETIQUETAS[k], k)
+        self.cmb_motor.setToolTip(
+            "Quien resuelve el ensayo. App: el resolvedor validado de spinpy\n"
+            "(ladrillos, lineal). Los demas motores resuelven ademas la malla\n"
+            "suave TET10 y los analisis no lineales, siempre dentro de la\n"
+            "aplicacion. «Comparar motores…» resuelve con varios a la vez.")
+        f.addWidget(self.cmb_motor, 1)
+        gl.addLayout(f)
+        f = QtWidgets.QHBoxLayout()
+        f.addWidget(QtWidgets.QLabel("Malla:"))
+        self.cmb_malla_fe = QtWidgets.QComboBox()
+        self.cmb_malla_fe.addItem("Ladrillos (hex8)", "hex8")
+        self.cmb_malla_fe.addItem("Suave (TET10)", "tet10")
+        f.addWidget(self.cmb_malla_fe, 1)
+        f.addWidget(QtWidgets.QLabel("Analisis:"))
+        self.cmb_an_fe = QtWidgets.QComboBox()
+        self.cmb_an_fe.addItem("Lineal", "lineal")
+        self.cmb_an_fe.addItem("No lineal (SVK)", "svk")
+        self.cmb_an_fe.addItem("No lineal (neo-Hookeano)", "neohookeano")
+        f.addWidget(self.cmb_an_fe, 1)
+        gl.addLayout(f)
+        self.lab_motor_fe = QtWidgets.QLabel()
+        self.lab_motor_fe.setWordWrap(True)
+        self.lab_motor_fe.setStyleSheet("color:#9a6700; font-size:10px;")
+        gl.addWidget(self.lab_motor_fe)
+        for c in (self.cmb_motor, self.cmb_malla_fe, self.cmb_an_fe):
+            c.currentIndexChanged.connect(self._motor_fe_cambiado)
+
         self.btn_fe = QtWidgets.QPushButton("Resolver y estimar el fallo")
         self.btn_fe.clicked.connect(self.ensayo_fe)
         gl.addWidget(self.btn_fe)
 
-        self.btn_febio = QtWidgets.QPushButton("Analizar con FEBio…")
+        self.btn_febio = QtWidgets.QPushButton("Comparar motores…")
         self.btn_febio.setToolTip(
-            "El mismo ensayo resuelto en FEBio, con la malla de ladrillos de\n"
-            "la app y/o una malla suave de tetraedros cuadráticos, en lineal\n"
-            "y no lineal. Usa la estructura activa, el VOI y la resolución,\n"
-            "dirección y apoyo de este panel.")
+            "El mismo ensayo resuelto con VARIOS motores FEM sobre la misma\n"
+            "malla (ladrillos y/o tetraedros cuadraticos), en lineal y no\n"
+            "lineal, con tabla comparativa entre motores y frente a la app.\n"
+            "Usa la estructura activa, el VOI y la resolucion, direccion y\n"
+            "apoyo de este panel.")
         self.btn_febio.clicked.connect(self.analizar_febio)
         gl.addWidget(self.btn_febio)
 
@@ -4274,13 +4342,13 @@ class Visor(QtWidgets.QMainWindow):
 
         # Al lado del informe automatico y con su misma logica: se elige todo
         # en una ventana y se espera. Encadena las MISMAS `_febio_una` que el
-        # boton «Analizar con FEBio…» del panel.
-        self.act_fem_auto = QtWidgets.QAction("FEM automático (FEBio)…", self)
+        # boton «Comparar motores…» del panel.
+        self.act_fem_auto = QtWidgets.QAction("Informe FEM (Auto)…", self)
         self.act_fem_auto.setToolTip(
-            "Resuelve en FEBio las estructuras, protocolos (ensayo de la app,\n"
-            "Tapia et al. 2026, homogeneización) y mallas (ladrillos y/o\n"
-            "tetraedros suaves) marcados, y los compara con la app.\n"
-            "Puede tardar horas.")
+            "Resuelve dentro de spinpy, con los motores FEM marcados, las\n"
+            "estructuras, protocolos (ensayo de la app, Tapia et al. 2026,\n"
+            "homogeneizacion) y mallas (ladrillos y/o tetraedros suaves), y\n"
+            "los compara entre si y con la app. Puede tardar horas.")
         self.act_fem_auto.triggered.connect(self.fem_auto)
         tb.addAction(self.act_fem_auto)
 
@@ -5834,13 +5902,95 @@ class Visor(QtWidgets.QMainWindow):
 
     # -- ensayo de compresion ----------------------------------------------
 
+    def motor_fe(self):
+        """Clave del motor elegido en el panel ('app' si no hay combo)."""
+        c = getattr(self, "cmb_motor", None)
+        return (c.currentData() if c is not None and c.count() else "app")
+
+    def malla_fe(self):
+        return self.cmb_malla_fe.currentData() or "hex8"
+
+    def analisis_fe(self):
+        return self.cmb_an_fe.currentData() or "lineal"
+
+    def _motor_fe_cambiado(self, *_a):
+        """Avisa de las combinaciones que el motor no resuelve."""
+        from spinpy import motores
+        mot, malla, an = self.motor_fe(), self.malla_fe(), self.analisis_fe()
+        ok = motores.puede(mot, malla, "lineal" if an == "lineal" else "nl",
+                           an if an != "lineal" else "svk")
+        txt = ""
+        if not ok:
+            txt = _("{m} no resuelve esta combinación; elige otro motor "
+                    "(NGSolve resuelve todas).").format(
+                m=motores.ETIQUETAS[mot])
+        elif malla == "tet10" and self.spin_res_fe.value() < 48:
+            txt = _("Malla suave por debajo de 48³: el suavizado estrecha los "
+                    "puntales finos (ver comparativa_febio_tet/INFORME.md).")
+        self.lab_motor_fe.setText(txt)
+        self.lab_motor_fe.setVisible(bool(txt))
+        self.btn_fe.setEnabled(ok)
+
+    def _ensayo_propio(self):
+        """True si el ensayo del panel es el de siempre de la app."""
+        return (self.motor_fe() == "app" and self.malla_fe() == "hex8"
+                and self.analisis_fe() == "lineal")
+
     def ensayo_fe(self):
         """Ensayo de compresion sobre cada familia activa, una tras otra."""
+        self._voi_fe_hecho = False
         self._en_cada_familia(self._ensayo_fe_una)
 
-    def _ensayo_fe_una(self):
+    def _tareas_panel(self, est, motores_fem, mallas, analisis, material,
+                      carpeta=None):
+        """Tareas FEM construidas con los controles del panel."""
+        from spinpy import fem
+        from spinpy.resistencia import APOYOS
+        ap = APOYOS[max(0, self.cmb_apoyo.currentIndex())]
+        cambios = ({"apoyo": ap} if ap != fem.PROTOCOLOS_FEM["app"]["apoyo"]
+                   else {})
+        p = fem.protocolo("app", **cambios)
+        i = self.cmb_eje_fe.currentIndex()
+        ejes = [0, 1, 2] if i == 3 else list([(2,), (0,), (1,)][i])
+        n = int(self.spin_res_fe.value())
+        return [{"estructura": est, "protocolo": p, "malla": m,
+                 "analisis": analisis, "ejes": ejes, "n": n,
+                 "opciones_malla": {}, "conv_malla": False,
+                 "material": material, "pasos": 1,
+                 "hilos": max(1, (os.cpu_count() or 2) - 1),
+                 "motores": list(motores_fem), "solver": "auto",
+                 "carpeta": str(carpeta or self._carpeta_febio_def()),
+                 "conservar": False, "comparar_app": True}
+                for m in mallas]
+
+    def _ensayo_fe_motor(self):
+        """«Resolver y estimar el fallo» con un motor que no es la app, con
+        la malla suave o en no lineal: pasa por `fem.analizar`, como
+        «Comparar motores…», con el motor, la malla y el analisis del panel.
+        Una familia por llamada (la engancha `_en_cada_familia`)."""
+        an = self.analisis_fe()
+        analisis = ["lineal"] if an == "lineal" else ["lineal", "nl_fuerza",
+                                                       "nl_plato"]
+        material = "svk" if an == "lineal" else an
+        ts = []
+        if self.VOI is not None and not getattr(self, "_voi_fe_hecho", False):
+            ts += self._tareas_panel("voi", [self.motor_fe()],
+                                     [self.malla_fe()], analisis, material)
+            self._voi_fe_hecho = True
+        if self.BW_vista is not None and self._confirmar_orientacion():
+            ts += self._tareas_panel(self._fam, [self.motor_fe()],
+                                     [self.malla_fe()], analisis, material)
+        if ts:
+            self._febio_una(ts)
+
+    def _ensayo_fe_una(self, forzar_app=False):
+        """`forzar_app`: el ensayo de la app aunque el panel tenga otro motor
+        (lo usa el informe automatico: sus figuras y su citabilidad son las
+        del ensayo propio; los motores van en su etapa de comparacion)."""
         if self.hilo is not None and self.hilo.isRunning():
             return
+        if not forzar_app and not self._ensayo_propio():
+            return self._ensayo_fe_motor()
         if self.BW_vista is None and self.VOI is None:
             return
         if not self._confirmar_orientacion():
@@ -7061,7 +7211,9 @@ class Visor(QtWidgets.QMainWindow):
     # un panel liso porque los campos no se guardan. Se documenta abajo.
     _COMBOS = {"esquema": "cmb_esq", "eje_recorte": "cmb_eje",
                "apoyo": "cmb_apoyo", "solido": "cmb_solido",
-               "eje_ensayo": "cmb_eje_fe", "modo_medida": "cmb_modo_med"}
+               "eje_ensayo": "cmb_eje_fe", "modo_medida": "cmb_modo_med",
+               "motor_fem": "cmb_motor", "malla_fem": "cmb_malla_fe",
+               "analisis_fem": "cmb_an_fe"}
     _CHECKS = {"auto": "chk_auto", "sync": "chk_sync", "ejes": "chk_ejes",
                "extra": "chk_extra", "mecanico": "chk_mec",
                "fmt_vtu": "chk_vtu", "fmt_inp": "chk_inp",
@@ -7100,6 +7252,9 @@ class Visor(QtWidgets.QMainWindow):
             "deslizadores": {k: float(d.valor()) for k, d in self.sl.items()},
             "combos": {k: self._combo(c).currentIndex()
                        for k, c in self._COMBOS.items()},
+            # El combo de motores depende de lo INSTALADO: el indice no viaja
+            # entre equipos, la clave si.
+            "motor_fem_clave": self.motor_fe(),
             "casillas": {k: bool(getattr(self, c).isChecked())
                          for k, c in self._CHECKS.items()},
             # La R del ajuste NO se deriva de los deslizadores (correccion F4):
@@ -7162,6 +7317,9 @@ class Visor(QtWidgets.QMainWindow):
                 if i is not None:
                     w = self._combo(c)
                     w.setCurrentIndex(int(i) if 0 <= int(i) < w.count() else 0)
+            if d.get("motor_fem_clave"):
+                j = self.cmb_motor.findData(d["motor_fem_clave"])
+                self.cmb_motor.setCurrentIndex(max(j, 0))
             for k, c in self._CHECKS.items():
                 v = (d.get("casillas") or {}).get(k)
                 if v is not None:
@@ -7852,7 +8010,28 @@ class Visor(QtWidgets.QMainWindow):
                         self._calcular_elastico_una)
         if op["ensayo"]:
             por_familia("ensayo", _("Ensayo de compresion y fallo"),
-                        self._ensayo_fe_una)
+                        lambda: self._ensayo_fe_una(forzar_app=True))
+            if op.get("motores_fem"):
+                voi = [True]
+
+                def comparar_motores():
+                    # La app va siempre: es la columna de referencia.
+                    mallas = ["hex8"] + (["tet10"] if op.get("motores_tet10")
+                                         else [])
+                    ts = []
+                    if voi[0] and self.VOI is not None:
+                        ts += self._tareas_panel(
+                            "voi", ["app"] + op["motores_fem"], mallas,
+                            ["lineal"], "svk")
+                        voi[0] = False
+                    if self.BW_vista is not None:
+                        ts += self._tareas_panel(
+                            self._fam, ["app"] + op["motores_fem"], mallas,
+                            ["lineal"], "svk")
+                    if ts:
+                        self._febio_una(ts)
+                por_familia("motores", _("Comparación entre motores FEM"),
+                            comparar_motores)
         if op["convergencia"]:
             pasos.append(("convergencia", _("Convergencia de malla (VOI)"),
                           None, self.convergencia_fe))
@@ -7899,7 +8078,7 @@ class Visor(QtWidgets.QMainWindow):
             t_est = a["estimados"].pop(0) if a["estimados"] else None
             resta = (t_est or 0.0) + sum(x or 0.0 for x in a["estimados"])
             self.lab_auto.setText(
-                _("FEM automático {i}/{n}: {etapa}").format(
+                _("Informe FEM (Auto) {i}/{n}: {etapa}").format(
                     i=i, n=a["total"], etapa=rotulo)
                 + "  ·  " + _("quedan {t}").format(t=tiempos.texto(resta)))
         else:
@@ -7986,8 +8165,9 @@ class Visor(QtWidgets.QMainWindow):
             if a["opciones"].get("estudios", True) else None))
 
     def _auto_detener(self):
-        # FEBio se detiene de verdad: el evento lo consulta `febio.correr`,
-        # que mata el proceso; lo terminado se guarda.
+        # El calculo FEM se detiene de verdad: el evento lo consulta
+        # `motores.resolver_aislado`, que termina el proceso hijo; lo
+        # terminado se guarda.
         if self._febio_evento is not None:
             self._febio_evento.set()
         if self._auto is None:
@@ -8074,12 +8254,13 @@ class Visor(QtWidgets.QMainWindow):
             t.append("<br>⚠ " + html.escape(av))
         return "".join(t)
 
-    # -- FEBio -------------------------------------------------------------
+    # -- FEM con motores internos -------------------------------------------
     #
-    # Dos puertas —«Analizar con FEBio…» del panel y «FEM automático
-    # (FEBio)…» de la barra— y un solo camino: las dos construyen «tareas»
-    # (estructura x protocolo x malla x ejes) y las pasan a `_febio_una`, que
-    # las resuelve en un hilo con `febio.analizar` / `febio.homogeneizar`. El
+    # Tres puertas —«Comparar motores…» y «Resolver y estimar el fallo» (con
+    # un motor que no es la app) del panel, e «Informe FEM (Auto)…» de la
+    # barra— y un solo camino: construyen «tareas» (estructura x protocolo x
+    # malla x ejes x motores) y las pasan a `_febio_una`, que las resuelve en
+    # un hilo con `fem.analizar` / `fem.homogeneizar`. El
     # automatico las recorre con `_auto_siguiente`, una etapa por tarea.
 
     def _carpeta_febio_def(self):
@@ -8103,7 +8284,8 @@ class Visor(QtWidgets.QMainWindow):
         return self._procedencia_controles()[est]
 
     def _febio_una(self, tareas, agregar=True):
-        """Resuelve `tareas` en FEBio, en un hilo, una detras de otra."""
+        """Resuelve `tareas` con los motores FEM, en un hilo, una detras de
+        otra (cada resolucion en un proceso hijo cancelable)."""
         if self.hilo is not None and self.hilo.isRunning():
             return
         import threading
@@ -8123,7 +8305,7 @@ class Visor(QtWidgets.QMainWindow):
         self._febio_evento = ev
         self.btn_auto_detener.setVisible(True)
         self.btn_auto_detener.setEnabled(True)
-        self._ocupado(True, _("FEBio: preparando…"))
+        self._ocupado(True, _("FEM: preparando…"))
         self._t0 = time.time()
         hilo = Trabajador(lambda: None)
         hilo._fn = lambda: Visor._febio_tarea(trabajos, ev, hilo.informar)
@@ -8137,19 +8319,19 @@ class Visor(QtWidgets.QMainWindow):
         if self.barra.maximum() != n:
             self.barra.setRange(0, max(1, n))
         self.barra.setValue(i)
-        self.statusBar().showMessage("FEBio · " + etapa)
+        self.statusBar().showMessage("FEM · " + etapa)
 
     @staticmethod
     def _febio_tarea(trabajos, ev, informar):
         """Sin Qt: corre en el hilo de trabajo."""
         import tempfile
 
-        from spinpy import febio
+        from spinpy import fem
         out = {"registros": [], "mapas": [], "cancelado": False}
         for t, BW, sp, proc in trabajos:
             p, est, m = t["protocolo"], t["estructura"], t["malla"]
             carpeta = (Path(t["carpeta"]) if t.get("carpeta")
-                       else Path(tempfile.mkdtemp(prefix="febio_")))
+                       else Path(tempfile.mkdtemp(prefix="fem_")))
             for eje in t["ejes"]:
                 rot = f"{est} · {p['nombre']} · {m} · {'XYZ'[eje]}"
 
@@ -8158,42 +8340,44 @@ class Visor(QtWidgets.QMainWindow):
                 informar(0, 1, rot)
                 try:
                     if p["tipo"] == "homogeneizacion":
-                        r = febio.homogeneizar(
+                        regs = [fem.homogeneizar(
                             BW, sp, p, malla=m, carpeta=carpeta, n=t["n"],
-                            exe=t["exe"], hilos=t["hilos"], cancelar=ev,
-                            progreso=pr, opciones_malla=t["opciones_malla"],
-                            etiqueta=est, conservar=t["conservar"])
+                            progreso=pr, etiqueta=est)]
                     else:
-                        r = febio.analizar(
+                        regs = fem.analizar(
                             BW, sp, p, malla=m, analisis=t["analisis"],
-                            eje=eje, carpeta=carpeta, n=t["n"], exe=t["exe"],
+                            eje=eje, carpeta=carpeta, n=t["n"],
+                            motores_fem=t.get("motores") or ["app"],
                             hilos=t["hilos"], cancelar=ev,
                             material=t["material"], pasos=t["pasos"],
-                            progreso=pr, conservar=t["conservar"],
-                            comparar_app=t["comparar_app"],
+                            progreso=pr, comparar_app=t["comparar_app"],
                             opciones_malla=t["opciones_malla"], etiqueta=est,
-                            conv_malla=t["conv_malla"])
-                except febio.Cancelado:
+                            conv_malla=t["conv_malla"],
+                            solver=t.get("solver", "auto"))
+                except fem.Cancelado:
                     out["cancelado"] = True
                     return out
-                except (febio.ErrorMalla, febio.ErrorFEBio, ValueError,
+                except (fem.ErrorMalla, fem.ErrorMotor, ValueError,
                         RuntimeError) as e:
                     # Una etapa que falla se registra y no para las demas.
-                    r = {"nombre": p["nombre"], "protocolo": p["clave"],
-                         "modificado": p["modificado"], "malla": m,
-                         "lineal": None, "fallos": [{"corrida": "malla",
-                                                      "msg": str(e)}],
-                         "carpeta": str(carpeta / f"{est}_fallo")}
-                r.update(estructura=est, estructura_codigo=est,
-                         tipo=r.get("tipo", p["tipo"]), procedencia=proc,
-                         eje_nombre=r.get("eje_nombre", "XYZ"[eje]))
-                cl, mm = r.get("_campos_lineal"), r.get("_malla")
-                if cl is not None and mm is not None:
-                    out["mapas"].append({
-                        "titulo": rot, "nodos": mm["nodos"],
-                        "elems": mm["elems"],
-                        "vm": febio.von_mises(cl["sigma"]) / 1e6})
-                out["registros"].append(febio.registro_json(r))
+                    regs = [{"nombre": p["nombre"], "protocolo": p["clave"],
+                             "modificado": p["modificado"], "malla": m,
+                             "lineal": None, "fallos": [{"corrida": "malla",
+                                                          "msg": str(e)}],
+                             "carpeta": str(carpeta / f"{est}_fallo")}]
+                for r in regs:
+                    r.update(estructura=est, estructura_codigo=est,
+                             tipo=r.get("tipo", p["tipo"]), procedencia=proc,
+                             eje_nombre=r.get("eje_nombre", "XYZ"[eje]))
+                    r.setdefault("carpeta", str(carpeta))
+                    cl, mm = r.get("_campos_lineal"), r.get("_malla")
+                    if cl is not None and mm is not None:
+                        mot = (r.get("motor") or {}).get("nombre", "")
+                        out["mapas"].append({
+                            "titulo": f"{rot} · {mot}", "nodos": mm["nodos"],
+                            "elems": mm["elems"],
+                            "vm": fem.von_mises(cl["sigma"]) / 1e6})
+                    out["registros"].append(fem.registro_json(r))
         return out
 
     def _febio_registrar(self, registros):
@@ -8262,13 +8446,14 @@ class Visor(QtWidgets.QMainWindow):
                 a["detener"] = True
             return
         if out["cancelado"]:
-            self.statusBar().showMessage(_("FEBio detenido; lo terminado se "
-                                           "conserva."))
+            self.statusBar().showMessage(_("Cálculo FEM detenido; lo terminado "
+                                           "se conserva."))
         self._mostrar(lambda: DialogoResultadosFEBio(
             self, regs, raiz, pendiente=not agregar, mapas=self._febio_mapas))
 
     def analizar_febio(self):
-        """«Analizar con FEBio…»: la estructura activa y el VOI."""
+        """«Comparar motores…»: la estructura activa y el VOI, con varios
+        motores FEM sobre la misma malla."""
         if self.hilo is not None and self.hilo.isRunning():
             return
         if self.VOI is None and self.BW_vista is None:
@@ -8287,9 +8472,9 @@ class Visor(QtWidgets.QMainWindow):
                      "opciones_malla": op["opciones_malla"],
                      "conv_malla": op["conv_malla"] and m == "tet10",
                      "material": op["material"], "pasos": op["pasos"],
-                     "hilos": op["hilos"], "exe": op["exe"],
-                     "carpeta": op["carpeta"], "conservar": True,
-                     "comparar_app": True}
+                     "hilos": op["hilos"], "motores": op["motores"],
+                     "solver": op["solver"], "carpeta": op["carpeta"],
+                     "conservar": False, "comparar_app": True}
                     for m in op["mallas"]]
 
         voi_hecho = [False]
@@ -8307,7 +8492,7 @@ class Visor(QtWidgets.QMainWindow):
         self._en_cada_familia(una)
 
     def fem_auto(self):
-        """«FEM automático (FEBio)…»: todo desatendido, como el informe
+        """«Informe FEM (Auto)…»: todo desatendido, como el informe
         automatico, encadenando las mismas `_febio_una` que el panel."""
         if self.hilo is not None and self.hilo.isRunning():
             return
@@ -8348,7 +8533,7 @@ class Visor(QtWidgets.QMainWindow):
         self.lab_auto.setVisible(True)
         self.btn_auto_detener.setEnabled(True)
         self.btn_auto_detener.setVisible(True)
-        self._ocupado(True, _("FEM automático: empezando…"))
+        self._ocupado(True, _("Informe FEM (Auto): empezando…"))
         QtCore.QTimer.singleShot(0, self._auto_siguiente)
 
     def _fem_auto_fin(self, detenido=False):
@@ -8379,11 +8564,11 @@ class Visor(QtWidgets.QMainWindow):
         resumen = self._auto_resumen_html(a)
         self._auto_terminar()
         self._febio_evento = None
-        self._ocupado(False, _("FEM automático detenido; lo terminado se "
+        self._ocupado(False, _("Informe FEM (Auto) detenido; lo terminado se "
                                "conserva.") if detenido
-                      else _("FEM automático terminado."))
+                      else _("Informe FEM (Auto) terminado."))
         caja = QtWidgets.QMessageBox(self)
-        caja.setWindowTitle(_("FEM automático (FEBio)"))
+        caja.setWindowTitle(_("Informe FEM (Auto)"))
         caja.setTextFormat(QtCore.Qt.RichText)
         caja.setText(resumen)
         caja.exec_()
@@ -8655,46 +8840,40 @@ def autocomprobacion():
         return " ".join(f"{k}{v//1024}kB" for k, v in sorted(tam.items()))
     prueba("escribir VTU / INP / DAT / FEB / STL", _escribir)
 
-    def _febio():
-        # En el ejecutable FEBio tiene que ser la copia EMPAQUETADA: si se
-        # usara una instalacion de FEBio Studio de la maquina que compilo, la
-        # prueba pasaria aqui y fallaria en la de cualquier otro. El TET10
-        # pasa por el proceso hijo de `mallar_aislado`, que en un ejecutable
-        # congelado depende de `freeze_support`: se prueba lo que se usa.
-        from spinpy import febio
-        # El ejecutable de las releases publicas se construye SIN FEBio (su
-        # licencia no permite redistribuirlo, ver LICENCIA_FEBIO.txt): no
-        # lleva carpeta `febio`, y entonces vale lo mismo que desde el codigo.
-        # Si la carpeta viaja, en cambio, tiene que ser la que se use.
-        exe = febio.localizar()
-        con_copia = getattr(sys, "frozen", False) and any(
-            c.parent.is_dir() for c in febio._candidatas_empaquetadas())
-        if exe is None:
-            if con_copia:
-                raise RuntimeError("no se encontro la copia empaquetada de "
-                                   "FEBio")
-            return "FEBio no instalado (no es obligatorio sin copia empaquetada)"
-        org = febio.origen(exe)
-        if con_copia and org != "empaquetado":
-            raise RuntimeError(f"FEBio no es el empaquetado: {exe}")
-        out = []
-        # Cubo con una cavidad esferica: malla de forma fiable a 16^3 (un
-        # spinodoide a esa resolucion tiene puntales de 1-2 voxeles, que es
-        # justo donde tetgen se cae, y la prueba es del camino, no de eso).
+    def _motores():
+        # Todos los motores instalados sobre el MISMO problema, por el camino
+        # de la GUI: proceso hijo de `resolver_aislado` (en un ejecutable
+        # congelado depende de `freeze_support`) y TET10 por el hijo de
+        # `mallar_aislado`. Cubo con una cavidad esferica a 16^3: malla de
+        # forma fiable (un spinodoide a esa resolucion tiene puntales de 1-2
+        # voxeles, justo donde tetgen se cae) y la prueba es del camino.
+        from spinpy import fem, motores
         c = (np.arange(16) - 7.5) / 16
         X, Y, Z = np.meshgrid(c, c, c, indexing="ij")
         cav = np.sqrt(X ** 2 + Y ** 2 + Z ** 2) > 0.2
-        with tempfile.TemporaryDirectory() as d:
-            for tipo in ("hex8", "tet10"):
-                r = febio.analizar(cav, np.full(3, 1.0 / 16),
-                                   febio.protocolo("app"), malla=tipo,
-                                   carpeta=d, n=16, exe=exe,
-                                   comparar_app=False, etiqueta="auto")
+        disp = motores.disponibles()
+        out = []
+        for tipo in ("hex8", "tet10"):
+            regs = fem.analizar(cav, np.full(3, 1.0 / 16), fem.protocolo("app"),
+                                malla=tipo, n=16, motores_fem=disp,
+                                comparar_app=False, etiqueta="auto")
+            Es = {}
+            for r in regs:
+                if r.get("no_disponible"):
+                    continue
                 if not r.get("lineal"):
-                    raise RuntimeError(f"{tipo}: {r.get('fallos')}")
-                out.append(f"{tipo} E_app {r['lineal']['E_app'] / 1e6:.1f} MPa")
-        return f"FEBio {febio.version(exe)} ({org}); " + ", ".join(out)
-    prueba("FEBio: ensayo lineal hex8 y TET10 16^3", _febio)
+                    raise RuntimeError(f"{tipo} {r['motor']['clave']}: "
+                                       f"{r.get('fallos')}")
+                Es[r["motor"]["clave"]] = r["lineal"]["E_app"]
+            ref = next(iter(Es.values()))
+            peor = max(abs(e / ref - 1) for e in Es.values())
+            if peor > 1e-6:
+                raise RuntimeError(f"{tipo}: los motores difieren {peor:.1e}")
+            out.append(f"{tipo} E_app {ref / 1e6:.1f} MPa ({len(Es)} motores, "
+                       f"Δ {peor:.0e})")
+        return ", ".join(motores.ETIQUETAS[m] for m in disp) + "; " + \
+            ", ".join(out)
+    prueba("Motores FEM: ensayo lineal hex8 y TET10 16^3", _motores)
 
     def _lote():
         # Se ejercita con la MISMA politica que usa el lote de verdad
