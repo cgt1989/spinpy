@@ -2555,12 +2555,23 @@ class DialogoInformeAuto(QtWidgets.QDialog):
                 est=est, n=padre.spin_sim_pasos.value()))
         gl.addWidget(self.chk_fallo, 3, 0, 1, 3)
         self._tiempo(gl, 3, "fallo")
+        # Figuras 12-19 del informe: se calculan al escribirlo, sobre el VOI y
+        # las estructuras regeneradas (`estudios.completar`).
+        self.chk_estudios = QtWidgets.QCheckBox(_(
+            "Estudios complementarios del informe (forma, superficie, "
+            "condiciones de contorno)"))
+        self.chk_estudios.setChecked(True)
+        self.chk_estudios.setToolTip(_(
+            "Ellipsoid Factor, curvaturas, sensibilidad a la posicion de la "
+            "superficie y E con tres condiciones de contorno. Se guardan en "
+            "el documento de la sesion."))
+        gl.addWidget(self.chk_estudios, 4, 0, 1, 4)
         nota = QtWidgets.QLabel(_(
             "Las simulaciones usan la estructura, el protocolo y los pasos "
             "de su seccion del panel; cambialos alli antes si hace falta."))
         nota.setWordWrap(True)
         nota.setStyleSheet("color:#666; font-size:10px;")
-        gl.addWidget(nota, 4, 0, 1, 4)
+        gl.addWidget(nota, 5, 0, 1, 4)
         izq.addWidget(g)
         izq.addStretch(1)
 
@@ -2902,6 +2913,7 @@ class DialogoInformeAuto(QtWidgets.QDialog):
                 "convergencia": self.chk_conv.isChecked(),
                 "perdida": self.chk_perdida.isChecked(),
                 "fallo": self.chk_fallo.isChecked(),
+                "estudios": self.chk_estudios.isChecked(),
                 "figuras": self.plan()["figuras"],
                 "estimacion": {k: {("" if f is None else f): s
                                    for f, s in d.items()}
@@ -7570,7 +7582,7 @@ class Visor(QtWidgets.QMainWindow):
             return None
         return carpeta
 
-    def _lanzar_informe(self, carpeta):
+    def _lanzar_informe(self, carpeta, completar=None):
         """Las tres etapas del informe sobre la sesion tal como esta.
 
         Las figuras 3D salen con las ultimas opciones elegidas en la ventana
@@ -7592,18 +7604,20 @@ class Visor(QtWidgets.QMainWindow):
         self.hilo = Trabajador(self._informe_etapa_datos, doc, carpeta,
                                self.VOI, self.VOI_spacing,
                                opciones_figuras(), campos or None,
-                               self.VOI_contexto)
+                               self.VOI_contexto, completar)
         self.hilo.listo.connect(self._informe_3d)
         self.hilo.fallo.connect(self._error)
         self.hilo.start()
 
     @staticmethod
     def _informe_etapa_datos(doc, carpeta, VOI, spacing, opciones_3d=None,
-                             campos_vm=None, contexto_voi=None):
+                             campos_vm=None, contexto_voi=None,
+                             completar=None):
         prep = informe_pub.preparar(doc, carpeta, VOI=VOI, spacing=spacing,
                                     opciones_3d=opciones_3d,
                                     campos_vm=campos_vm,
-                                    contexto_voi=contexto_voi)
+                                    contexto_voi=contexto_voi,
+                                    completar=completar)
         return informe_pub.figuras_datos(prep)
 
     def _informe_3d(self, prep):
@@ -7965,7 +7979,11 @@ class Visor(QtWidgets.QMainWindow):
         self.lab_auto.setText(_("Informe automatico: escribiendo el "
                                 "informe…"))
         self.btn_auto_detener.setEnabled(False)
-        self._lanzar_informe(a["carpeta"])
+        # Las simulaciones las corre el panel como etapas propias; aqui solo
+        # los estudios que no tienen boton.
+        self._lanzar_informe(a["carpeta"], completar=(
+            ("forma", "superficie", "contorno")
+            if a["opciones"].get("estudios", True) else None))
 
     def _auto_detener(self):
         # FEBio se detiene de verdad: el evento lo consulta `febio.correr`,

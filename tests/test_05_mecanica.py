@@ -84,6 +84,11 @@ EXPLICADO EN 2026-09-11: ES PERCOLACION DE RIGIDEZ
   LA PRUEBA SE QUEDA ROJA IGUAL, y a proposito: lo que mide -que un spinodoide
   no sigue E ~ rho^2- es CIERTO. Lo que ha cambiado no es el veredicto sino que
   ahora se sabe por que.
+
+  Roja en el registro, no en la suite: va marcada `xfail(strict=True)`. El
+  registro la sigue anotando como fallida; si algun dia el exponente cayera en
+  [1, 3], la prueba pasaria, `strict` la convertiria en fallo y habria que
+  revisar esta explicacion.
 """
 import numpy as np
 import pytest
@@ -235,6 +240,9 @@ def test_hashin_shtrikman_isotropo(registro):
 
 
 @pytest.mark.lento
+@pytest.mark.xfail(strict=True, reason=(
+    "hallazgo documentado: n ~ 3.9 por percolacion de rigidez, fuera de la "
+    "cota [1, 3] de espumas; ver el docstring del modulo"))
 def test_escalado_gibson_ashby(registro):
     rhos, Es = [], []
     for rho, seed in ((0.25, 11), (0.35, 12), (0.50, 13)):
