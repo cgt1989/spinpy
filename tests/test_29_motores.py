@@ -216,3 +216,27 @@ def test_proceso_hijo_y_cancelar(registro):
     _anotar(registro, f"proceso hijo = proceso actual; cancelar detiene "
             f"({mot})", 1, int(ok), 0.0, "exacto", ok)
     assert ok
+
+
+def test_version_runtime_msvc(tmp_path):
+    """`_msvc` lee la version de archivo de una DLL y elige la mas alta: la
+    defensa contra el msvcp140.dll viejo de PyQt5 (ver spinpy/_msvc.py)."""
+    import struct
+    from spinpy import _msvc
+
+    def dll(nombre, v):
+        ms = (v[0] << 16) | v[1]
+        ls = (v[2] << 16) | v[3]
+        cuerpo = (b"MZ" + b"\0" * 64 + "VS_VERSION_INFO".encode("utf-16-le")
+                  + b"\0" * 4 + b"\xbd\x04\xef\xfe" + struct.pack("<I", 0x10000)
+                  + struct.pack("<II", ms, ls) + b"\0" * 32)
+        r = tmp_path / nombre
+        r.mkdir()
+        (r / "msvcp140.dll").write_bytes(cuerpo)
+        return r / "msvcp140.dll"
+
+    vieja = dll("qt", (14, 26, 28720, 3))
+    nueva = dll("netgen_mesher.libs", (14, 50, 35719, 0))
+    assert _msvc.version_dll(vieja) == (14, 26, 28720, 3)
+    assert _msvc.elegir([vieja, nueva]) == (nueva, (14, 50, 35719, 0))
+    assert _msvc.version_dll(tmp_path / "no_existe.dll") is None
