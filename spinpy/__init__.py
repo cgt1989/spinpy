@@ -32,6 +32,11 @@ Lo que NO cubre (sigue solo en MATLAB): los otros cuatro optimizadores
 # resultado (`spinpy.procedencia`).
 __version__ = "2.0.0"
 
+# En Windows, antes que nada: el runtime de C++ mas reciente, para que PyQt5
+# no fije el suyo (viejo) y netgen/NGSolve no revienten. Ver `_msvc.py`.
+from ._msvc import precargar as _precargar_msvc  # noqa: E402
+_precargar_msvc()
+
 from .grf import (campo_grf, canonicalizar_thetas, derivadas_grf, euler_R,
                   generar_mascara, level_set, region_degenerada,
                   wave_directions)
