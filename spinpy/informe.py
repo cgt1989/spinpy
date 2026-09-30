@@ -582,6 +582,26 @@ REFERENCIAS = {
                     "element analysis studies in biomechanics. Journal of "
                     "Biomechanics 45(4):625–633.",
                     "10.1016/j.jbiomech.2011.11.038"),
+    # Estudios complementarios (`estudios.py`). Hara y Pahr comprobadas en
+    # PubMed (PMID 12110421 y 17972122); Guo y Rusinkiewicz, las de
+    # `curvatura.py`.
+    "hara2002": ("Hara T, Tanck E, Homminga J, Huiskes R (2002). The "
+                 "influence of microcomputed tomography threshold variations "
+                 "on the assessment of structural and mechanical trabecular "
+                 "bone properties. Bone 31(1):107–109.",
+                 "10.1016/s8756-3282(02)00782-2"),
+    "pahr2008": ("Pahr DH, Zysset PK (2008). Influence of boundary conditions "
+                 "on computed apparent elastic properties of cancellous bone. "
+                 "Biomechanics and Modeling in Mechanobiology 7(6):463–476.",
+                 "10.1007/s10237-007-0109-7"),
+    "guo2024": ("Guo Y, Sharma S, Kumar S (2024). Inverse designing surface "
+                "curvatures by deep learning. Advanced Intelligent Systems "
+                "6(6):2300789.", "10.1002/aisy.202300789"),
+    "rusinkiewicz2004": ("Rusinkiewicz S (2004). Estimating curvatures and "
+                         "their derivatives on triangle meshes. Proceedings "
+                         "of the 2nd International Symposium on 3D Data "
+                         "Processing, Visualization and Transmission "
+                         "(3DPVT), 486–493.", "10.1109/TDPVT.2004.1335277"),
     "oefner2021": ("Oefner C, Herrmann S, Kebbach M, Lange H-E, Kluess D, "
                    "Woiczinski M (2021). Reporting checklist for verification "
                    "and validation of finite element analysis in orthopedic "
@@ -1690,7 +1710,91 @@ def parrafos_metodos(doc, idioma="es", r=None):
     for t in dict.fromkeys(textos):
         P.append(t)
 
+    P += _parrafos_estudios(res, r)
     return P, list(r.orden)
+
+
+def _parrafos_estudios(res, r):
+    """Frases de metodos de los estudios complementarios que existan."""
+    from . import estudios as S
+    P = []
+    if isinstance(res.get("forma"), dict):
+        par = res["forma"].get("parametros") or {}
+        P.append(r.t(
+            "La forma de cada estructura se describió con el Ellipsoid Factor "
+            "{c1}, en el cubo central de {le} mm de lado, y con el perfil de curvaturas principales de la interfaz, "
+            "ponderado por área {c2}, estimadas por triángulo {c3} sobre la "
+            "máscara suavizada con una gaussiana de σ = {sg} vóxel.",
+            "The shape of each structure was described with the Ellipsoid "
+            "Factor {c1}, in the central cube of {le} mm side, and with the area-weighted profile of the principal "
+            "curvatures of the interface {c2}, estimated per triangle {c3} on "
+            "the mask smoothed with a Gaussian of σ = {sg} voxel.",
+            le=r.n(par.get("EF_lado_subcubo_mm"), ".3g"),
+            c1=r.c("doube2015"), c2=r.c("guo2024"),
+            c3=r.c("rusinkiewicz2004"),
+            sg=r.n(par.get("sigma_vox", S.SIGMA_VOX), "g")))
+    rec = res.get("sensibilidad_superficie")
+    if isinstance(rec, dict):
+        par = rec.get("parametros") or {}
+        filas = next(iter((rec.get("por_estructura") or {}).values()),
+                     {}).get("filas") or []
+        d = sorted({abs(f["desplazamiento_vox"]) for f in filas
+                    if f["desplazamiento_vox"]})
+        P.append(r.t(
+            "Como sustituto de la incertidumbre de segmentación {c}, la "
+            "superficie de cada estructura se desplazó ±{d} vóxeles "
+            "umbralizando la máscara suavizada (σ = {sg} vóxel) a "
+            "t = Φ(−δ/σ), y se repitieron la morfometría y el ensayo de "
+            "compresión a {n}³ elementos.",
+            "As a surrogate for segmentation uncertainty {c}, the surface of "
+            "each structure was moved by ±{d} voxels by thresholding the "
+            "smoothed mask (σ = {sg} voxel) at t = Φ(−δ/σ), and the "
+            "morphometry and the compression test at {n}³ elements were "
+            "repeated.", c=r.c("hara2002"),
+            d=r.t(" y ±", " and ±").join(r.n(x, "g") for x in d) or "n/d",
+            sg=r.n(par.get("sigma_vox", S.SIGMA_VOX), "g"),
+            n=_i(par.get("n_mec"))))
+    rec = res.get("condiciones_contorno")
+    if isinstance(rec, dict):
+        ns = sorted({_i(v.get("n")) for v in
+                     (rec.get("por_estructura") or {}).values()
+                     if _i(v.get("n"))})
+        P.append(r.t(
+            "Para medir la dependencia de la condición de contorno {c}, el "
+            "módulo en z se obtuvo sobre la misma rejilla ({n}) con el apoyo "
+            "deslizante, con el apoyo empotrado y con la homogeneización "
+            "periódica.",
+            "To measure the dependence on the boundary condition {c}, the "
+            "modulus along z was obtained on the same grid ({n}) with the "
+            "sliding support, with the fixed support and with periodic "
+            "homogenisation.", c=r.c("pahr2008"),
+            n=", ".join(f"{x}³" for x in ns) or "n/d"))
+    rec = res.get("simulacion_perdida")
+    if isinstance(rec, dict) and rec.get("pasos"):
+        par = rec.get("parametros") or {}
+        P.append(r.t(
+            "La pérdida ósea se simuló con el protocolo «{p}» en {k} pasos del "
+            "{x} % del hueso inicial, ensayando cada paso a {n}³ elementos.",
+            "Bone loss was simulated with the \"{p}\" protocol in {k} steps "
+            "of {x} % of the initial bone, testing each step at {n}³ "
+            "elements.", p=str(rec.get("protocolo", "")).replace("_", " "),
+            k=_i(par.get("pasos")), x=r.n(100 * (par.get("perdida_paso")
+                                                 or 0), "g"),
+            n=_i(par.get("n_mec"))))
+    rec = res.get("fallo_progresivo")
+    if isinstance(rec, dict) and rec.get("pasos"):
+        par = rec.get("parametros") or {}
+        P.append(r.t(
+            "El fallo progresivo se simuló en {k} pasos a {n}³ elementos: en "
+            "cada uno, el tejido que el criterio de Pistoia {c} da por roto "
+            "pasa a una rigidez del {x} % de E_s.",
+            "Progressive failure was simulated in {k} steps at {n}³ "
+            "elements: at each one, the tissue the Pistoia criterion {c} "
+            "deems broken drops to {x} % of E_s.",
+            k=_i(par.get("pasos")), n=_i(par.get("n_mec")),
+            c=r.c("pistoia2002"),
+            x=r.n(100 * (par.get("rigidez_danada") or 0), "g")))
+    return P
 
 
 # ---------------------------------------------------------------------------
@@ -2280,6 +2384,11 @@ ARCHIVOS = {
 CARPETA_FIGURAS = "figuras"
 
 AVISOS = {
+    "estudios_calculados": (
+        "se calcularon estudios complementarios y quedan guardados en el "
+        "documento de la sesión de esta carpeta",
+        "complementary studies were computed and are stored in this folder's "
+        "session document"),
     "pdf_sin_reportlab": (
         "no se generaron los PDF: falta reportlab en este entorno",
         "the PDFs were not generated: reportlab is missing in this environment"),
@@ -2426,6 +2535,120 @@ PIES = {
         "medidas usan la malla sin suavizar.",
         " Surface smoothed with Taubin for the figure only; every measurement "
         "uses the unsmoothed mesh."),
+    # Figuras 12-19 (`figuras_estudios.py`); los campos los da `datos_pies`.
+    "perdida": (
+        "Pérdida ósea simulada in silico sobre el {est_perdida} (protocolo "
+        "{prot}). (a) Módulo aparente y carga de fallo de Pistoia relativos "
+        "al paso inicial frente al hueso retirado; en gris, la fase de "
+        "recuperación, si la hubo. (b) Morfometría de cada paso relativa al "
+        "paso inicial. Los cocientes describen la estructura simulada, no una "
+        "predicción clínica.",
+        "In silico bone loss on the {est_perdida} ({prot} protocol). (a) "
+        "Apparent modulus and Pistoia failure load relative to the initial "
+        "step against the bone removed; in grey, the recovery phase, if any. "
+        "(b) Morphometry of each step relative to the initial step. The "
+        "ratios describe the simulated structure, not a clinical "
+        "prediction."),
+    "fallo": (
+        "Fallo progresivo sobre el {est_fallo}: en cada paso, el tejido que "
+        "el criterio de Pistoia da por roto pasa a una rigidez del {rig} % de "
+        "E_s. (a) Carga de fallo de Pistoia en cada paso y su máximo antes "
+        "del colapso; en gris, los pasos posteriores al colapso "
+        "(E/E0 < {col}). (b) Rigidez relativa y fracción de tejido roto.",
+        "Progressive failure on the {est_fallo}: at each step, the tissue the "
+        "Pistoia criterion deems broken drops to {rig} % of E_s. (a) Pistoia "
+        "failure load at each step and its maximum before collapse; in grey, "
+        "the steps after collapse (E/E0 < {col}). (b) Relative stiffness and "
+        "fraction of broken tissue."),
+    "superficie_E": (
+        "Módulo de Young direccional E(n) del tensor homogeneizado de cada "
+        "estructura, dibujado como superficie radial: la distancia al origen "
+        "en cada dirección es E en esa dirección. Misma escala de color y "
+        "mismos ejes en todos los paneles; Emax/Emin resume la anisotropía "
+        "elástica.",
+        "Directional Young's modulus E(n) of each structure's homogenised "
+        "tensor, drawn as a radial surface: the distance from the origin in "
+        "each direction is E in that direction. Same colour scale and axes "
+        "in every panel; Emax/Emin summarises the elastic anisotropy."),
+    "curvaturas": (
+        "Perfil de curvaturas principales de la interfaz hueso-poro, "
+        "ponderado por área (Guo et al. 2024), medido sobre la máscara "
+        "suavizada con una gaussiana de σ = {sigma} vóxel; no cuentan los "
+        "vértices a menos de {margen} vóxeles de las caras del cubo. Por "
+        "construcción κ1 ≥ κ2; la línea discontinua es H = 0 (superficie "
+        "mínima). Escala de color logarítmica y común. A la derecha, la "
+        "fracción de área en silla (κ1 > 0 > κ2), convexa y cóncava. Esas "
+        "fracciones dependen del signo y arrastran el ruido de la "
+        "discretización: sobre una esfera digitalizada de 12 vóxeles de radio, "
+        "el 9 % del área sale como silla (bloque 28 de la verificación). La "
+        "curvatura media H sí es fiable (1/R a un 0,2 %).",
+        "Area-weighted profile of the principal curvatures of the bone-pore "
+        "interface (Guo et al. 2024), measured on the mask smoothed with a "
+        "Gaussian of σ = {sigma} voxel; vertices closer than {margen} voxels "
+        "to the cube faces do not count. By construction κ1 ≥ κ2; the dashed "
+        "line is H = 0 (minimal surface). Common logarithmic colour scale. "
+        "Right, the area fraction that is saddle (κ1 > 0 > κ2), convex and "
+        "concave. Those fractions depend on the sign and carry the "
+        "discretisation noise: on a digitised sphere of 12 voxels radius, 9 % "
+        "of the area comes out as saddle (verification block 28). The mean "
+        "curvature H is reliable (1/R within 0.2 %)."),
+    "ellipsoid": (
+        "Ellipsoid Factor (Doube 2015) de cada estructura, en el cubo central "
+        "de {lado_ef} mm de lado (el mismo en todas) a su resolución original. "
+        "(a) Distribución por vóxel; líneas discontinuas, la media; líneas de puntos, los "
+        "umbrales ±0,2 que separan placas (EF < −0,2) de barras (EF > +0,2), "
+        "elegidos por este proyecto y no por Doube. (b) Fracción del sólido en "
+        "cada clase. * Los elipsoides cubren menos del 95 % del sólido: el "
+        "valor describe solo la parte cubierta.",
+        "Ellipsoid Factor (Doube 2015) of each structure, in the central cube "
+        "of {lado_ef} mm side (the same in all) at its original resolution. "
+        "(a) Per-voxel distribution; dashed lines, the mean; dotted lines, the ±0.2 "
+        "thresholds separating plates (EF < −0.2) from rods (EF > +0.2), "
+        "chosen by this project and not by Doube. (b) Fraction of the solid "
+        "in each class. * The ellipsoids cover less than 95 % of the solid: "
+        "the value describes only the covered part."),
+    "febio": (
+        "Paridad entre spinpy y FEBio sobre la misma malla de hexaedros: "
+        "módulo aparente, percentil 99 de von Mises en la capa superficial y "
+        "tensión de fallo de Pistoia. (a) Valor de FEBio frente al de spinpy; "
+        "la diagonal es la igualdad. (b) Diferencia relativa de cada par, en "
+        "escala logarítmica.",
+        "Parity between spinpy and FEBio on the same hexahedral mesh: "
+        "apparent modulus, 99th percentile of von Mises on the surface layer "
+        "and Pistoia failure stress. (a) FEBio value against the spinpy "
+        "value; the diagonal is equality. (b) Relative difference of each "
+        "pair, on a logarithmic scale."),
+    "sensibilidad": (
+        "Sensibilidad de la morfometría y del módulo aparente a la posición "
+        "de la superficie, como sustituto de un cambio de umbral de "
+        "segmentación. La máscara se suaviza con una gaussiana de "
+        "σ = {sigma} vóxel y se umbraliza a t = Φ(−δ/σ), lo que desplaza una "
+        "interfaz plana δ vóxeles (δ > 0 engrosa); en puntales de pocos "
+        "vóxeles la equivalencia es aproximada. E_app a {n}³ con apoyo "
+        "«{ap}». Cambios relativos a δ = 0.",
+        "Sensitivity of morphometry and apparent modulus to the position of "
+        "the surface, as a surrogate for a change of segmentation threshold. "
+        "The mask is smoothed with a Gaussian of σ = {sigma} voxel and "
+        "thresholded at t = Φ(−δ/σ), which moves a planar interface δ voxels "
+        "(δ > 0 thickens); on struts a few voxels thick the equivalence is "
+        "approximate. E_app at {n}³ with \"{ap}\" support. Changes relative "
+        "to δ = 0."),
+    "contorno": (
+        "Módulo relativo E/E_s en el eje z con tres condiciones de contorno "
+        "sobre la misma rejilla: ensayo con apoyo deslizante, ensayo con "
+        "apoyo empotrado y homogeneización periódica (tensor de la sesión). "
+        "Sobre cada barra de ensayo, su valor y su cociente con la periódica. "
+        "La diferencia mide cuánto depende el resultado de la condición de "
+        "contorno en un volumen de {lado} mm de lado; Pahr y Zysset (2008) "
+        "mostraron que esa dependencia es apreciable por debajo de unos "
+        "5 mm.",
+        "Relative modulus E/E_s along z with three boundary conditions on "
+        "the same grid: test with sliding support, test with fixed support "
+        "and periodic homogenisation (session tensor). Above each test bar, "
+        "its value and its ratio to the periodic one. The difference "
+        "measures how much the result depends on the boundary condition in a "
+        "volume of {lado} mm side; Pahr and Zysset (2008) showed that this "
+        "dependence is appreciable below about 5 mm."),
 }
 
 
@@ -2510,7 +2733,7 @@ def _espaciado(sp):
 
 def preparar(doc, carpeta, VOI=None, spacing=None, regenerar=True,
              cargar_voi=True, opciones_3d=None, campos_vm=None,
-             contexto_voi=None):
+             contexto_voi=None, completar=None):
     """Etapa 1 (hilo de trabajo): citabilidad, paquete y estructuras a dibujar.
 
     `opciones_3d`: estilos, vistas, principal y suavizado de las figuras 3D
@@ -2520,6 +2743,12 @@ def preparar(doc, carpeta, VOI=None, spacing=None, regenerar=True,
     `contexto_voi`: `figura_metodo.contexto_pila` tomado al recortar el VOI
     (figura 0). Sin el, si el documento trae `voi.recorte` y la pila sigue en
     el disco, se rehace releyendola.
+    `completar`: estudios de `estudios.ESTUDIOS` que se calculan aqui, sobre
+    el VOI y las estructuras regeneradas, si el documento no los trae (forma,
+    sensibilidad a la superficie, condiciones de contorno, simulaciones). Es
+    la UNICA excepcion a «el informe no recalcula»: se hace a peticion, se
+    guarda en el documento y el documento se escribe con el informe, asi que
+    lo que el informe describe sigue estando en la sesion que lo acompana.
     """
     from . import figuras as F
     carpeta = Path(carpeta)
@@ -2552,6 +2781,14 @@ def preparar(doc, carpeta, VOI=None, spacing=None, regenerar=True,
     for fam, BW in mascaras.items():
         estructuras.append((fam, BW, np.full(3, lado / BW.shape[0]
                                              if lado else 1.0)))
+    if completar and estructuras:
+        from . import estudios
+        try:
+            hechos = estudios.completar(doc, estructuras, que=tuple(completar))
+            if hechos:
+                avisos.append("estudios_calculados")
+        except Exception as e:
+            avisos.append(f"estudios: {type(e).__name__}: {e}")
     return {"carpeta": carpeta, "doc": doc, "items": comprobar(doc),
             "paquete": paq, "estructuras": estructuras, "lado_mm": lado,
             "figuras": {"es": [], "en": []}, "archivos_figuras": [],
@@ -2603,6 +2840,7 @@ def figuras_datos(prep):
                 (f"{CARPETA_FIGURAS}/{Path(rutas[0]).name}",
                  PIES["anisotropia"][i]))
         _figuras_estudios(prep, d, idioma)
+        _figuras_complementarias(prep, d, idioma)
         if o["distribuciones"] and prep["estructuras"]:
             if dist is None:
                 dist = F.distribuciones(prep["estructuras"])
@@ -2663,6 +2901,58 @@ def _figuras_estudios(prep, d, idioma):
                                "fig11_von_mises_surface")[i], idioma),
           PIES["vm_superficie"][i].format(
               carga=fm.format_field(float(carga), ".0f")))
+
+
+def _figuras_complementarias(prep, d, idioma):
+    """Figuras 12-19 (`figuras_estudios.py`). Como las 9-11, salen solo del
+    documento y cada una aparece solo si su dato existe."""
+    from . import figuras_estudios as FE
+    i = _idx(idioma)
+    doc = prep["doc"]
+    datos = datos_pies(doc, idioma)
+    for clave, nombres, hacer in FE.FIGURAS:
+        try:
+            rutas = hacer(doc, d / nombres[i], idioma)
+        except Exception as e:
+            prep["avisos"].append(f"figura {nombres[i]}: "
+                                  f"{type(e).__name__}: {e}")
+            continue
+        if rutas:
+            prep["archivos_figuras"].extend(rutas)
+            prep["figuras"][idioma].append((
+                f"{CARPETA_FIGURAS}/{Path(rutas[0]).name}",
+                PIES[clave][i].format(**datos)))
+
+
+def datos_pies(doc, idioma):
+    """Valores que rellenan los pies de las figuras 12-19."""
+    from . import estudios as S
+    from .simulacion import E_REL_COLAPSO
+    fm = _Formateador(idioma)
+    i = _idx(idioma)
+    res = doc.get("resultados") or {}
+    per = res.get("simulacion_perdida") or {}
+    fal = res.get("fallo_progresivo") or {}
+    sen = (res.get("sensibilidad_superficie") or {}).get("parametros") or {}
+    lado = _lado_voi(doc)
+    return {
+        "prot": str(per.get("protocolo", "")).replace("_", " "),
+        "est_perdida": ESTRUCTURAS[estructura_de(
+            per.get("estructura_codigo") or per.get("estructura"), doc)][i],
+        "est_fallo": ESTRUCTURAS[estructura_de(
+            fal.get("estructura_codigo") or fal.get("estructura"), doc)][i],
+        "rig": fm.format_field(100.0 * float(
+            (fal.get("parametros") or {}).get("rigidez_danada", 0.05)), "g"),
+        "col": fm.format_field(float(E_REL_COLAPSO), "g"),
+        "sigma": fm.format_field(float(S.SIGMA_VOX), "g"),
+        "margen": str(S.MARGEN_CURVATURA),
+        "n": str(sen.get("n_mec", S.N_MEC_DEF)),
+        "ap": nombre_apoyo(sen.get("apoyo", "deslizante"), idioma),
+        "lado": fm.format_field(float(lado), ".3g") if lado else "?",
+        "lado_ef": fm.format_field(float(((res.get("forma") or {}).get(
+            "parametros") or {}).get("EF_lado_subcubo_mm") or (lado or 0)),
+            ".3g"),
+    }
 
 
 def _numero_figura(ruta):
@@ -2884,14 +3174,15 @@ def componer(prep, pdf=True):
 
 def escribir_informe(doc, carpeta, regenerar=True, VOI=None, spacing=None,
                      figuras=True, render_3d=True, pdf=True, opciones_3d=None,
-                     campos_vm=None, contexto_voi=None):
+                     campos_vm=None, contexto_voi=None, completar=None):
     """Todas las etapas seguidas, en el hilo que llama. Para scripts y la CLI.
 
     Devuelve {"carpeta", "archivos", "items", "resumen", "paquete", "avisos"}.
     """
     prep = preparar(doc, carpeta, VOI, spacing, regenerar,
-                    cargar_voi=render_3d, opciones_3d=opciones_3d,
-                    campos_vm=campos_vm, contexto_voi=contexto_voi)
+                    cargar_voi=render_3d or bool(completar),
+                    opciones_3d=opciones_3d, campos_vm=campos_vm,
+                    contexto_voi=contexto_voi, completar=completar)
     if figuras:
         figuras_datos(prep)
     if render_3d:
@@ -2925,7 +3216,13 @@ def main(argv=None):
     p.add_argument("--verificar", action="store_true",
                    help="regenera las estructuras y compara sus huellas")
     p.add_argument("--voi", type=Path, default=None,
-                   help="con --verificar: comprueba tambien la huella del VOI")
+                   help="con --verificar: comprueba tambien la huella del VOI; "
+                        "si no, VOI que usar si no esta en la ruta guardada")
+    p.add_argument("--completar", nargs="*", default=None,
+                   metavar="ESTUDIO",
+                   help="calcula los estudios que falten antes del informe: "
+                        "forma superficie contorno perdida fallo (sin "
+                        "nombres, los cinco)")
     p.add_argument("--sin-regenerar", action="store_true",
                    help="no ejecuta el generador (el paquete queda sin huellas)")
     a = p.parse_args(argv)
@@ -2945,9 +3242,22 @@ def main(argv=None):
 
     doc = procedencia.leer_json(a.entrada)
     carpeta = a.carpeta or a.entrada.with_name("informe_" + a.entrada.stem)
+    VOI = spacing = None
+    if a.voi is not None:
+        from .io import leer_voi
+        VOI, spacing = leer_voi(a.voi)
+    completar = None
+    if a.completar is not None:
+        from .estudios import ESTUDIOS
+        completar = a.completar or list(ESTUDIOS)
+        malos = sorted(set(completar) - set(ESTUDIOS))
+        if malos:
+            p.error(f"estudio desconocido: {', '.join(malos)}; se admite "
+                    f"{', '.join(ESTUDIOS)}")
     r = escribir_informe(doc, carpeta, regenerar=not a.sin_regenerar,
+                         VOI=VOI, spacing=spacing,
                          figuras=not a.sin_figuras, render_3d=not a.sin_3d,
-                         pdf=not a.sin_pdf)
+                         pdf=not a.sin_pdf, completar=completar)
     for av in r["avisos"]:
         print(f"  aviso: {texto_aviso(av)}")
     c = r["resumen"]

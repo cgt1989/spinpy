@@ -1419,6 +1419,10 @@ EN = {
         'Bone loss simulation ({est}, {prot}, {n} steps)',
     'Fallo progresivo ({est}, {n} pasos)':
         'Progressive failure ({est}, {n} steps)',
+    'Estudios complementarios del informe (forma, superficie, condiciones de contorno)':
+        'Complementary report studies (shape, surface, boundary conditions)',
+    'Ellipsoid Factor, curvaturas, sensibilidad a la posicion de la superficie y E con tres condiciones de contorno. Se guardan en el documento de la sesion.':
+        'Ellipsoid Factor, curvatures, sensitivity to the position of the surface and E with three boundary conditions. They are stored in the session document.',
     'Las simulaciones usan la estructura, el protocolo y los pasos de su seccion del panel; cambialos alli antes si hace falta.':
         'The simulations use the structure, protocol and steps set in their panel section; change them there first if needed.',
     'Empezar':
