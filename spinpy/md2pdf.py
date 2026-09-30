@@ -45,8 +45,8 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import (BaseDocTemplate, Frame, HRFlowable, Image,
-                                KeepTogether, ListFlowable, ListItem,
+from reportlab.platypus import (BaseDocTemplate, CondPageBreak, Frame,
+                                HRFlowable, Image, KeepTogether, ListFlowable, ListItem,
                                 NextPageTemplate, PageBreak, PageTemplate,
                                 Paragraph, Spacer, Table, TableStyle)
 from reportlab.platypus.tableofcontents import TableOfContents
@@ -66,6 +66,7 @@ CAJA_BORDE= colors.HexColor('#C9A227')
 COD_BG    = colors.HexColor('#F2F4F7')
 
 ANCHO_UTIL = A4[0] - 40 * mm
+ESPACIO_MIN_ENCABEZADO = 45 * mm
 
 # Rotulo del pie de figura. El compositor nacio para documentos en espanol;
 # `componer(..., etiqueta_figura="Figure")` lo cambia para un informe en ingles.
@@ -226,6 +227,33 @@ def inline(txt):
 # ==========================================================================
 # Bloques
 # ==========================================================================
+# Una columna nunca es mas estrecha que su palabra mas larga (asi no se parte
+# «parcialmente» en «pa / rcialmente»), salvo palabras enormes como una URL:
+# esas se dejan partir antes que dejar a las demas columnas sin sitio.
+MIN_COLUMNA_MAX = 0.22
+
+
+def _sin_cortar_palabras(anchos, filas):
+    """Ensancha las columnas cuya palabra mas larga no cabe y descuenta ese
+    ancho, en proporcion a su holgura, de las columnas que les sobra."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    relleno = 8 + 1                      # LEFTPADDING + RIGHTPADDING + margen
+    minimos = []
+    for c in range(len(anchos)):
+        palabras = [w for f in filas
+                    for w in re.sub(r'[*`]', '', f[c]).split()]
+        largo = max((stringWidth(w, 'Helvetica-Bold', 7.9) for w in palabras),
+                    default=0.0)
+        minimos.append(min(largo + relleno, ANCHO_UTIL * MIN_COLUMNA_MAX))
+    falta = sum(max(0.0, m - a) for a, m in zip(anchos, minimos))
+    holgura = [max(0.0, a - m) for a, m in zip(anchos, minimos)]
+    if falta <= 0 or sum(holgura) < falta:
+        return anchos
+    k = falta / sum(holgura)
+    return [m if a < m else a - k * h
+            for a, m, h in zip(anchos, minimos, holgura)]
+
+
 def tabla_flowable(filas, S):
     """Construye una tabla GFM con anchos proporcionales al contenido."""
     if not filas:
@@ -245,7 +273,8 @@ def tabla_flowable(filas, S):
         largo = max(len(filas[r][c]) for r in range(len(filas)))
         pesos.append(min(max(largo, 6), 46))
     total = float(sum(pesos))
-    anchos = [ANCHO_UTIL * p / total for p in pesos]
+    anchos = _sin_cortar_palabras([ANCHO_UTIL * p / total for p in pesos],
+                                  filas)
 
     t = Table(datos, colWidths=anchos, repeatRows=1, hAlign='LEFT')
     estilo = [
@@ -555,6 +584,12 @@ def parsear(md, base, S):
                 n_h1 += 1
                 if n_h1 > 1:
                     flow.append(PageBreak())
+            else:
+                # keepWithNext no protege a un encabezado seguido de una tabla
+                # mas alta que la pagina: ReportLab parte la tabla donde cae y
+                # el titulo puede quedarse solo al pie. Con menos de este
+                # espacio libre, el encabezado pasa a la pagina siguiente.
+                flow.append(CondPageBreak(ESPACIO_MIN_ENCABEZADO))
             p = Paragraph(inline(txt), S['h%d' % niv])
             # Anclaje para el indice (niveles 1-3)
             if niv <= 3:

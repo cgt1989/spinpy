@@ -29,6 +29,11 @@ QUE SE VERIFICA
                 cada estructura, y cada figura enlazada desde el Markdown
                 existe. El render 3D no se
                 prueba aqui (necesita OpenGL); lo cubre la prueba con un VOI.
+  chequeo       la lista de chequeo de reporte (Bouxsein 2010, Erdemir 2012)
+                cambia de estado cuando cambia el dato, da los mismos estados
+                en ES y EN, cita sus guias y va al final del informe.
+  README        la insignia y el texto dicen tantos bloques como archivos
+                tests/test_NN_*.py hay.
 """
 import copy
 import json
@@ -39,7 +44,7 @@ import numpy as np
 import pytest
 
 import spinpy
-from spinpy import informe, procedencia
+from spinpy import informe, lista_chequeo, procedencia
 from spinpy.grf import generar_mascara
 
 BLOQUE = "19 Informe para publicacion"
@@ -335,3 +340,96 @@ def test_sabores_del_pico_de_von_mises(registro):
     z["vm_n_superficie"] = informe.N_SUPERFICIE_MIN
     sup = _busca(informe.comprobar(doc), "vm_p99_superficie")
     assert sup["estado"] == informe.CITABLE, sup
+
+
+# ---------------------------------------------------------------------------
+# Lista de chequeo de reporte (Bouxsein 2010, Erdemir 2012)
+# ---------------------------------------------------------------------------
+
+def _fila_chequeo(filas, guia, item_es):
+    for f in filas:
+        if f["guia"] == guia and f["item"].startswith(item_es):
+            return f
+    raise AssertionError(f"sin fila {guia}/{item_es}")
+
+
+def test_lista_chequeo_sigue_a_los_datos(registro):
+    """Cada estado sale de la sesion: cambia cuando cambia el dato."""
+    B, E = "bouxsein2010", "erdemir2012"
+    filas = lista_chequeo.evaluar(_doc(), "es")
+    base = {
+        "segmentacion": _fila_chequeo(filas, B, "Segmentación")["estado"],
+        "convergencia": _fila_chequeo(filas, E, "Convergencia")["estado"],
+        "validacion": _fila_chequeo(filas, E, "Validación")["estado"],
+        "vóxel": _fila_chequeo(filas, B, "Tamaño de vóxel")["estado"],
+    }
+    doc = _doc()
+    doc["voi"]["recorte"] = {"umbral": 18983.0}
+    seg = _fila_chequeo(lista_chequeo.evaluar(doc, "es"), B, "Segmentación")
+    doc = _doc()
+    doc["resultados"]["convergencia"] = {"puntos": [
+        {"n": n, "ok": True, "E_app": 1e9, "residuo": 1e-9}
+        for n in (24, 32, 40)]}
+    conv = _fila_chequeo(lista_chequeo.evaluar(doc, "es"), E, "Convergencia")
+    doc = _doc()
+    for k in ("elastico", "resistencia"):
+        doc["resultados"].pop(k)
+    sin_fe = [f for f in lista_chequeo.evaluar(doc, "es") if f["guia"] == E]
+    ok = (base == {"segmentacion": lista_chequeo.NO_CUMPLE,
+                   "convergencia": lista_chequeo.NO_CUMPLE,
+                   "validacion": lista_chequeo.NO_CUMPLE,
+                   "vóxel": lista_chequeo.CUMPLE}
+          and seg["estado"] == lista_chequeo.PARCIAL
+          and "18983" in seg["donde"]
+          and conv["estado"] == lista_chequeo.CUMPLE
+          and len(sin_fe) == 1 and sin_fe[0]["estado"] ==
+          lista_chequeo.NO_APLICA)
+    registro.anotar(BLOQUE, "lista de chequeo: el estado sigue a los datos",
+                    "Bouxsein 2010; Erdemir 2012", None, None, "exacto",
+                    "umbral, convergencia y ausencia de FE cambian el estado",
+                    ok, nota=f"{base} seg={seg['estado']} "
+                             f"conv={conv['estado']} sin_fe={len(sin_fe)}")
+    assert ok
+
+
+def test_lista_chequeo_en_el_informe(registro):
+    """ES y EN dan los mismos estados; la seccion y sus guias estan citadas."""
+    doc = _doc()
+    es = lista_chequeo.evaluar(doc, "es")
+    en = lista_chequeo.evaluar(doc, "en")
+    items = informe.comprobar(doc)
+    paq = informe.paquete_reproduccion(doc, regenerar=False)
+    md_es = informe.informe_markdown(doc, items, paq, "es")
+    md_en = informe.informe_markdown(doc, items, paq, "en")
+    c = lista_chequeo.resumen(es)
+    ok = ([f["estado"] for f in es] == [f["estado"] for f in en]
+          and all(f["estado"] in lista_chequeo.ORDEN for f in es)
+          and all(f["accion"] for f in es
+                  if f["estado"] in (lista_chequeo.PARCIAL,
+                                     lista_chequeo.NO_CUMPLE))
+          and "Lista de chequeo de reporte" in md_es
+          and "Reporting checklist" in md_en
+          and all(doi in md_en for doi in ("10.1002/jbmr.141",
+                                           "10.1016/j.jbiomech.2011.11.038",
+                                           "10.1016/j.medengphy.2021.03.011"))
+          and md_en.rstrip().splitlines()[-1].startswith("| multiscale |")
+          and md_en.index("Bouxsein et al. 2010: micro-CT")
+          < md_en.index("Erdemir et al. 2012: finite elements"))
+    registro.anotar(BLOQUE, "lista de chequeo: ES = EN, citada, al final",
+                    "Bouxsein 2010; Erdemir 2012", None, float(len(es)),
+                    "exacto", "mismos estados en los dos idiomas", ok,
+                    nota=json.dumps(c))
+    assert ok
+
+
+def test_insignia_readme_cuenta_los_bloques(registro):
+    """La insignia y el texto del README dicen cuantos bloques hay."""
+    n = len(list((RAIZ / "tests").glob("test_[0-9][0-9]_*.py")))
+    es = (RAIZ / "README.md").read_text(encoding="utf-8")
+    en = (RAIZ / "README.en.md").read_text(encoding="utf-8")
+    ok = (f"-{n}%20bloques-" in es and f"\n{n} bloques con tolerancias" in es
+          and f"-{n}%20blocks-" in en and f"\n{n} blocks with tolerances" in en)
+    registro.anotar(BLOQUE, "README: numero de bloques de verificacion",
+                    "README.md, README.en.md", float(n), None, "exacto",
+                    "insignia y texto = archivos tests/test_NN_*.py", ok)
+    assert ok, f"el README no dice {n} bloques"

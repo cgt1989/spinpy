@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 22 blocks" src="https://img.shields.io/badge/verification-22%20blocks-5b6b7f">
+  <img alt="Verification: 27 blocks" src="https://img.shields.io/badge/verification-27%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -111,7 +111,7 @@ candidate**, and failure load by the Pistoia criterion.
 | **Homogenizes** | The elastic tensor by periodic unit cell on the voxel grid, with algebraic multigrid and a residual check. |
 | **Tests** | Compression along X, Y or Z with von Mises, effective-strain and displacement fields; Pistoia failure; mesh-convergence study. |
 | **Simulates** | *In silico* bone loss (thinning, thin-trabeculae loss, disuse, recovery) and progressive failure on the VOI's digital twin. |
-| **Reports** | A publication report in Spanish and English (Markdown and PDF): methods written from the values actually used, 600 dpi figures, a citability table and a SHA-256 fingerprint to reproduce each mask. |
+| **Reports** | A publication report in Spanish and English (Markdown and PDF): methods written from the values actually used, 600 dpi figures, a citability table, a reporting checklist (Bouxsein et al. 2010 for micro-CT, Erdemir et al. 2012 for finite elements) and a SHA-256 fingerprint to reproduce each mask. |
 | **Exports** | Hexahedral or TET10 solid to Abaqus, ANSYS APDL, VTU and STL, and the full compression test to FEBio 4 (`.feb`). |
 | **Batch processing** | Decomposes variance between and within specimens, with ICC, effective N and equivalence by TOST. |
 
@@ -288,11 +288,15 @@ python Test/replicar_kumar2020.py --rapido   # ~1.5 min
 python -m pytest tests/ -q
 ```
 
-22 blocks with tolerances **declared before measuring**: topology, SMI,
+27 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
-Mises surface layer… A failure here is a finding, not a bug in the suite:
-blocks 04 and 05 have known, documented failures.
+Mises surface layer… A failure here is a finding, not a bug in the suite.
+The two findings already documented (the slab of block 04 comes out one voxel
+thicker, and the Gibson-Ashby exponent of block 05 comes out ≈ 3.9) are
+marked as strict `xfail`: the suite stays green, the log still records them
+as failed and, should either start passing, the suite fails to force a review
+of its documentation.
 
 Against the original MATLAB implementation (`validar_*.py`, reference
 outputs in `resultados/`):
