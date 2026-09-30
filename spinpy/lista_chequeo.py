@@ -347,8 +347,8 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
     if febio:
         from .informe import nombre_motor
         nombres = []
-        for r in febio:
-            n = nombre_motor(r)
+        for reg in febio:
+            n = nombre_motor(reg)
             if n not in nombres and n != "?":
                 nombres.append(n)
         motores_fem = ", ".join(nombres)
