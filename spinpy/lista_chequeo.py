@@ -343,6 +343,15 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
                                                  dict) else None
     febio = (res.get("febio") or {}).get("registros") \
         if isinstance(res.get("febio"), dict) else None
+    motores_fem = ""
+    if febio:
+        from .informe import nombre_motor
+        nombres = []
+        for reg in febio:
+            n = nombre_motor(reg)
+            if n not in nombres and n != "?":
+                nombres.append(n)
+        motores_fem = ", ".join(nombres)
     if not (ela or fe or comp or conv):
         F.append(_fila(E, D["identificacion"], t("Toda la guía",
                                                  "Whole guideline"),
@@ -514,7 +523,8 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
            v=proc.get("spinpy") or __version__,
            py=proc.get("python") or "?", npv=proc.get("numpy") or "?")
     if febio:
-        sw += t("; FEBio en {s}", "; FEBio in {s}", s=sec("modelos"))
+        sw += t("; motores FEM ({m}) en {s}", "; FEM engines ({m}) in {s}",
+                m=motores_fem or "?", s=sec("modelos"))
     F.append(_fila(E, D["simulacion"], t("Software y versión",
                                          "Software and version"), CUMPLE,
                    sw + "."))
@@ -569,19 +579,21 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
         F.append(_fila(E, D["verificacion"],
                        t("Verificación del código", "Code verification"),
                        CUMPLE,
-                       t("{s}: la sesión se resolvió además con FEBio.",
-                         "{s}: the session was also solved with FEBio.",
-                         s=sec("modelos"))))
+                       t("{s}: la sesión se resolvió además con otros "
+                         "motores FEM ({m}) y se tabulan sus diferencias.",
+                         "{s}: the session was also solved with other FEM "
+                         "engines ({m}) and their differences are tabulated.",
+                         m=motores_fem or "?", s=sec("modelos"))))
     else:
         F.append(_fila(
             E, D["verificacion"], t("Verificación del código",
                                     "Code verification"), PARCIAL,
-            t("spinpy está verificado frente a soluciones analíticas y frente "
-              "a FEBio 4.5, pero esa verificación está en el repositorio, no "
-              "en este informe.",
-              "spinpy is verified against analytical solutions and against "
-              "FEBio 4.5, but that verification is in the repository, not in "
-              "this report."),
+            t("spinpy está verificado frente a soluciones analíticas, frente "
+              "a FEBio 4.5 y entre sus motores FEM internos, pero esa "
+              "verificación está en el repositorio, no en este informe.",
+              "spinpy is verified against analytical solutions, against "
+              "FEBio 4.5 and across its internal FEM engines, but that "
+              "verification is in the repository, not in this report."),
             t("Citar en el manuscrito la verificación del software.",
               "Cite the software verification in the manuscript.")))
     puntos = [p for p in (conv or {}).get("puntos") or [] if p.get("ok")]
@@ -622,9 +634,9 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
         E, D["validacion"], t("Validación experimental",
                               "Experimental validation"), NO_CUMPLE,
         t("spinpy no contrasta sus predicciones con ensayos físicos; la "
-          "coincidencia con FEBio es verificación, no validación.",
+          "coincidencia entre motores FEM es verificación, no validación.",
           "spinpy does not compare its predictions with physical tests; "
-          "agreement with FEBio is verification, not validation."),
+          "agreement between FEM engines is verification, not validation."),
         t("Declarar la ausencia de validación experimental, o comparar con un "
           "ensayo mecánico del mismo espécimen o con datos publicados "
           "comparables.",

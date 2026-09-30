@@ -1481,8 +1481,6 @@ EN = {
         'About spinpy…',
     'Ajuste de microestructuras espinodales a VOIs de hueso trabecular':
         'Fitting spinodoid microstructures to trabecular bone VOIs',
-    'versión':
-        'version',
     'AUTORES':
         'AUTHORS',
     'Dos familias':
@@ -1537,8 +1535,6 @@ EN = {
         'Below 48³ the struts are ~2 voxels thick and smoothing narrows them: on the H4 proximal VOI at 32³ the smooth mesh came out 2.3 times softer than the brick mesh. 48³ needs ~7 GB of memory.',
     '(no generado)':
         '(not generated)',
-    '* con reservas; † no citable (ver el informe de publicación). E<sub>app</sub> de FEBio con el desplazamiento del techo ponderado por área; «Δ implementación» compara FEBio con ladrillos y la app con la definición de la app y debe ser ~0. Los desvíos no lineales son frente al lineal de la misma malla.':
-        "* with caveats; † not citable (see the publication report). FEBio E<sub>app</sub> from the area-weighted top displacement; «Δ implementation» compares FEBio on bricks with the app using the app's definition and must be ~0. Nonlinear deviations are against the linear result of the same mesh.",
     '<b>Tiempo estimado: {t}</b> · terminaría hacia las {h} · {n} etapa(s)':
         '<b>Estimated time: {t}</b> · would finish around {h} · {n} stage(s)',
     'Abrir carpeta':
@@ -1547,34 +1543,18 @@ EN = {
         'Fit first if missing (best fit: fast, full, equal-area)',
     'Ambas (recomendada)':
         'Both (recommended)',
-    'Ambas separa el efecto del programa (app frente a FEBio con ladrillos, debe dar ~0) del efecto de la malla (ladrillos frente a tetraedros, mismo programa y carga).':
-        'Both separates the effect of the program (app against FEBio on bricks, must be ~0) from the effect of the mesh (bricks against tetrahedra, same program and load).',
     'Amplitud de la deformación:':
         'Strain amplitude:',
-    'Analizar con FEBio':
-        'Analyse with FEBio',
-    'Analizar con FEBio…':
-        'Analyse with FEBio…',
-    'Buscar…':
-        'Browse…',
     'Carga axial:':
         'Axial load:',
     'Carga el VOI o genera una estructura primero.':
         'Load the VOI or generate a structure first.',
-    'Carpeta de resultados de FEBio':
-        'FEBio results folder',
     'Carpeta de resultados:':
         'Results folder:',
     'Coeficiente de Poisson ν:':
         "Poisson's ratio ν:",
-    'Con recorte automático si Newton no converge. Medido en el VOI proximal de H4: 1, 5 y 10 pasos dan la misma respuesta con 5, 20 y 40 iteraciones.':
-        'With automatic cutback if Newton does not converge. Measured on the H4 proximal VOI: 1, 5 and 10 steps give the same answer with 5, 20 and 40 iterations.',
-    'Conservar .feb / .xplt para abrirlos en FEBio Studio (pesan)':
-        'Keep .feb / .xplt files to open them in FEBio Studio (large)',
     'Corregir la pérdida de volumen del suavizado':
         'Correct the volume loss of smoothing',
-    'Corridas que fallaron':
-        'Runs that failed',
     'Decimado:':
         'Decimation:',
     'Desplaza la superficie por su normal hasta el volumen de los vóxeles. Medido en el VOI proximal de H4 a 48³: −6,8 % sin corregir, −0,15 % corregido.':
@@ -1583,14 +1563,8 @@ EN = {
         'Loading direction:',
     'Dual-lattice ajustado':
         'Fitted dual-lattice',
-    'El mismo ensayo resuelto en FEBio, con la malla de ladrillos de\nla app y/o una malla suave de tetraedros cuadráticos, en lineal\ny no lineal. Usa la estructura activa, el VOI y la resolución,\ndirección y apoyo de este panel.':
-        "The same test solved in FEBio, with the app's brick mesh\nand/or a smooth mesh of quadratic tetrahedra, linear\nand nonlinear. Uses the active structure, the VOI and the resolution,\ndirection and support of this panel.",
     'El plato rígido y la carga de Pistoia necesitan el lineal: si no se marca, se corre igual.':
         'The rigid platen and the Pistoia load need the linear run: if it is not ticked, it runs anyway.',
-    'Elige febio4.exe':
-        'Choose febio4.exe',
-    'Elige febio4.exe abajo, en «Material y solver».':
-        'Choose febio4.exe below, in «Material and solver».',
     'Ensayo de la app':
         'App test',
     'Estructuras':
@@ -1599,28 +1573,6 @@ EN = {
         'Export CSV…',
     'Exportar tabla CSV':
         'Export CSV table',
-    'FEBio detenido; lo terminado se conserva.':
-        'FEBio stopped; what finished is kept.',
-    'FEBio no encontrado: elige febio4.exe.':
-        'FEBio not found: choose febio4.exe.',
-    'FEBio {v} · {n} registro(s) · carpeta {c}':
-        'FEBio {v} · {n} record(s) · folder {c}',
-    'FEBio:':
-        'FEBio:',
-    'FEBio: preparando…':
-        'FEBio: preparing…',
-    'FEM automático (FEBio)':
-        'Automatic FEM (FEBio)',
-    'FEM automático (FEBio)…':
-        'Automatic FEM (FEBio)…',
-    'FEM automático detenido; lo terminado se conserva.':
-        'Automatic FEM stopped; what finished is kept.',
-    'FEM automático terminado.':
-        'Automatic FEM finished.',
-    'FEM automático {i}/{n}: {etapa}':
-        'Automatic FEM {i}/{n}: {etapa}',
-    'FEM automático: empezando…':
-        'Automatic FEM: starting…',
     'Falta la estructura':
         'Missing structure',
     'Figura de validación (5 columnas: E_app, p99 de superficie, fallo, desvío no lineal, BV/TV de la malla)':
@@ -1643,8 +1595,6 @@ EN = {
         'Bricks at {n}³, below 40³: the H4 proximal VOI loses ~10 % of stiffness at 32³.',
     'Ladrillos, resolución:':
         'Bricks, resolution:',
-    'Ladrillos: la malla que resuelve la app, validada contra FEBio a 1e-6. Conserva los escalones.':
-        'Bricks: the mesh the app solves, validated against FEBio to 1e-6. It keeps the staircase.',
     'Lineal (extrapolado a carga nula; comparable 1:1 con la app)':
         'Linear (extrapolated to zero load; comparable 1:1 with the app)',
     'Malla':
@@ -1687,8 +1637,6 @@ EN = {
         'Nonlinear, force imposed at the protocol load',
     'No lineal, plato rígido':
         'Nonlinear, rigid platen',
-    'No se encontró FEBio.':
-        'FEBio was not found.',
     'Núcleos − 1 por omisión, para que la ventana siga respondiendo.':
         'Cores − 1 by default, so the window stays responsive.',
     'Parámetros del protocolo':
@@ -1703,16 +1651,8 @@ EN = {
         'Protocols',
     'Registro: «{n}». Los valores en naranja difieren del protocolo publicado.':
         'Record: «{n}». Values in orange differ from the published protocol.',
-    'Resuelve en <b>FEBio {ver}</b> ({origen})':
-        'Solves in <b>FEBio {ver}</b> ({origen})',
-    'Resuelve en FEBio las estructuras, protocolos (ensayo de la app,\nTapia et al. 2026, homogeneización) y mallas (ladrillos y/o\ntetraedros suaves) marcados, y los compara con la app.\nPuede tardar horas.':
-        'Solves in FEBio the ticked structures, protocols (app test,\nTapia et al. 2026, homogenisation) and meshes (bricks and/or\nsmooth tetrahedra), and compares them with the app.\nIt may take hours.',
-    'Resultados de FEBio':
-        'FEBio results',
     'Salidas':
         'Outputs',
-    'Solver directo Pardiso; tolerancias las validadas (Newton completo, 1e-9/1e-12).':
-        'Pardiso direct solver; the validated tolerances (full Newton, 1e-9/1e-12).',
     'Spinodoide ajustado':
         'Fitted spinodoid',
     'St. Venant-Kirchhoff (validado)':
@@ -1723,8 +1663,6 @@ EN = {
         'Taubin smoothing:',
     'Sugerido ≈ Tb.Th/3 = {t} mm':
         'Suggested ≈ Tb.Th/3 = {t} mm',
-    'Tabla comparativa app vs FEBio, con citabilidad':
-        'App vs FEBio comparison table, with citability',
     'Tamaño máx. de tetraedro:':
         'Max. tetrahedron size:',
     'Tapia: 0,05 mm':
@@ -1745,14 +1683,10 @@ EN = {
         'X, Y and Z',
     'cotas KUBC/SUBC':
         'KUBC/SUBC bounds',
-    'de FEBio Studio':
-        'from FEBio Studio',
     'el de la superficie':
         'set by the surface',
     'estructura':
         'structure',
-    'incluido en spinpy':
-        'bundled with spinpy',
     'la estructura activa y el VOI, con la dirección del panel (<b>{eje}</b>).':
         'the active structure and the VOI, with the panel direction (<b>{eje}</b>).',
     'las estructuras, protocolos y mallas marcados, y los compara con el ensayo de la app. Los diálogos de resultados no se abren: todo queda en la sesión y en la carpeta. Puede tardar <b>horas</b>; la ventana sigue respondiendo y se puede detener tras la etapa en curso.':
@@ -1765,8 +1699,6 @@ EN = {
         'periodic',
     'protocolo':
         'protocol',
-    'ruta elegida':
-        'chosen path',
     'superficie':
         'surface',
     '{carga} · apoyo {apoyo} · E_s {E} GPa · ν {nu}':
@@ -1785,4 +1717,128 @@ EN = {
         'Δ implementation',
     'Δ volumen':
         'Δ volume',
+
+    # -- motores FEM internos (spinpy.motores) ------------------------
+    '(no instalado)':
+        '(not installed)',
+    '(recomendado para TET10 y no lineal)':
+        '(recommended for TET10 and nonlinear)',
+    '(solo la app instalada)':
+        '(only the app installed)',
+    '* con reservas; † no citable (ver el informe de publicación). E<sub>app</sub> del motor con el desplazamiento del techo ponderado por área; «Δ implementación» compara el motor con ladrillos y la app con la definición de la app y debe ser ~0. Los desvíos no lineales son frente al lineal de la misma malla.':
+        "* with caveats; † not citable (see the publication report). Engine E<sub>app</sub> from the area-weighted top displacement; «Δ implementation» compares the engine on bricks with the app using the app's definition and must be ~0. Nonlinear deviations are against the linear result of the same mesh.",
+    'Además de los ladrillos, los motores marcados resuelven la malla suave de tetraedros cuadráticos a la resolución del ensayo.':
+        'Besides the bricks, the ticked engines solve the smooth mesh of quadratic tetrahedra at the test resolution.',
+    'Ambas separa el efecto del programa (app frente a los motores con ladrillos, debe dar ~0) del efecto de la malla (ladrillos frente a tetraedros, mismo motor y carga).':
+        'Both separates the effect of the program (app against the engines on bricks, must be ~0) from the effect of the mesh (bricks against tetrahedra, same engine and load).',
+    'Analisis:':
+        'Analysis:',
+    'App (spinpy)':
+        'App (spinpy)',
+    'Automático (según el tamaño)':
+        'Automatic (by size)',
+    'Cada motor resuelve la MISMA malla: la tabla compara los motores entre sí y con la app. La app solo resuelve ladrillos en lineal; en lo demás su columna queda «no disponible».':
+        'Every engine solves the SAME mesh: the table compares the engines with each other and with the app. The app only solves bricks in linear analysis; elsewhere its column reads «not available».',
+    'Carpeta de resultados FEM':
+        'FEM results folder',
+    'Comparación entre motores (misma malla)':
+        'Comparison between engines (same mesh)',
+    'Comparación entre motores FEM':
+        'Comparison between FE engines',
+    'Comparar motores FEM':
+        'Compare FE engines',
+    'Comparar motores…':
+        'Compare engines…',
+    'Cálculo FEM detenido; lo terminado se conserva.':
+        'FE computation stopped; what finished is kept.',
+    'Diferencias relativas frente al primer motor de cada grupo. Con la misma malla, cargas y postproceso miden solo la implementación: lo esperable es del orden de la tolerancia del resolvedor (1e-10 a 1e-8).':
+        'Relative differences against the first engine of each group. With the same mesh, loads and post-processing they measure only the implementation: the expected size is that of the solver tolerance (1e-10 to 1e-8).',
+    'Directo':
+        'Direct',
+    'El mismo ensayo resuelto con VARIOS motores FEM sobre la misma\nmalla (ladrillos y/o tetraedros cuadraticos), en lineal y no\nlineal, con tabla comparativa entre motores y frente a la app.\nUsa la estructura activa, el VOI y la resolucion, direccion y\napoyo de este panel.':
+        'The same test solved with SEVERAL FE engines on the same\nmesh (bricks and/or quadratic tetrahedra), linear and\nnonlinear, with a comparison table between engines and against the app.\nUses the active structure, the VOI and the resolution, direction and\nsupport of this panel.',
+    'Elige al menos un motor FEM.':
+        'Choose at least one FE engine.',
+    'FEM: preparando…':
+        'FEM: preparing…',
+    'Guardar los campos (desplazamientos) de cada motor (pesan)':
+        'Keep the fields (displacements) of each engine (large)',
+    'Incrementos de carga del análisis no lineal. Con cargas moderadas basta uno; si Newton no converge, subirlos.':
+        'Load increments of the nonlinear analysis. With moderate loads one is enough; if Newton does not converge, raise them.',
+    'Informe FEM (Auto)':
+        'FEM report (Auto)',
+    'Informe FEM (Auto) detenido; lo terminado se conserva.':
+        'FEM report (Auto) stopped; what finished is kept.',
+    'Informe FEM (Auto) terminado.':
+        'FEM report (Auto) finished.',
+    'Informe FEM (Auto) {i}/{n}: {etapa}':
+        'FEM report (Auto) {i}/{n}: {etapa}',
+    'Informe FEM (Auto): empezando…':
+        'FEM report (Auto): starting…',
+    'Informe FEM (Auto)…':
+        'FEM report (Auto)…',
+    'Iterativo (multigrid)':
+        'Iterative (multigrid)',
+    'La app no resuelve la malla suave: marca otro motor para TET10.':
+        'The app does not solve the smooth mesh: tick another engine for TET10.',
+    'Ladrillos: la malla que resuelve la app; los motores la reproducen a ~1e-10. Conserva los escalones.':
+        'Bricks: the mesh the app solves; the engines reproduce it to ~1e-10. It keeps the staircase.',
+    'Lineal':
+        'Linear',
+    'Malla suave por debajo de 48³: el suavizado estrecha los puntales finos (ver comparativa_febio_tet/INFORME.md).':
+        'Smooth mesh below 48³: smoothing narrows thin struts (see comparativa_febio_tet/INFORME.md).',
+    'Motor FEM:':
+        'FE engine:',
+    'Motores FEM':
+        'FE engines',
+    'Motores FEM (tabla comparativa):':
+        'FE engines (comparison table):',
+    'NGSolve':
+        'NGSolve',
+    'Ningún motor elegido.':
+        'No engine chosen.',
+    'No lineal (SVK)':
+        'Nonlinear (SVK)',
+    'No lineal (neo-Hookeano)':
+        'Nonlinear (neo-Hookean)',
+    'Quien resuelve el ensayo. App: el resolvedor validado de spinpy\n(ladrillos, lineal). Los demas motores resuelven ademas la malla\nsuave TET10 y los analisis no lineales, siempre dentro de la\naplicacion. «Comparar motores…» resuelve con varios a la vez.':
+        "Who solves the test. App: spinpy's validated solver\n(bricks, linear). The other engines also solve the smooth\nTET10 mesh and the nonlinear analyses, always inside the\napplication. «Compare engines…» solves with several at once.",
+    'Resoluciones que fallaron o no están disponibles':
+        'Solves that failed or are not available',
+    'Resolvedor lineal:':
+        'Linear solver:',
+    'Resuelve dentro de spinpy con <b>{m}</b>':
+        'Solves inside spinpy with <b>{m}</b>',
+    'Resuelve dentro de spinpy, con los motores FEM marcados, las\nestructuras, protocolos (ensayo de la app, Tapia et al. 2026,\nhomogeneizacion) y mallas (ladrillos y/o tetraedros suaves), y\nlos compara entre si y con la app. Puede tardar horas.':
+        'Solves inside spinpy, with the ticked FE engines, the ticked\nstructures, protocols (app test, Tapia et al. 2026,\nhomogenisation) and meshes (bricks and/or smooth tetrahedra), and\ncompares them with each other and with the app. It may take hours.',
+    'Resultados FEM':
+        'FEM results',
+    'SfePy':
+        'SfePy',
+    'Suave (TET10)':
+        'Smooth (TET10)',
+    'Tabla comparativa entre motores y frente a la app, con citabilidad':
+        'Comparison table between engines and against the app, with citability',
+    'Todo se resuelve dentro de spinpy, sin programas externos. Newton completo con tangente consistente; tolerancia 1e-10.':
+        'Everything is solved inside spinpy, without external programs. Full Newton with consistent tangent; tolerance 1e-10.',
+    'memoria':
+        'memory',
+    'motor':
+        'engine',
+    'no disponible con esta malla o análisis':
+        'not available with this mesh or analysis',
+    'resolvedor':
+        'solver',
+    'scikit-fem':
+        'scikit-fem',
+    'también malla suave (TET10)':
+        'also smooth mesh (TET10)',
+    'tiempo':
+        'time',
+    '{m} no resuelve esta combinación; elige otro motor (NGSolve resuelve todas).':
+        '{m} does not solve this combination; choose another engine (NGSolve solves all of them).',
+    '{m} · {n} registro(s) · carpeta {c}':
+        '{m} · {n} record(s) · folder {c}',
+    'FEniCSx':
+        'FEniCSx',
 }

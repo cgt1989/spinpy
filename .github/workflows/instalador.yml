@@ -4,9 +4,9 @@
 # repetir la construccion) se lanza a mano desde Actions -> "Instalador de
 # Windows" -> Run workflow, indicando la etiqueta.
 #
-# El ejecutable se construye SIN FEBio: la FEBio Software License no permite
-# redistribuir sus binarios (ver instalador/LICENCIA_FEBIO.txt). Quien lo
-# necesite instala FEBio Studio y spinpy lo encuentra solo.
+# El ejecutable no depende de programas externos: los ensayos FEM los
+# resuelven los motores internos (spinpy.motores); NGSolve y scikit-fem
+# viajan dentro (instalador/requisitos_build.txt).
 #
 # Se usa el CPython oficial, no Anaconda: asi `dlls_conda.py` no tiene nada
 # que resolver (ver instalador/LEEME_DESARROLLO.md, trampa 2).

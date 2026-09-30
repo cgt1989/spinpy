@@ -145,7 +145,7 @@ python dlls_conda.py C:\ruta\dist\spinpy\_internal
 
 `.github/workflows/instalador.yml` construye el instalador y el zip portable en
 un Windows de GitHub Actions cada vez que se publica una release, y los
-adjunta a ella. Antes comprueba que la etiqueta (`v1.0.2`, `V1.0.2`) coincide
+adjunta a ella. Antes comprueba que la etiqueta (`v2.0.0`, `V2.0.0`) coincide
 con la version de `pyproject.toml`; si no, no construye nada.
 
 Para una release que ya estaba publicada, o para repetir la construccion:
@@ -153,8 +153,8 @@ Actions → «Instalador de Windows» → *Run workflow*, con la etiqueta. En es
 caso se construye desde la rama elegida en el formulario, no desde la
 etiqueta.
 
-Ese ejecutable sale **sin FEBio**: la release es publica y la licencia de
-FEBio no permite redistribuir sus binarios. La autocomprobacion lo acepta
-porque no hay carpeta `febio` en el paquete; si la hubiera, exigiria que se
-use esa copia. Se construye con el CPython oficial, asi que `dlls_conda.py`
-no interviene.
+Desde V2.0.0 el ejecutable no lleva ni busca FEBio: los ensayos los resuelven
+los motores internos (`spinpy.motores`). Viajan NGSolve y scikit-fem, los unicos con rueda para Windows en PyPI; la
+autocomprobacion resuelve el mismo ensayo con todos los motores presentes y
+exige que coincidan (prueba «Motores FEM»). Se construye con el CPython
+oficial, asi que `dlls_conda.py` no interviene.

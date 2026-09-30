@@ -839,78 +839,160 @@ def seccion_modelos(doc, idioma, r, numero):
     # ------------------------------------------------------------------
     regs_febio = ((res.get("febio") or {}).get("registros") or [])
     if regs_febio:
-        from . import febio as FB
-        from .escribe import REGLA_TET10
+        from . import fem as FM
+        from .informe import nombre_motor
         mallas = sorted({str(x.get("malla")) for x in regs_febio})
-        vers = sorted({str((x.get("febio") or {}).get("version"))
-                       for x in regs_febio if (x.get("febio") or {})
-                       .get("version")})
-        s1, s2 = FB.FRACCIONES_LINEAL
-        sub("Resolución en FEBio", "Solution in FEBio")
-        par(f"Los ensayos marcados como «FEBio» se resolvieron en FEBio "
-            f"{', '.join(vers) or '?'} {r.c('maas2012')} con las mallas "
-            f"{', '.join(mallas)}. Con hexaedros (hex8) la malla es la misma "
-            "de la app —un elemento por vóxel del hueso portante—; con "
-            "tetraedros cuadráticos (TET10) sale de la isosuperficie 0,5 de la "
-            "máscara, suavizada (Taubin), decimada, con las seis caras del cubo "
-            "devueltas a su plano exacto, reparada y tetraedralizada con "
-            "tetgen; si se pidió, la superficie se desplaza por su normal hasta "
-            "el volumen de los vóxeles portantes. Los poros cerrados se "
-            "conservan como huecos. Se descartan los componentes de la malla "
-            "que no unen base y techo. Integración TET10: "
-            f"{REGLA_TET10}; tensión por elemento: la media de sus puntos de "
-            "Gauss.",
-            f"Tests marked «FEBio» were solved in FEBio "
-            f"{', '.join(vers) or '?'} {r.c('maas2012')} on the meshes "
-            f"{', '.join(mallas)}. With hexahedra (hex8) the mesh is the app's "
-            "own —one element per load-bearing bone voxel—; with quadratic "
-            "tetrahedra (TET10) it comes from the 0.5 isosurface of the mask, "
-            "smoothed (Taubin), decimated, with the six cube faces returned "
-            "to their exact plane, repaired and tetrahedralised with tetgen; "
-            "if requested, the surface is offset along its normal up to the "
-            "volume of the load-bearing voxels. Closed pores are kept as "
-            "holes. Mesh components not connecting bottom and top are "
-            f"discarded. TET10 integration: {REGLA_TET10}; element stress: "
-            "the mean of its Gauss points.")
-        par("FEBio es no lineal geométricamente (St. Venant-Kirchhoff). La "
-            "respuesta lineal se obtiene de dos cargas pequeñas, fracciones "
-            f"{n(s1)} y {n(s2)} de la del protocolo, extrapolando a carga nula:",
-            "FEBio is geometrically nonlinear (St. Venant-Kirchhoff). The "
-            "linear response is obtained from two small loads, fractions "
-            f"{n(s1)} and {n(s2)} of the protocol load, extrapolated to zero "
-            "load:")
-        eq(L, r"\mathbf{u}_{lin}=2\,\frac{\mathbf{u}(s_{1})}{s_{1}}-"
-              r"\frac{\mathbf{u}(s_{2})}{s_{2}},\quad s_{2}=2\,s_{1}")
+        mots = []
+        for x in regs_febio:
+            nm = nombre_motor(x)
+            ver = ((x.get("motor") or {}).get("version")
+                   or (x.get("febio") or {}).get("version"))
+            et = f"{nm} {ver}" if ver else nm
+            if et not in mots:
+                mots.append(et)
+        sub("Resolución por elementos finitos (motores internos)",
+            "Finite element solution (built-in engines)")
+        par("Los ensayos de esta sección se resolvieron dentro de spinpy, sin "
+            f"programas externos, con los motores {', '.join(mots)} sobre las "
+            f"mallas {', '.join(mallas)}. Con hexaedros (hex8) la malla es la "
+            "de la app, un elemento trilineal por vóxel del hueso portante "
+            "(integración de Gauss 2×2×2); con tetraedros cuadráticos (TET10) "
+            "sale de la isosuperficie 0,5 de la máscara, suavizada (Taubin), "
+            "decimada, con las seis caras del cubo devueltas a su plano "
+            "exacto, reparada y tetraedralizada con tetgen, con cada nodo "
+            "intermedio en el punto medio de su arista; si se pidió, la "
+            "superficie se desplaza por su normal hasta el volumen de los "
+            "vóxeles portantes. Se descartan los componentes que no unen base "
+            "y techo. Todos los motores reciben la MISMA malla y las mismas "
+            "condiciones de contorno; el postproceso (tensión por elemento, "
+            "E_{app}, capa superficial, Pistoia) es común.",
+            "The tests in this section were solved inside spinpy, without "
+            f"external programs, with the engines {', '.join(mots)} on the "
+            f"meshes {', '.join(mallas)}. With hexahedra (hex8) the mesh is "
+            "the app's, one trilinear element per load-bearing voxel (2×2×2 "
+            "Gauss integration); with quadratic tetrahedra (TET10) it comes "
+            "from the 0.5 isosurface of the mask, smoothed (Taubin), "
+            "decimated, with the six cube faces returned to their exact "
+            "plane, repaired and tetrahedralised with tetgen, each mid-side "
+            "node at the midpoint of its edge; if requested, the surface is "
+            "offset along its normal up to the load-bearing voxel volume. "
+            "Components not connecting bottom and top are discarded. All "
+            "engines receive the SAME mesh and boundary conditions; the "
+            "post-processing (element stress, E_{app}, surface layer, "
+            "Pistoia) is common.")
+        par("Problema lineal: encontrar u con u_z = 0 en la base (y los "
+            "apoyos del protocolo) tal que, para todo v admisible,",
+            "Linear problem: find u with u_z = 0 on the bottom (and the "
+            "protocol supports) such that, for every admissible v,")
+        eq(L, r"\int_{\Omega}\boldsymbol{\sigma}(\mathbf{u}):"
+              r"\boldsymbol{\varepsilon}(\mathbf{v})\,d\Omega="
+              r"\int_{\Gamma_{t}}\mathbf{t}\cdot\mathbf{v}\,d\Gamma,\quad "
+              r"\boldsymbol{\sigma}=\lambda\,\mathrm{tr}(\boldsymbol{"
+              r"\varepsilon})\,\mathbf{I}+2\mu\,\boldsymbol{\varepsilon},"
+              r"\quad \mathbf{t}=-\frac{\sigma_{0}A_{b}}{A_{t}}\,\mathbf{e}_{z}")
+        par("con A_{b} la sección bruta y A_{t} el área ósea del techo. Su "
+            "discretización es el sistema K u = f, que se resuelve con un "
+            "método directo (PARDISO, MUMPS o SuperLU) o con gradiente "
+            "conjugado precondicionado por multigrid (agregación suavizada "
+            "con los seis modos rígidos como espacio casi nulo, o BDDC con "
+            "TET10) hasta el residuo relativo",
+            "with A_{b} the gross section and A_{t} the bone area of the top. "
+            "Its discretisation is the system K u = f, solved with a direct "
+            "method (PARDISO, MUMPS or SuperLU) or with conjugate gradients "
+            "preconditioned by multigrid (smoothed aggregation with the six "
+            "rigid-body modes as near-null space, or BDDC on TET10) down to "
+            "the relative residual")
+        eq(L, r"\frac{\|\mathbf{f}-\mathbf{K}\mathbf{u}\|}{\|\mathbf{f}\|}"
+              r"\leq 10^{-10}")
+        par("Análisis no lineales (formulación lagrangiana total): con "
+            "F = I + ∇u, C = FᵀF y E = (C − I)/2, el material de "
+            "St. Venant-Kirchhoff o el neo-Hookeano compresible (el de FEBio) "
+            "tienen energías",
+            "Nonlinear analyses (total Lagrangian formulation): with "
+            "F = I + ∇u, C = FᵀF and E = (C − I)/2, the St. Venant-Kirchhoff "
+            "material or the compressible neo-Hookean one (FEBio's) have "
+            "energies")
+        eq(L, r"W_{SVK}=\frac{\lambda}{2}(\mathrm{tr}\,\mathbf{E})^{2}+\mu\,"
+              r"\mathbf{E}:\mathbf{E},\qquad W_{NH}=\frac{\mu}{2}(\mathrm{tr}"
+              r"\,\mathbf{C}-3)-\mu\ln J+\frac{\lambda}{2}(\ln J)^{2}")
+        par("y el equilibrio R(u) = 0 se resuelve con Newton-Raphson sobre la "
+            "tangente consistente, hasta ‖R_libre‖ ≤ 10⁻¹⁰ de la fuerza en el "
+            "techo, con la carga del protocolo como tracción muerta o con el "
+            "desplazamiento de un plato rígido sin fricción:",
+            "and equilibrium R(u) = 0 is solved by Newton-Raphson on the "
+            "consistent tangent, down to ‖R_free‖ ≤ 10⁻¹⁰ of the top force, "
+            "with the protocol load as a dead traction or with the "
+            "displacement of a frictionless rigid platen:")
+        eq(L, r"\mathbf{R}(\mathbf{u})=\int_{\Omega_{0}}\mathbf{F}\,\mathbf{S}:"
+              r"\nabla_{0}\mathbf{v}\,d\Omega_{0}-\int_{\Gamma_{t}}\mathbf{t}"
+              r"\cdot\mathbf{v}\,d\Gamma,\quad \mathbf{S}=\frac{\partial W}"
+              r"{\partial\mathbf{E}},\quad \mathbf{K}_{T}\,\Delta\mathbf{u}="
+              r"-\mathbf{R}")
         par("E_{app} usa el desplazamiento vertical del techo promediado por "
             "ÁREA (con TET10 las esquinas de cada cara tri6 pesan cero y cada "
-            "nodo intermedio A/3); la fuerza se comprueba con la integral de "
-            "volumen de la tensión, porque FEBio 4.5 no escribe reacciones en "
-            "los apoyos:",
+            "nodo intermedio A/3). La fuerza de reacción sale del vector de "
+            "fuerzas internas en el techo y el equilibrio se comprueba, "
+            "independientemente del motor, con la integral de volumen de la "
+            "tensión:",
             "E_{app} uses the AREA-averaged vertical displacement of the top "
             "(with TET10 the corners of each tri6 face weigh zero and each "
-            "mid-side node A/3); the force is checked with the volume integral "
-            "of stress, because FEBio 4.5 writes no support reactions:")
+            "mid-side node A/3). The reaction force comes from the internal "
+            "force vector at the top, and equilibrium is checked, "
+            "independently of the engine, with the volume integral of "
+            "stress:")
         eq(L, r"F=-\frac{1}{H}\sum_{e}\sigma_{zz,e}\,V_{e}")
         par("Con elementos de distinto volumen, el percentil de Pistoia y el "
             "p99 de la capa superficial se ponderan por volumen: cada elemento "
             "ocupa un tramo de peso V_{e} y se sitúa en su punto medio "
             "c_{i} = S_{i} − V_{i}/2; con volúmenes iguales el resultado es "
-            "exactamente el de las ecuaciones anteriores. Los análisis no "
-            "lineales (fuerza impuesta, plato rígido, carga de Pistoia) se "
-            "resuelven en un paso con recorte automático y se comparan con el "
-            "lineal de la misma malla. La homogeneización con hex8 es la "
-            "periódica de la app; con TET10 se dan cotas KUBC/SUBC, que no son "
-            "el mismo problema.",
+            "exactamente el de las ecuaciones anteriores. La homogeneización "
+            "es la periódica de la app sobre la malla de ladrillos.",
             "With elements of different volume, the Pistoia percentile and "
             "the surface-layer p99 are volume-weighted: each element spans a "
             "weight interval V_{e} and sits at its midpoint "
             "c_{i} = S_{i} − V_{i}/2; with equal volumes the result is exactly "
-            "that of the equations above. Nonlinear analyses (imposed force, "
-            "rigid platen, Pistoia load) are solved in one step with "
-            "automatic cutback and compared with the linear result of the "
-            "same mesh. Homogenisation on hex8 is the app's periodic one; on "
-            "TET10 KUBC/SUBC bounds are given, which are not the same "
-            "problem.")
+            "that of the equations above. Homogenisation is the app's "
+            "periodic one on the brick mesh.")
+        filas = [f for f in FM.tabla_motores(regs_febio) if f.get("E_app_MPa")
+                 or f.get("no_disponible")]
+        if len({f.get("motor") for f in filas}) > 1:
+            par("Comparación entre motores sobre la misma malla. Las "
+                "diferencias relativas son frente al primer motor de cada "
+                "grupo: miden solo la implementación (malla, cargas y "
+                "postproceso son idénticos) y deben quedar en el orden de la "
+                "tolerancia del resolvedor.",
+                "Comparison between engines on the same mesh. Relative "
+                "differences are against the first engine of each group: "
+                "they measure only the implementation (mesh, loads and "
+                "post-processing are identical) and should stay at the order "
+                "of the solver tolerance.")
+            L.append(T("| Estructura | Malla | Eje | Motor | E_app (MPa) | "
+                       "p99 sup. (MPa) | σ fallo (MPa) | ΔE_app | Δp99 | "
+                       "Tiempo (s) |",
+                       "| Structure | Mesh | Axis | Engine | E_app (MPa) | "
+                       "p99 surf. (MPa) | σ failure (MPa) | ΔE_app | Δp99 | "
+                       "Time (s) |"))
+            L.append("|---|---|---|---|---:|---:|---:|---:|---:|---:|")
+
+            def c(x, fmt):
+                return "n/d" if x is None or (isinstance(x, float)
+                                              and not np.isfinite(x)) \
+                    else r.n(x, fmt)
+            for f in filas:
+                if f.get("no_disponible"):
+                    L.append(f"| {f['estructura']} | {f['malla']} | "
+                             f"{f['eje']} | {f['motor']} | "
+                             + T("no disponible", "not available")
+                             + " | | | | | |")
+                    continue
+                L.append(f"| {f['estructura']} | {f['malla']} | {f['eje']} | "
+                         f"{f['motor']} | {c(f.get('E_app_MPa'), '.2f')} | "
+                         f"{c(f.get('vm_p99_sup_MPa'), '.3f')} | "
+                         f"{c(f.get('sigma_fallo_MPa'), '.3f')} | "
+                         f"{c(f.get('dE_rel'), '.1e')} | "
+                         f"{c(f.get('dp99_rel'), '.1e')} | "
+                         f"{c(f.get('tiempo_s'), '.1f')} |")
+            L.append("")
 
     # ------------------------------------------------------------------
     sub("Criterios de citabilidad", "Citability criteria")
