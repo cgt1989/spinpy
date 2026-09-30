@@ -11,7 +11,7 @@ el documento no tiene su dato.
   fig15_curvaturas   perfil de curvaturas principales (k1, k2) ponderado por
                      area y fracciones de silla, convexa y concava
   fig16_ef           distribucion del Ellipsoid Factor (placas frente a barras)
-  fig17_febio        paridad spinpy frente a FEBio
+  fig17_febio        paridad de los motores FEM frente a la app
   fig18_superficie   sensibilidad de la morfometria y de E_app a desplazar la
                      superficie (sustituto de un cambio de umbral)
   fig19_contorno     E/E_s con cada condicion de contorno
@@ -418,7 +418,7 @@ def fig_ellipsoid_factor(doc, destino, idioma="es"):
 
 
 # ---------------------------------------------------------------------------
-# Figura 17: paridad spinpy frente a FEBio
+# Figura 17: paridad de los motores FEM frente a la app
 # ---------------------------------------------------------------------------
 
 MAGNITUDES_FEBIO = (("E_app_app_MPa", "E_app_MPa", "o", "E_app"),
@@ -429,12 +429,14 @@ MAGNITUDES_FEBIO = (("E_app_app_MPa", "E_app_MPa", "o", "E_app"),
 
 
 def fig_paridad_febio(doc, destino, idioma="es"):
-    """Cada magnitud de la app frente a la de FEBio sobre la misma malla.
+    """Cada magnitud de la app frente a la del motor FEM sobre la misma malla.
 
     Solo registros hex8: con TET10 la malla es otra y la diferencia mezcla
-    malla y solver, que no es lo que una grafica de paridad debe mostrar.
+    malla y solver, que no es lo que una grafica de paridad debe mostrar. El
+    registro del propio motor «app» se omite (seria la identidad). Los
+    registros de FEBio de sesiones anteriores se dibujan igual.
     """
-    from .febio import fila_tabla
+    from .fem import fila_tabla
     from .informe import estructura_de
     i = _i(idioma)
     regs = ((doc.get("resultados") or {}).get("febio") or {}).get(
@@ -442,6 +444,8 @@ def fig_paridad_febio(doc, destino, idioma="es"):
     puntos = []
     for reg in regs:
         if str(reg.get("malla", "hex8")).lower() != "hex8":
+            continue
+        if (reg.get("motor") or {}).get("clave") == "app":
             continue
         f = fila_tabla(reg)
         est = estructura_de(f.get("estructura"), doc)
@@ -464,7 +468,8 @@ def fig_paridad_febio(doc, destino, idioma="es"):
     ax.set_yscale("log")
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
-    _etiquetas(ax, ("spinpy [MPa]", "spinpy [MPa]")[i], "FEBio [MPa]")
+    _etiquetas(ax, ("app [MPa]", "app [MPa]")[i],
+               ("motor FEM [MPa]", "FE engine [MPa]")[i])
     _titulo(ax, ("(a) paridad", "(a) parity")[i])
     mans = [Line2D([], [], ls="", marker=m, color=TINTA_2, mfc=FONDO,
                    label=etq) for _a, _b, m, etq in MAGNITUDES_FEBIO]
@@ -482,7 +487,7 @@ def fig_paridad_febio(doc, destino, idioma="es"):
     ax.set_yscale("log")
     ax.set_xticks([])
     _etiquetas(ax, ("magnitud y estructura", "quantity and structure")[i],
-               ("|FEBio/spinpy − 1|", "|FEBio/spinpy − 1|")[i])
+               ("|motor/app − 1|", "|engine/app − 1|")[i])
     _titulo(ax, ("(b) diferencia relativa", "(b) relative difference")[i])
     fig.tight_layout()
     return _guardar(fig, destino)

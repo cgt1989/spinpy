@@ -44,6 +44,14 @@ MODULOS = [
     ("spinpy/fit.py", "Ajuste: busqueda escalonada y desempate mecanico"),
     ("spinpy/elastic.py", "Homogeneizacion elastica periodica"),
     ("spinpy/resistencia.py", "Ensayo de compresion, von Mises y Pistoia"),
+    ("spinpy/fem.py", "Ensayos FEM con motores internos (hex8 y TET10)"),
+    ("spinpy/motores/__init__.py", "Motores FEM: registro, deteccion y proceso hijo"),
+    ("spinpy/motores/_comun.py", "Motores FEM: problema comun y resolvedores"),
+    ("spinpy/motores/m_ngsolve.py", "Motor NGSolve"),
+    ("spinpy/motores/m_fenicsx.py", "Motor FEniCSx"),
+    ("spinpy/motores/m_skfem.py", "Motor scikit-fem"),
+    ("spinpy/motores/m_sfepy.py", "Motor SfePy"),
+    ("spinpy/motores/m_app.py", "Motor de la app"),
     ("spinpy/solido.py", "Mallas solidas: hexaedrica y TET10"),
     ("spinpy/escribe.py", "Exportadores: Abaqus, APDL, VTU, STL"),
     ("spinpy/lote.py", "Lote de VOIs y dispersion del generador"),
@@ -156,12 +164,22 @@ def documentar(ruta, titulo):
     return "\n".join(out)
 
 
+def _version():
+    """Version del paquete leida del fuente, sin importarlo."""
+    import re
+    txt = (RAIZ / "spinpy" / "__init__.py").read_text(encoding="utf-8")
+    m = re.search(r'^__version__ = "([^"]+)"', txt, re.M)
+    return m.group(1) if m else "?"
+
+
 def main():
     partes = [
         "# Manual de referencia de spinpy",
         "",
         "Ajuste de microestructuras espinodales a volumenes de hueso "
         "trabecular obtenidos por microtomografia.",
+        "",
+        "Version V%s." % _version(),
         "",
         "> Este manual esta **generado del codigo**. Cada apartado reproduce "
         "la documentacion que acompana a la funcion en el fuente, y no una "

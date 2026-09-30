@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="version V1.0.2" src="https://img.shields.io/badge/version-V1.0.2-e8a33d">
+  <img alt="version V2.0.0" src="https://img.shields.io/badge/version-V2.0.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 27 blocks" src="https://img.shields.io/badge/verification-27%20blocks-5b6b7f">
+  <img alt="Verification: 28 blocks" src="https://img.shields.io/badge/verification-28%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -109,7 +109,7 @@ candidate**, and failure load by the Pistoia criterion.
 | **Measures** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, MIL tensor and DA, Conn.D, SMI, local thickness, pore size, **Ellipsoid Factor** and principal curvatures of the interface. |
 | **Fits** | The parameters that best reproduce a real VOI: staged search, replicas with fresh seeds, self-consistent noise floor and optional mechanical tie-break. |
 | **Homogenizes** | The elastic tensor by periodic unit cell on the voxel grid, with algebraic multigrid and a residual check. |
-| **Tests** | Compression along X, Y or Z with von Mises, effective-strain and displacement fields; Pistoia failure; mesh-convergence study. |
+| **Tests** | Compression along X, Y or Z with von Mises, effective-strain and displacement fields; Pistoia failure; mesh-convergence study. On bricks or on a smooth mesh of quadratic tetrahedra, linear or nonlinear, with built-in FE engines (the app, NGSolve and, if installed, FEniCSx, scikit-fem and SfePy), one or several at once. |
 | **Simulates** | *In silico* bone loss (thinning, thin-trabeculae loss, disuse, recovery) and progressive failure on the VOI's digital twin. |
 | **Reports** | A publication report in Spanish and English (Markdown and PDF): methods written from the values actually used, 600 dpi figures, a citability table, a reporting checklist (Bouxsein et al. 2010 for micro-CT, Erdemir et al. 2012 for finite elements) and a SHA-256 fingerprint to reproduce each mask. |
 | **Exports** | Hexahedral or TET10 solid to Abaqus, ANSYS APDL, VTU and STL, and the full compression test to FEBio 4 (`.feb`). |
@@ -288,7 +288,7 @@ python Test/replicar_kumar2020.py --rapido   # ~1.5 min
 python -m pytest tests/ -q
 ```
 
-27 blocks with tolerances **declared before measuring**: topology, SMI,
+28 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.
@@ -333,6 +333,11 @@ the ±6 % separating the two tools.
 ---
 
 ## Comparison with FEBio
+
+> Validation done with V1.0.x. Since V2.0.0 the application no longer uses
+> FEBio (see "Built-in FE engines" below); these campaigns remain the external
+> validation of the app's solver, and the engine comparison reproduced their
+> brick-mesh cavity figures to 10⁻⁸.
 
 Every mechanical analysis of the application has been solved again,
 independently, with **FEBio 4.5** (Maas et al. 2012), the reference
@@ -507,69 +512,80 @@ Requires FEBio 4.5 (FEBio Studio 2). Results are left in
 
 ---
 
-## FEBio inside spinpy: "Automatic FEM" and "Analyse with FEBio"
+## Built-in FE engines: no external programs
 
-The application also solves its tests in FEBio from the interface: the app's
-test, the Tapia et al. (2026) protocol and homogenization, with the app's
-brick mesh (hex8), with a **smooth mesh of quadratic tetrahedra** (TET10) or
-with both, linear and nonlinear (force, rigid platen, Pistoia load). The same
-computation runs from the command line:
+Since V2.0.0 every test is solved **inside spinpy**. FEBio is no longer used
+or searched for; `.feb` export is kept as an exchange format. In
+**Mechanical analysis**, "FE engine" chooses who solves, and "Mesh" and
+"Analysis" what is solved:
+
+| engine | meshes | analyses | in the Windows installer |
+|---|---|---|---|
+| **App (spinpy)** | bricks (hex8) | linear | yes (the usual, validated solver) |
+| **NGSolve** (recommended) | hex8 and TET10 | linear and nonlinear (St. Venant-Kirchhoff, neo-Hookean) | yes |
+| scikit-fem | hex8 and TET10 | linear and nonlinear | yes |
+| FEniCSx | hex8 and TET10 | linear and nonlinear | no (conda-forge only; compiles C at run time) |
+| SfePy | hex8 and TET10 | linear; nonlinear SVK only | no (no Windows wheels) |
+
+"Compare engines…" (panel) and **"FEM report (Auto)…"** (top bar) solve the
+same mesh with **several engines at once** and give a comparison table
+between engines and against the app, which also goes into the publication
+report. The automatic report has its own "FE engines (comparison table)" row.
+Each solve runs in a child process: "Stop" kills it and running out of memory
+does not close the window. The same computation runs from the command line:
 
 ```bash
-python -m spinpy.febio VOI.vtk --protocolo app tapia2026 --malla hex8 tet10
+python -m spinpy.fem VOI.vtk --protocolo app tapia2026 --malla hex8 tet10 --motores app ngsolve
 ```
 
-**How to get FEBio.** This repository **ships no FEBio binaries**. Install
-FEBio Studio 2 (free, [febio.org](https://febio.org)); spinpy finds it on its
-own, or `febio4.exe` can be chosen in the window. The lab's Windows
-executable includes it.
+### Report: engine comparison
 
-**FEBio licence: in progress.** The FEBio binaries are under the University
-of Utah's FEBio Software License 4.0, which does not allow redistributing
-them. A redistribution licence **is being requested** ahead of this
-repository's publication; until then the copy included in the executable is
-for internal lab use only. FEBio's source code is MIT
-([febiosoftware/FEBio](https://github.com/febiosoftware/FEBio)).
-
-### Report: smooth mesh (TET10) versus bricks
-
-📄 **[Full report in PDF](comparativa_febio_tet/INFORME.pdf)** (Spanish) ·
-[Markdown version](comparativa_febio_tet/INFORME.md) ·
-[data](comparativa_febio_tet/resultados/cavidad.jsonl)
+📄 **[Full report (PDF, Spanish)](comparativa_motores/INFORME.pdf)** ·
+[Markdown version](comparativa_motores/INFORME.md) ·
+[tables](comparativa_motores/tablas.md) ·
+[data](comparativa_motores/resultados/)
 
 | result | value |
 |---|---|
-| FEBio reads TET10 in spinpy's node order (exact quadratic field) | 3.9·10⁻¹⁰ |
-| solid block, E_app = E_s (hex8 and TET10) | ≤ 1.5·10⁻⁹ |
-| FEBio hex8 versus the app, H4 proximal VOI at 32³ | 8.7·10⁻⁸ |
-| spherical cavity: stiffness with smooth mesh versus analytical | < 0.5 % |
-| spherical cavity: **von Mises peak** with smooth mesh, 40³ | **+12 %, does not converge** |
-| H4 proximal VOI at 32³: E_app TET10 / E_app hex8 | **0.44** (2.3× softer) |
+| solid block, E_app = E_s (hex8 and TET10, all five engines) | ≤ 10⁻¹¹ |
+| nonlinear compression up to 20 %, against the closed-form solution | ≤ 4·10⁻¹² |
+| cavity on bricks, engines against FEBio 4.5 (E_app, p99) | 7.7·10⁻⁹ · 1.7·10⁻⁹ |
+| spinodoid, displacements between engines (direct solvers) | 10⁻¹³ to 10⁻¹¹ |
+| TET10 at 790,599 DOF: NGSolve (Cholesky) · FEniCSx (MUMPS) · scikit-fem · SfePy | 45 s · 22 s · 905 s · 1010 s |
+| NGSolve: its own Cholesky against MKL PARDISO | 1.4-1.6× faster, 2.3-2.8× less memory |
 
-<p align="center"><img src="comparativa_febio_tet/figs/en/fig_cavidad_pico.png" alt="Von Mises peak and p99 on the wall of a spherical cavity versus resolution, with bricks, smooth mesh and the analytical reference" width="90%"></p>
+<p align="center"><img src="comparativa_motores/figs/fig3_tiempo_tet10.png" alt="Solution time of the spinodoid with a smooth TET10 mesh against degrees of freedom, per engine and solver" width="90%"></p>
 
-Three measured conclusions:
+Three measured reliability findings drove the configuration: SfePy's St.
+Venant-Kirchhoff tangent is not the derivative of its residual (37 % error,
+linear Newton convergence); FEniCSx CG + GAMG diverges on the TET10 mesh of a
+real spinodoid; and scikit-fem CG + pyamg stops at a 10⁻¹⁰ residual with a
+displacement error of up to 0.9 % on those meshes. Hence NGSolve solves the
+smooth mesh with BDDC or its Cholesky, not with a generic algebraic
+multigrid. The work also found and fixed two bugs in the app's TET10 meshing
+(flat tetrahedra on the cube faces that aborted the mesh, and mid-side nodes
+off their edge midpoint after snapping to the planes).
 
-- **With bricks, FEBio and the app solve the same problem** (≤ 10⁻⁷).
-- **The smooth mesh does not make the von Mises peak converge**: on the
-  spherical cavity it oscillates like the bricks' peak and depends by several
-  points on the smoothing iterations. Stiffness is stable.
-- **On real bone at 32³ the smooth mesh is not reliable**: with two-voxel
-  struts, smoothing narrows them and the VOI comes out 2.3 times softer than
-  with bricks; the nonlinear analysis does not even converge. The useful
-  comparison is at 48³ or more (≈ 7 GB with TET10), pending; the window warns
-  below 48³.
+### Background: smooth mesh (TET10) against bricks, with FEBio
 
-The work also found and fixed three bugs: `solido.malla_tet10` filled closed
-pores, the volume correction made tetgen crash, and with TET10 FEBio declared
-"does not converge" because of a residual criterion below the rounding floor.
+📄 [Report (PDF)](comparativa_febio_tet/INFORME.pdf) ·
+[Markdown version](comparativa_febio_tet/INFORME.md) ·
+[data](comparativa_febio_tet/resultados/cavidad.jsonl)
+
+With FEBio 4.5 (V1.0.x) it was established that the smooth mesh does not make
+the von Mises peak converge on the spherical cavity (stiffness is stable) and
+that on real bone at 32³ two-voxel struts come out too soft: the useful
+comparison is at 48³ or finer. Those conclusions concern the mesh, not the
+program, and still hold with the built-in engines.
 
 ---
 
 ## Documentation
 
 The mechanical validation against FEBio is in
-[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf).
+[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf),
+and the comparison of the built-in FE engines in
+[`comparativa_motores/INFORME.pdf`](comparativa_motores/INFORME.pdf).
 
 `docs/MANUAL_spinpy.pdf` documents every module and every function, and is
 generated from the code itself (`python docs/generar_manual.py`). The

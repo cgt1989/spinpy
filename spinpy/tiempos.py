@@ -282,6 +282,16 @@ def memoria_febio(tipo, gdl):
     return 2254.0 * (g / 3e5) ** 1.071
 
 
+def memoria_fem(tipo, gdl):
+    """MB de pico del resolvedor directo (PARDISO) para `gdl` grados.
+
+    Es el modelo medido con FEBio, que resolvia con PARDISO como el motor
+    recomendado (NGSolve): sirve de cota hasta recalibrarlo con los motores
+    internos (`comparativa_motores/`).
+    """
+    return memoria_febio(tipo, gdl)
+
+
 def iteracion_febio(tipo, gdl):
     """s por iteracion de Newton (factorizacion) de FEBio."""
     g = float(gdl)
