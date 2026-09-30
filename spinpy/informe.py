@@ -160,7 +160,7 @@ GRAVEDAD = {
     "sim_tbth_h": RESERVAS,
     "sim_pendiente": RESERVAS,
     "fallo_modelo_dano": RESERVAS,
-    # FEBio (febio.py)
+    # Ensayos FEM con motores internos (fem.py; antes FEBio)
     "febio_fallo": NO_CITABLE,
     "febio_equilibrio": NO_CITABLE,
     "febio_perdida_volumen": RESERVAS,

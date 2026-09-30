@@ -1,5 +1,5 @@
 """
-figuras.py — Tablas (Markdown) y figuras de la comparativa de motores.
+figuras.py: tablas (Markdown) y figuras de la comparativa de motores.
 
     python comparativa_motores/figuras.py
 
@@ -42,6 +42,19 @@ def leer(grupo):
     return [json.loads(x) for x in f.read_text().splitlines() if x.strip()]
 
 
+def modo(d):
+    """'directo' o 'iterativo' a partir del nombre del resolvedor.
+
+    En el JSON la clave `solver` guarda el NOMBRE que devuelve el motor (el
+    modo pedido lo sobrescribe la meta del motor al guardar la fila)."""
+    n = str(d.get("solver") or "")
+    if d["motor"] == "app":
+        return "propio"
+    return "directo" if any(k in n for k in ("SuperLU", "PARDISO", "MUMPS",
+                                               "sparsecholesky", "Newton")) \
+        else "iterativo"
+
+
 def t_total(d):
     return sum((d.get("tiempos") or {}).values()) if d.get("ok") else None
 
@@ -54,13 +67,13 @@ def t_sin_jit(d):
 
 def fmt(x, f=".3g"):
     if x is None or (isinstance(x, float) and not np.isfinite(x)):
-        return "—"
+        return "n/d"
     return format(x, f)
 
 
 def sci(x):
     if x is None:
-        return "—"
+        return "n/d"
     if x == 0:
         return "0"
     return f"{x:.1e}"
@@ -89,11 +102,11 @@ def tabla_lineal(filas, titulo):
             else d.get("E_app_nodal_MPa")
         L.append(
             f"| {d['caso']} | {d.get('n_gdl', m['n_gdl'])} | "
-            f"{NOMBRE[d['motor']]} | {d.get('solver') or '—'} | "
+            f"{NOMBRE[d['motor']]} | {d.get('solver') or 'n/d'} | "
             f"{fmt(t_sin_jit(d), '.2f')} | "
             f"{fmt((d.get('tiempos') or {}).get('jit'), '.2f')} | "
             f"{fmt(d.get('rss_pico_MB'), '.0f')} | "
-            f"{sci(d.get('residuo_rel'))} | {d.get('iteraciones') or '—'} | "
+            f"{sci(d.get('residuo_rel'))} | {d.get('iteraciones') or 'n/d'} | "
             f"{sci(d.get('du_rel_ref'))} | {sci(d.get('dvm_rel_ref'))} | "
             f"{fmt(E, '.6g')} | {fmt(d.get('vm_p99_sup_MPa'), '.5g')} | "
             f"{fmt(d.get('sigma_fallo_MPa'), '.5g')} | {sci(d.get('dF_rel'))} |")
@@ -113,7 +126,7 @@ def tabla_nl(filas):
                      f"**falló**: {d.get('motivo', '')[:70]} | | | | | |")
             continue
         F = d.get("F_reac_N") or []
-        err = "—"
+        err = "n/d"
         if d.get("F_exacta_N"):
             e = np.abs(np.array(F) / np.array(d["F_exacta_N"]) - 1).max()
             err = sci(float(e))
@@ -129,6 +142,12 @@ def tabla_nl(filas):
 # ---------------------------------------------------------------------------
 # Figuras
 # ---------------------------------------------------------------------------
+
+def _ejes_log(ax):
+    from matplotlib.ticker import LogLocator, NullFormatter
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.xaxis.set_major_locator(LogLocator(base=10))
+
 
 def _estilo(ax):
     for s in ("top", "right"):
@@ -148,22 +167,30 @@ def fig_escalado(filas, destino, clave, etiqueta_y, titulo):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.0), sharey=True)
-    for ax, modo, et in zip(axs, ("iterativo", "directo"),
+    for ax, modo_p, et in zip(axs, ("iterativo", "directo"),
                             ("(a) resolvedor iterativo",
                              "(b) resolvedor directo")):
         _estilo(ax)
         for mot in MOTORES:
-            pts = [(d["meta_caso"]["n_gdl"], clave(d)) for d in filas
-                   if d["motor"] == mot and d.get("ok") and clave(d)
-                   and (d["solver"] == modo or mot == "app")]
-            if not pts:
-                continue
-            pts.sort()
-            x, y = zip(*pts)
-            ax.plot(x, y, "-", marker=MARCA[mot], color=COLOR[mot], lw=1.6,
-                    ms=5, mfc=FONDO, mew=1.3, label=NOMBRE[mot])
+            for var in ("", "sparsecholesky"):
+                pts = [(d["meta_caso"]["n_gdl"], clave(d)) for d in filas
+                       if d["motor"] == mot and d.get("ok") and clave(d)
+                       and (modo(d) == modo_p or mot == "app")
+                       and (("sparsecholesky" in str(d.get("solver")))
+                            == bool(var))]
+                if not pts:
+                    continue
+                pts = sorted(dict(pts).items())
+                x, y = zip(*pts)
+                ax.plot(x, y, "--" if var else "-", marker=MARCA[mot],
+                        color=COLOR[mot], lw=1.6, ms=5,
+                        mfc=COLOR[mot] if var else FONDO, mew=1.3,
+                        label=NOMBRE[mot] + (" (Cholesky propio)" if var
+                                             else " (resolvedor propio)"
+                                             if mot == "app" else ""))
         ax.set_xscale("log")
         ax.set_yscale("log")
+        _ejes_log(ax)
         ax.set_xlabel("grados de libertad", fontsize=7.5, color=TINTA_2)
         ax.set_title(et, fontsize=8, color=TINTA, loc="left")
     axs[0].set_ylabel(etiqueta_y, fontsize=7.5, color=TINTA_2)
@@ -184,22 +211,22 @@ def fig_exactitud(filas, destino):
     _estilo(ax)
     for mot in MOTORES:
         pts = [(d["meta_caso"]["n_gdl"], max(d["du_rel_ref"], 1e-16),
-                d["solver"]) for d in filas
+                modo(d)) for d in filas
                if d["motor"] == mot and d.get("ok")
-               and d.get("du_rel_ref") is not None
-               and list(d.get("referencia") or []) != [mot, d["solver"]]]
-        for modo, relleno in (("iterativo", FONDO), ("directo", None),
-                              ("propio", FONDO)):
-            q = sorted((x, y) for x, y, s in pts if s == modo)
+               and (d.get("du_rel_ref") or 0) > 0]
+        for m_, relleno in (("iterativo", FONDO), ("directo", None),
+                            ("propio", FONDO)):
+            q = sorted(dict((x, y) for x, y, s in pts if s == m_).items())
             if not q:
                 continue
             x, y = zip(*q)
-            ax.plot(x, y, ls="-" if modo != "directo" else ":",
+            ax.plot(x, y, ls="-" if m_ != "directo" else ":",
                     marker=MARCA[mot], color=COLOR[mot], lw=1.2, ms=5,
                     mfc=relleno or COLOR[mot], mew=1.2,
-                    label=f"{NOMBRE[mot]} ({modo})")
+                    label=f"{NOMBRE[mot]} ({m_})")
     ax.set_xscale("log")
     ax.set_yscale("log")
+    _ejes_log(ax)
     ax.axhline(1e-8, color=TINTA_2, lw=0.8, ls="--")
     ax.text(ax.get_xlim()[0], 1.3e-8, " tolerancia de la app (1e-8)",
             fontsize=6, color=TINTA_2, va="bottom")

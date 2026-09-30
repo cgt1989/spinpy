@@ -1,5 +1,5 @@
 """
-dialogo_febio.py — Las ventanas de elementos finitos del visor.
+dialogo_febio.py: Las ventanas de elementos finitos del visor.
 
 (El nombre del archivo es el de antes de los motores internos; FEBio ya no se
 ejecuta.) Dos puertas, un solo camino de calculo (`spinpy.fem.analizar` y

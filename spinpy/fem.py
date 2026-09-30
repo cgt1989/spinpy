@@ -1,5 +1,5 @@
 """
-fem.py — Ensayos de elementos finitos de spinpy con motores INTERNOS.
+fem.py: Ensayos de elementos finitos de spinpy con motores INTERNOS.
 
 Sustituye a la integracion con FEBio (`febio4.exe`, un proceso externo). El
 mallado, los protocolos, el postproceso y las tablas son los mismos que se
@@ -246,6 +246,22 @@ def preparar_tet10(nodos, elems, forma, spacing):
         for v in (-0.5 * spacing[e], (forma[e] - 0.5) * spacing[e]):
             cerca = np.abs(nodos[:, e] - v) <= 1e-3 * spacing[e]
             nodos[cerca, e] = v
+    # ASTILLAS PLANAS. tetgen deja a veces tetraedros con sus cuatro esquinas
+    # sobre una misma cara del cubo (volumen ~1e-10 de la mediana, medido en
+    # el espinodoide de referencia a 32^3: 29 elementos). Al devolver los
+    # nodos a su plano exacto su volumen pasa a cero y la malla se rechazaba
+    # (tambien por la ruta de FEBio). Esas astillas no aportan volumen ni
+    # rigidez: sus cuatro caras cubren dos veces el mismo cuadrilatero de la
+    # cara del cubo. Se quitan y la cara expuesta pasa a ser la del elemento
+    # interior contiguo; se declara cuantas.
+    en_mismo_plano = np.zeros(elems.shape[0], bool)
+    for e in range(3):
+        for v in (-0.5 * spacing[e], (forma[e] - 0.5) * spacing[e]):
+            en_mismo_plano |= np.all(nodos[elems[:, :4], e] == v, axis=1)
+    n_astillas = int(en_mismo_plano.sum())
+    if n_astillas:
+        elems = elems[~en_mismo_plano]
+        nodos, elems = _compactar(nodos, elems)
     vol = _volumen_tet(nodos, elems)
     if (vol <= 0).any():
         raise RuntimeError(f"{int((vol <= 0).sum())} tetraedros con "
@@ -278,6 +294,7 @@ def preparar_tet10(nodos, elems, forma, spacing):
            "descartado_pct": 100.0 * (V_total - V) / V_total,
            "BVTV_malla": V / V_caja,
            "vol_elem_min_mm3": float(vol.min()),
+           "astillas_planas_quitadas": n_astillas,
            "vol_elem_mediana_mm3": float(np.median(vol))}
     return nodos, elems, vol, caras, sup, z0, z1, inf
 
@@ -313,13 +330,13 @@ def mallar(BW, spacing, tipo="hex8", eje=2, progreso=None, **opciones):
       vol_elem      volumen de cada elemento (mm^3),
       superficie    elementos de la capa superficial (bool, M): los que
                     tienen una cara en el borde libre del hueso. Las caras
-                    sobre los seis planos del cubo NO cuentan —la regla de
-                    las isocaps, la misma de `resistencia.capa_superficie`—.
+                    sobre los seis planos del cubo NO cuentan (la regla de
+                    las isocaps, la misma de `resistencia.capa_superficie`).
       A_bruta, H, z0, z1, forma, spacing, eje, huella (SHA-256), informe.
 
     Con TET10, `informe` declara la perdida de volumen frente a los voxeles
     del hueso portante y frente a la superficie cruda de marching cubes, y el
-    volumen descartado al exigir que la MALLA —no la mascara— una base y
+    volumen descartado al exigir que la MALLA (no la mascara) una base y
     techo: el suavizado puede cortar un puntal de un voxel.
     """
     from .resistencia import _PERM, _solo_portante, capa_superficie
@@ -498,8 +515,8 @@ def mallar_aislado(BW, spacing, tipo="tet10", eje=2, **opciones):
 #: Una entrada por protocolo; agregar uno aqui lo agrega a los dialogos.
 #: 'app' es el ensayo por omision de la app (`resistencia`). 'tapia2026'
 #: reproduce los cuatro valores que definen el ensayo de Tapia, Gonzalez,
-#: Vidal & Salinas, Biology 2026;15:722 —los mismos que `visor.PAPER_*`, lo
-#: comprueba el bloque 27—; alli el mallado fue SOLID187 de 0.05 mm en
+#: Vidal & Salinas, Biology 2026;15:722 (los mismos que `visor.PAPER_*`, lo
+#: comprueba el bloque 27); alli el mallado fue SOLID187 de 0.05 mm en
 #: ANSYS, de ahi `tam_elem_mm`. Si se edita cualquiera de los valores
 #: publicados, el registro deja de llamarse Tapia (`nombre_protocolo`).
 #: 'homogeneizacion' da el tensor elastico: periodico con hex8 (el mismo
@@ -573,8 +590,8 @@ def _uz_medio(malla, u):
     Es la integral de uz sobre las caras cargadas entre su area. Con quad4
     bilineales cada nodo de una cara pesa A/4; con tri6 las esquinas pesan
     CERO y cada nodo intermedio A/3 (integral de las funciones de forma
-    cuadraticas). La media simple de los nodos del techo —la definicion de
-    la app con voxeles— pesaria de mas las esquinas de las caras.
+    cuadraticas). La media simple de los nodos del techo (la definicion de
+    la app con voxeles) pesaria de mas las esquinas de las caras.
     """
     from .escribe import area_caras
     caras = malla["caras_techo"]

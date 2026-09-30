@@ -1,5 +1,5 @@
 """
-m_fenicsx.py — Motor FEniCSx (DOLFINx + UFL + FFCx + PETSc; LGPL-3.0).
+m_fenicsx.py: Motor FEniCSx (DOLFINx + UFL + FFCx + PETSc; LGPL-3.0).
 
 No esta en PyPI: se instala con conda-forge (`conda install -c conda-forge
 fenics-dolfinx`). Las formas se escriben en UFL; FFCx las traduce a C y CFFI
@@ -181,6 +181,14 @@ def resolver(p):
         ksp, info["solver"] = _ksp(A, V, modo, m.get("tol", 1e-10))
         ksp.solve(b, uh.x.petsc_vec)
         uh.x.scatter_forward()
+        if ksp.getConvergedReason() < 0 and m.get("solver", "auto") == "auto":
+            # MEDIDO: con la malla TET10 de un espinodoide real, CG + GAMG
+            # diverge con precondicionador indefinido (codigo -8); en modo
+            # automatico se repite con el directo en lugar de fallar.
+            info["fallo_iterativo"] = int(ksp.getConvergedReason())
+            ksp, info["solver"] = _ksp(A, V, "directo", m.get("tol", 1e-10))
+            ksp.solve(b, uh.x.petsc_vec)
+            uh.x.scatter_forward()
         if ksp.getConvergedReason() < 0:
             raise ErrorMotor(f"PETSc KSP no convergio "
                              f"({ksp.getConvergedReason()})")

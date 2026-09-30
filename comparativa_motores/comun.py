@@ -1,5 +1,5 @@
 """
-comun.py — Casos de prueba y postproceso comun de la comparativa de motores.
+comun.py: Casos de prueba y postproceso comun de la comparativa de motores.
 
 Un CASO es un problema discreto completo (malla, material, apoyo, carga)
 escrito en un .npz que leen los cinco adaptadores de `motores/`. El

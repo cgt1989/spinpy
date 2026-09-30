@@ -1,5 +1,5 @@
 """
-correr.py — Campana de la comparativa de motores FEM.
+correr.py: Campana de la comparativa de motores FEM.
 
     cd comparativa_motores
     python correr.py exactos cavidad espinodoide_hex espinodoide_tet nl

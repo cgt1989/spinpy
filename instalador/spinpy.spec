@@ -91,16 +91,14 @@ if _test.is_dir():
 # FEBio: los ensayos con malla suave y los no lineales los resuelven motores
 # que corren DENTRO del proceso de spinpy. Viajan los que tienen rueda binaria
 # para Windows en PyPI (comprobado 2026-09-30 con `pip download --platform
-# win_amd64`): NGSolve (LGPL-2.1, el recomendado) con MKL para su PARDISO, y
-# scikit-fem (BSD-3, Python puro). SfePy solo publica ruedas para Linux y
-# FEniCSx no esta en PyPI (conda-forge, y compila C en tiempo de ejecucion):
-# no viajan; si el usuario los instala en su Python, la app los detecta.
+# win_amd64`): NGSolve (LGPL-2.1, el recomendado) y scikit-fem (BSD-3, Python
+# puro). SfePy solo publica ruedas para Linux y FEniCSx no esta en PyPI
+# (conda-forge, y compila C en tiempo de ejecucion): no viajan; si el usuario
+# los instala en su Python, la app los detecta. NGSolve no necesita MKL: su
+# Cholesky propio fue mas rapido que PARDISO en todas las medidas.
 #
-# NGSolve carga sus bibliotecas (libngsolve, netgen) desde su paquete y
-# `mkl_rt` en tiempo de ejecucion: PyInstaller no lo ve en ningun import.
-# La rueda `mkl` deja sus DLL en <prefijo>\Library\bin; se copian junto al
-# ejecutable. Sin ellas NGSolve cae a su `sparsecholesky` (mas lento, mismo
-# resultado) y la autocomprobacion lo dice.
+# NGSolve carga sus bibliotecas (libngsolve, netgen) desde su paquete en
+# tiempo de ejecucion: PyInstaller no las ve en ningun import.
 from PyInstaller.utils.hooks import collect_dynamic_libs  # noqa: E402
 ocultos += collect_submodules("ngsolve") + collect_submodules("netgen")
 ocultos += collect_submodules("skfem")
@@ -108,10 +106,6 @@ ocultos += ["spinpy.motores.m_app", "spinpy.motores.m_ngsolve",
             "spinpy.motores.m_skfem", "spinpy.motores.m_fenicsx",
             "spinpy.motores.m_sfepy"]
 binarios = collect_dynamic_libs("ngsolve") + collect_dynamic_libs("netgen")
-_mkl = Path(sys.prefix) / "Library" / "bin"
-for _dll in sorted(_mkl.glob("mkl_*.dll")) + sorted(_mkl.glob("libiomp*.dll")):
-    binarios.append((str(_dll), "."))
-print(f"[spinpy] MKL: {sum(1 for b in binarios if 'mkl_' in b[0])} DLL")
 datos += collect_data_files("ngsolve") + collect_data_files("netgen")
 
 datos += collect_data_files("pyvista")

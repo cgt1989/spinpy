@@ -11,8 +11,8 @@ LO QUE SE VERIFICA
   (1) Bloque macizo, lineal, con cada motor y cada malla que resuelve (hex8,
       TET10): E_app = E_s y la fuerza de equilibrio igual a la aplicada. Es
       solucion exacta del problema discreto: deformacion uniforme.
-  (2) Plato rigido lineal en el bloque: la reaccion del plato es
-      E_s A eps (exacta).
+  (2) Plato rigido lineal en el bloque, hex8 y TET10: la reaccion del plato
+      es E_s A eps (exacta).
   (3) No lineal, bloque en compresion uniaxial hasta el 20 %, con plato y
       laterales libres: la fuerza de reaccion por paso frente a la solucion
       cerrada (`uniaxial`) de St. Venant-Kirchhoff y del neo-Hookeano de
@@ -105,19 +105,24 @@ def test_bloque_macizo(registro, motor, tipo):
     assert ok
 
 
-@pytest.mark.parametrize("motor", [m for m in motores.MOTORES if m != "app"])
-def test_plato_lineal(registro, motor):
+@pytest.mark.parametrize("motor,tipo", [
+    pytest.param(m, t, id=f"{m}-{t}") for m in motores.MOTORES if m != "app"
+    for t in ("hex8", "tet10")])
+def test_plato_lineal(registro, motor, tipo):
+    """Con TET10 detecta el espacio jerarquico de NGSolve: si el plato se
+    impusiera tambien en los GDL de burbuja, o la reaccion los sumara, la
+    fuerza saldria mal (medido: 0,875 de la exacta)."""
     if motor not in DISP:
         pytest.skip(f"{motor} no instalado")
-    m = _malla_bloque("hex8")
+    m = _malla_bloque(tipo)
     eps = 1e-3
     out = motores.resolver(_problema(m, motor, control="plato",
                                      cargas=[eps]), motor)
     F = out["F_reac"][-1]
     exacta = E_MPA * m["A_bruta"] * eps
     err = abs(F / exacta - 1)
-    _anotar(registro, f"plato lineal, {motor}: F = E A eps", exacta, F, err,
-            "1e-9", err < 1e-9)
+    _anotar(registro, f"plato lineal {tipo}, {motor}: F = E A eps", exacta, F,
+            err, "1e-9", err < 1e-9)
     assert err < 1e-9
 
 

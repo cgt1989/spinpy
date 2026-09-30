@@ -8256,9 +8256,9 @@ class Visor(QtWidgets.QMainWindow):
 
     # -- FEM con motores internos -------------------------------------------
     #
-    # Tres puertas —«Comparar motores…» y «Resolver y estimar el fallo» (con
-    # un motor que no es la app) del panel, e «Informe FEM (Auto)…» de la
-    # barra— y un solo camino: construyen «tareas» (estructura x protocolo x
+    # Tres puertas («Comparar motores…» y «Resolver y estimar el fallo», con
+    # un motor que no es la app, del panel, e «Informe FEM (Auto)…» de la
+    # barra) y un solo camino: construyen «tareas» (estructura x protocolo x
     # malla x ejes x motores) y las pasan a `_febio_una`, que las resuelve en
     # un hilo con `fem.analizar` / `fem.homogeneizar`. El
     # automatico las recorre con `_auto_siguiente`, una etapa por tarea.

@@ -1,5 +1,5 @@
 """
-m_app.py — El resolvedor propio de spinpy (`resistencia.ensayo_compresion`).
+m_app.py: El resolvedor propio de spinpy (`resistencia.ensayo_compresion`).
 
 Es el motor de siempre y el validado: hexaedros de un voxel, elasticidad
 lineal, control por fuerza, LU directo por debajo de 6000 GDL y CG con

@@ -154,8 +154,7 @@ caso se construye desde la rama elegida en el formulario, no desde la
 etiqueta.
 
 Desde V1.1.0 el ejecutable no lleva ni busca FEBio: los ensayos los resuelven
-los motores internos (`spinpy.motores`). Viajan NGSolve (con las DLL de MKL
-para su PARDISO) y scikit-fem, los unicos con rueda para Windows en PyPI; la
+los motores internos (`spinpy.motores`). Viajan NGSolve y scikit-fem, los unicos con rueda para Windows en PyPI; la
 autocomprobacion resuelve el mismo ensayo con todos los motores presentes y
 exige que coincidan (prueba «Motores FEM»). Se construye con el CPython
 oficial, asi que `dlls_conda.py` no interviene.

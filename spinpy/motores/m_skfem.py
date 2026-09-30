@@ -1,5 +1,5 @@
 """
-m_skfem.py — Motor scikit-fem (Python puro sobre numpy/scipy; BSD-3).
+m_skfem.py: Motor scikit-fem (Python puro sobre numpy/scipy; BSD-3).
 
 scikit-fem monta formas bilineales y lineales escritas en Python y devuelve
 matrices de scipy; no trae resolvedor ni Newton. Aqui:
