@@ -76,7 +76,22 @@ def disponibles():
     return [m for m in MOTORES if instalado(m)]
 
 
+#: Distribucion de cada motor, para leer su version SIN importarlo.
+_DISTRIBUCION = {"ngsolve": "ngsolve", "fenicsx": "fenics-dolfinx",
+                 "skfem": "scikit-fem", "sfepy": "sfepy"}
+
+
 def version(motor):
+    """Version del motor. Se lee de los metadatos del paquete: importar la
+    biblioteca en el proceso de la GUI carga sus DLL junto a las de VTK y Qt,
+    y los motores solo deben cargarse en el proceso hijo que resuelve."""
+    dist = _DISTRIBUCION.get(motor)
+    if dist is not None:
+        try:
+            from importlib.metadata import version as _v
+            return _v(dist)
+        except Exception:
+            pass
     try:
         return _modulo(motor).version()
     except Exception:
@@ -115,8 +130,18 @@ class Cancelado(RuntimeError):
     """El usuario detuvo el calculo; el proceso hijo ya se termino."""
 
 
-def _hijo(conexion, problema, motor, hilos):
+def _hijo(conexion, problema, motor, hilos, traza=None):
+    import faulthandler
     import os
+    # Si la biblioteca del motor revienta en codigo nativo (violacion de
+    # acceso), la pila de Python queda en `traza` y el padre la muestra en el
+    # mensaje de error: el ejecutable con ventana no tiene consola.
+    try:
+        if traza:
+            faulthandler.enable(file=open(traza, "w", encoding="utf-8"),
+                                all_threads=False)
+    except Exception:
+        pass
     if hilos:
         for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS",
                   "OPENBLAS_NUM_THREADS", "SPINPY_HILOS"):
@@ -176,6 +201,22 @@ def _rss_windows_MB():
         return None
 
 
+def _leer_traza(ruta, n=25):
+    """Ultimas `n` lineas de la traza de faulthandler del hijo, y la borra."""
+    import os
+    texto = ""
+    try:
+        with open(ruta, encoding="utf-8", errors="replace") as fh:
+            texto = "\n".join(fh.read().strip().splitlines()[-n:])
+    except OSError:
+        pass
+    try:
+        os.remove(ruta)
+    except OSError:
+        pass
+    return texto
+
+
 def resolver_aislado(problema, motor, cancelar=None, hilos=None,
                      intervalo=0.25, tiempo_max=None):
     """`resolver` en un PROCESO HIJO (spawn), cancelable.
@@ -185,11 +226,15 @@ def resolver_aislado(problema, motor, cancelar=None, hilos=None,
     (memoria agotada, violacion de segmento en una biblioteca en C) se
     convierte en `ErrorMotor` en lugar de cerrar la aplicacion.
     """
+    import os
+    import tempfile
     if hasattr(cancelar, "is_set"):
         cancelar = cancelar.is_set
     ctx = mp.get_context("spawn")
     rx, tx = ctx.Pipe(duplex=False)
-    p = ctx.Process(target=_hijo, args=(tx, problema, motor, hilos),
+    fd, traza = tempfile.mkstemp(prefix="spinpy_motor_", suffix=".txt")
+    os.close(fd)
+    p = ctx.Process(target=_hijo, args=(tx, problema, motor, hilos, traza),
                     daemon=True)
     t0 = time.perf_counter()
     p.start()
@@ -214,12 +259,15 @@ def resolver_aislado(problema, motor, cancelar=None, hilos=None,
         if p.is_alive():
             p.terminate()
         p.join(5)
+        pila = _leer_traza(traza)
     if estado == "ok":
         return dato
     if estado == "muerto":
+        causa = ("fallo en codigo nativo" if pila else
+                 "suele ser memoria agotada")
         raise ErrorMotor(f"{ETIQUETAS[motor]}: el proceso de calculo termino "
-                         f"sin responder (codigo {p.exitcode}); suele ser "
-                         "memoria agotada")
+                         f"sin responder (codigo {p.exitcode}); {causa}"
+                         + (f"\n{pila}" if pila else ""))
     tipo, msg = dato
     if tipo == "NoDisponible":
         raise NoDisponible(msg)
