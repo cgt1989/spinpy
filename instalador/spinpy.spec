@@ -117,6 +117,27 @@ for _mod, _libs in (("netgen", "netgen_mesher.libs"), ("ngsolve", "ngsolve.libs"
     _dir = Path(list(_spec.submodule_search_locations)[0]).parent / _libs
     if _dir.is_dir():
         binarios += [(str(_f), _libs) for _f in _dir.glob("*.dll")]
+
+# OpenCASCADE (paquete netgen-occt): sus DLL (TKernel.dll...) no viven en
+# site-packages sino en `<entorno>\bin`, y PyInstaller no las ve. Van a la
+# carpeta `netgen`, que netgen anade el mismo a la ruta de busqueda de DLL.
+# Sus metadatos NO viajan (filtro tras `Analysis`): con ellos netgen intenta
+# cargarlas desde `..\..\bin` y falla (medido: KeyError 'tkernel').
+from importlib import metadata as _md  # noqa: E402
+_occt = []
+try:
+    for _f in _md.files("netgen-occt") or []:
+        if _f.name.lower().endswith(".dll"):
+            _p = Path(_f.locate()).resolve()
+            if _p.is_file():
+                _occt.append((str(_p), "netgen"))
+except _md.PackageNotFoundError:
+    pass
+if sys.platform == "win32" and not _occt:
+    raise SystemExit("[spinpy] No se encontraron las DLL de netgen-occt "
+                     "(TKernel.dll...): NGSolve no funcionaria en el ejecutable.")
+print(f"[spinpy] DLL de OpenCASCADE para netgen: {len(_occt)}")
+binarios += _occt
 datos += collect_data_files("ngsolve") + collect_data_files("netgen")
 
 datos += collect_data_files("pyvista")
@@ -146,6 +167,10 @@ a = Analysis(                                        # noqa: F821
     noarchive=False,
     optimize=0,
 )
+
+# Sin los metadatos de netgen-occt (ver arriba, junto a las DLL de OpenCASCADE).
+a.datas = [d for d in a.datas
+           if not d[0].replace("\\", "/").lower().startswith("netgen_occt-")]
 
 # --- DLL del interprete de Anaconda -----------------------------------------
 # Sin esto el ejecutable se construye sin un aviso y muere al arrancar con
