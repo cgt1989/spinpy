@@ -164,12 +164,22 @@ def documentar(ruta, titulo):
     return "\n".join(out)
 
 
+def _version():
+    """Version del paquete leida del fuente, sin importarlo."""
+    import re
+    txt = (RAIZ / "spinpy" / "__init__.py").read_text(encoding="utf-8")
+    m = re.search(r'^__version__ = "([^"]+)"', txt, re.M)
+    return m.group(1) if m else "?"
+
+
 def main():
     partes = [
         "# Manual de referencia de spinpy",
         "",
         "Ajuste de microestructuras espinodales a volumenes de hueso "
         "trabecular obtenidos por microtomografia.",
+        "",
+        "Version V%s." % _version(),
         "",
         "> Este manual esta **generado del codigo**. Cada apartado reproduce "
         "la documentacion que acompana a la funcion en el fuente, y no una "

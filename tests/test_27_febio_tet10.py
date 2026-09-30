@@ -3,7 +3,7 @@ Bloque 27 — Malla suave TET10 y estadisticos por volumen.
 
 REFERENCIA
   `PLAN_Analizar_con_FEBio.md` §9 y `spinpy/fem.py`. Nacio con la integracion
-  con FEBio; desde V1.1.0 los ensayos los resuelven los motores internos
+  con FEBio; desde V2.0.0 los ensayos los resuelven los motores internos
   (`spinpy.motores`, bloque 29) y las pruebas que ejecutaban `febio4.exe`
   se sustituyeron por su equivalente sin programa externo.
 

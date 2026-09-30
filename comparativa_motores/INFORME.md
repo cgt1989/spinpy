@@ -1,6 +1,6 @@
 # Motores de elementos finitos internos para spinpy: comparación de NGSolve, FEniCSx, scikit-fem y SfePy con el resolvedor de la aplicación
 
-Fecha: 2026-09-30. spinpy V1.1.0. Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
+Fecha: 2026-09-30. spinpy V2.0.0. Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
 
 ## Resumen
 
@@ -22,7 +22,7 @@ Los cinco motores comparados son:
 
 | Motor | Versión | Licencia | Lenguaje del núcleo | Resolvedores usados |
 |---|---|---|---|---|
-| App (spinpy) | 1.0.2 | MIT | Python (numpy, scipy, pyamg) | LU de SuperLU por debajo de 6000 GDL; CG + multigrid algebraico (pyamg) con modos rígidos por encima |
+| App (spinpy) | 1.0.2 (sin cambios en 2.0.0) | MIT | Python (numpy, scipy, pyamg) | LU de SuperLU por debajo de 6000 GDL; CG + multigrid algebraico (pyamg) con modos rígidos por encima |
 | NGSolve | 6.2.2607 | LGPL-2.1 | C++ con interfaz Python | PARDISO (MKL); CG + BDDC (P2); CG + pyamg sobre su matriz (hex8) |
 | FEniCSx (DOLFINx) | 0.11.0 | LGPL-3.0 | C++ con UFL y compilación JIT | Cholesky de MUMPS; CG + GAMG (PETSc) con modos rígidos |
 | scikit-fem | 12.0.2 | BSD-3 | Python (numpy, scipy) | SuperLU; CG + pyamg con modos rígidos |
@@ -345,7 +345,7 @@ La respuesta se aparta de la proporcional ya a estas deformaciones: extrapolando
 
 1. **Tangente de SfePy.** La comparación de la matriz tangente de `dw_tl_he_svk` con la derivada numérica de su propio residuo (ecuación 29) dio e_T = 0,37, frente a 2·10⁻¹¹ para `dw_lin_elastic` en el mismo estado (`verificar_tangente_sfepy.py`). El residuo es correcto (la fuerza converge a la cerrada), pero la tangente no es su derivada y Newton converge linealmente, con un factor de contracción del residuo de ≈ 0,45 por iteración. En el espinodoide eso no basta para converger en 30 iteraciones al 2 %. Además, el neo-Hookeano de SfePy es la variante desacoplada (μ/2 (J^{−2/3} I₁ − 3) + K/2 (J − 1)²), que no es el de FEBio, y se declaró no disponible para no mezclar modelos.
 2. **GAMG de FEniCSx con TET10.** Con la receta de los ejemplos de elasticidad de DOLFINx (CG, GAMG con modos rígidos, suavizador de Chebyshev), la malla TET10 del espinodoide a 32³ dio un precondicionador indefinido (KSP_DIVERGED_INDEFINITE_PC). La malla contiene tetraedros casi degenerados junto a la superficie suavizada (volumen mínimo de 1,5·10⁻¹³ mm³ frente a una mediana de 5·10⁻⁴). En el motor integrado, el modo automático pasa entonces a MUMPS.
-3. **CG + pyamg de scikit-fem con TET10.** En las mallas TET10 del espinodoide se detuvo en el residuo pedido (9·10⁻¹¹) con un error de desplazamiento de 8,9·10⁻³ a 32³ y de 1,6·10⁻³ a 48³. El mismo precondicionador dentro del CG de SfePy convergió a 10⁻¹¹. La cota ‖e‖/‖u‖ ≤ κ(K) ‖r‖/‖f‖ admite ese error con el mal condicionamiento que introducen los tetraedros casi degenerados, y el criterio de residuo, por sí solo, no lo detecta. Con malla suave, el iterativo de scikit-fem no es fiable a la tolerancia de 10⁻¹⁰; el directo lo es, pero no escala.
+3. **CG + pyamg de scikit-fem con TET10.** En las mallas TET10 del espinodoide se detuvo en el residuo pedido (9·10⁻¹¹) con un error de desplazamiento de 8,9·10⁻³ a 32³ y de 1,6·10⁻³ a 48³. El mismo precondicionador dentro del CG de SfePy convergió a 10⁻¹¹. La cota ‖e‖/‖u‖ ≤ κ(K) ‖r‖/‖f‖ admite ese error con el mal condicionamiento que introducen los tetraedros casi degenerados, y el criterio de residuo, por sí solo, no lo detecta. Un experimento adicional sobre la malla de 32³ lo confirma. La malla contiene 577 tetraedros con volumen inferior a 10⁻⁶ veces la mediana (el menor, 2,9·10⁻¹⁰ veces). Con tolerancia 10⁻¹⁰ el CG terminó en 397 iteraciones con residuo 1,0·10⁻¹⁰ y el mismo error de 8,9·10⁻³; al exigir 10⁻¹² no convergió (residuo final 3,6·10⁴ tras el máximo de iteraciones). Endurecer la tolerancia no corrige, por tanto, el error: el sistema está demasiado mal condicionado para ese precondicionador. Con malla suave, el iterativo de scikit-fem no es fiable; el directo lo es, pero no escala. La presencia de esos tetraedros casi planos en la malla TET10 es además una limitación de la propia malla, independiente del motor.
 4. **Espacio jerárquico de NGSolve.** El H1 de orden 2 de NGSolve no es lagrangiano nodal: las funciones de arista son burbujas y solo las de vértice forman partición de la unidad. En la primera versión del adaptador, la reacción sumaba también los GDL de burbuja (0,035 N en lugar de 0,040 N en un bloque TET10) y el plato los imponía, lo que curvaba el techo. La prueba del bloque 29 lo detectó; el adaptador impone el plato y suma la reacción solo en los GDL de vértice (los de burbuja del techo quedan fijos a cero).
 5. **Newton con plato.** Imponer el incremento del plato solo en el techo llevó a NGSolve, en el bloque al 20 % con St. Venant-Kirchhoff, a otra rama de equilibrio (−133,4 N en lugar de 115,2 N). Con el predictor consistente (ecuación 23) los tres motores con Newton propio convergen en tres iteraciones a la solución cerrada.
 
@@ -429,7 +429,7 @@ Publicaciones de los motores y algoritmos usados. Crossref y doi.org no fueron a
 |---|---|---|
 | **Identificación del modelo** | | |
 | Propósito del modelo y de la simulación | Cumple | Sección 1 |
-| Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V1.1.0 |
+| Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V2.0.0 |
 | **Estructura del modelo** | | |
 | Geometría y su origen (imagen, generación) | Cumple | Sección 2.2 (espinodoide con parámetros y semilla; bloque; cavidad) |
 | Discretización: tipo de elemento, orden, número de elementos y GDL | Cumple | Secciones 2.2, 3.2 y Tablas 1 y 2 |

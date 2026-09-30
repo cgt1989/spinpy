@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="versión V1.1.0" src="https://img.shields.io/badge/versi%C3%B3n-V1.1.0-e8a33d">
+  <img alt="versión V2.0.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.0.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
@@ -286,7 +286,7 @@ python Test/replicar_kumar2020.py --rapido   # ~1,5 min
 python -m pytest tests/ -q
 ```
 
-27 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+28 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
@@ -333,7 +333,7 @@ implementaciones.** Mover el umbral un ±15 % mueve Tb.Th un 62 %, frente al
 
 ## Comparación con FEBio
 
-> Validación hecha con la V1.0.x. Desde la V1.1.0 la aplicación ya no usa
+> Validación hecha con la V1.0.x. Desde la V2.0.0 la aplicación ya no usa
 > FEBio (ver «Motores FEM internos» más abajo); estas campañas siguen siendo la
 > validación externa del resolvedor de la app, y la comparativa de motores
 > reprodujo sus cifras de la cavidad con ladrillos a 10⁻⁸.
@@ -513,7 +513,7 @@ Necesita FEBio 4.5 (FEBio Studio 2). Los resultados quedan en
 
 ## Motores FEM internos: sin programas externos
 
-Desde la V1.1.0 todos los ensayos se resuelven **dentro de spinpy**. FEBio ya
+Desde la V2.0.0 todos los ensayos se resuelven **dentro de spinpy**. FEBio ya
 no se usa ni se busca; la exportación a `.feb` se conserva como formato de
 intercambio. En **Análisis mecánico**, «Motor FEM» elige quién resuelve, y
 «Malla» y «Análisis» qué se resuelve:
