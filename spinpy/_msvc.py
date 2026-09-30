@@ -2,7 +2,7 @@
 _msvc.py: Precarga en Windows la version mas reciente del runtime de C++
 (msvcp140.dll) antes de que la cargue PyQt5.
 
-EL PROBLEMA (medido en la compilacion de la V2.0.0)
+EL PROBLEMA (medido en la compilacion de la V2.0.1)
 ---------------------------------------------------
 PyQt5-Qt5 5.15.2 trae su propio msvcp140.dll, version 14.26 (2020). netgen y
 NGSolve 6.2.2607 traen el suyo, 14.50, con el MISMO nombre (delvewheel no lo

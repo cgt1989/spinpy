@@ -202,7 +202,7 @@ from pathlib import Path
 
 # PRIMERO spinpy, antes que pyvista y PyQt5: en Windows precarga el runtime de
 # C++ mas reciente (spinpy/_msvc.py). Si PyQt5 carga antes su msvcp140.dll de
-# 2020, el motor NGSolve muere al importarse (medido al compilar la V2.0.0).
+# 2020, el motor NGSolve muere al importarse (medido al compilar la V2.0.1).
 import spinpy  # noqa: E402,F401  isort:skip
 
 import numpy as np
@@ -8719,7 +8719,7 @@ def autocomprobacion():
 
     # Si una biblioteca en C revienta (violacion de acceso en Windows), el
     # proceso muere sin traza de Python y sin haber escrito nada: asi fallo la
-    # compilacion de la V2.0.0. Con faulthandler la pila sale por stderr, y
+    # compilacion de la V2.0.1. Con faulthandler la pila sale por stderr, y
     # cada linea se imprime en cuanto se sabe, no al final.
     try:
         faulthandler.enable()
