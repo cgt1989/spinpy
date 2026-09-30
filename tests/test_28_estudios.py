@@ -81,6 +81,21 @@ def test_desplazamiento_de_una_losa(registro):
     assert ok, medidos
 
 
+def test_desplazamiento_en_voxeles_de_referencia(registro):
+    """El mismo desplazamiento fisico en estructuras de distinto voxel."""
+    t = 8
+    r = S.sensibilidad_superficie(losa(n=16, espesor=t), [0.002] * 3,
+                                  desplazamientos=(-2.0, 0.0, 2.0),
+                                  n_mec=8, voxel_ref_mm=0.001)
+    d = [f["desplazamiento_vox"] for f in r["filas"]]
+    um = [f["desplazamiento_um"] for f in r["filas"]]
+    ok = d == [-1.0, 0.0, 1.0] and um == [-2.0, 0.0, 2.0]
+    registro.anotar(BLOQUE, "2 voxeles de 1 um = 1 voxel de 2 um", REF, None,
+                    None, "exacto", "conversion de unidades", ok,
+                    nota=f"{d} {um}")
+    assert ok
+
+
 def test_condiciones_contorno_en_un_cubo_macizo(registro):
     r = S.condiciones_contorno(np.ones((10, 10, 10), bool), [1.0] * 3,
                                n_mec=10, E_s=1.0, nu_s=NU)

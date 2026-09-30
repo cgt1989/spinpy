@@ -145,7 +145,7 @@ python dlls_conda.py C:\ruta\dist\spinpy\_internal
 
 `.github/workflows/instalador.yml` construye el instalador y el zip portable en
 un Windows de GitHub Actions cada vez que se publica una release, y los
-adjunta a ella. Antes comprueba que la etiqueta (`v1.0.0`, `V1.0.0`) coincide
+adjunta a ella. Antes comprueba que la etiqueta (`v1.0.1`, `V1.0.1`) coincide
 con la version de `pyproject.toml`; si no, no construye nada.
 
 Para una release que ya estaba publicada, o para repetir la construccion:

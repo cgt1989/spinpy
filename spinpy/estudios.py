@@ -54,7 +54,12 @@ import numpy as np
 
 from .resistencia import E_S_DEF, NU_S_DEF
 
-# Desplazamientos de la superficie, en voxeles de la imagen original.
+# Desplazamientos de la superficie, en voxeles DEL VOI (el del escaner). Un
+# cambio de umbral mueve la superficie una fraccion de ese voxel, y el mismo
+# desplazamiento en micrometros se aplica a todas las estructuras: con el
+# voxel de cada una, un candidato a 96^3 (31 um) se moveria el doble que el
+# VOI a 188^3 (16 um), que es lo que dio la primera version (BV/TV de 0,40 a
+# 0,23 con -1 voxel).
 DESPLAZAMIENTOS = (-1.0, -0.5, 0.0, 0.5, 1.0)
 SIGMA_VOX = 1.0
 N_MEC_DEF = 40
@@ -200,10 +205,13 @@ def desplazar_superficie(BW, delta_vox, sigma_vox=SIGMA_VOX):
 def sensibilidad_superficie(BW, spacing, desplazamientos=DESPLAZAMIENTOS,
                             n_mec=N_MEC_DEF, eje=2, E_s=E_S_DEF,
                             nu_s=NU_S_DEF, apoyo="deslizante",
-                            sigma_vox=SIGMA_VOX, progreso=None):
+                            sigma_vox=SIGMA_VOX, voxel_ref_mm=None,
+                            progreso=None):
     """Morfometria y E_app de la estructura con la superficie desplazada.
 
-    Cada fila lleva el desplazamiento en voxeles y en micrometros, el umbral
+    `desplazamientos` va en voxeles de `voxel_ref_mm` (por omision, el de la
+    propia estructura). Cada fila lleva el desplazamiento en voxeles de la
+    estructura, en voxeles de referencia y en micrometros, el umbral
     equivalente t, BV/TV, Tb.Th, Tb.Sp, Tb.N, DA y E_app a `n_mec`^3. El
     ensayo usa el mismo remuestreo y el mismo solver que el de la app.
     """
@@ -211,14 +219,16 @@ def sensibilidad_superficie(BW, spacing, desplazamientos=DESPLAZAMIENTOS,
     from .morphometry import morfometria
     from .resistencia import ensayo_compresion_eje
     sp = _sp3(spacing)
+    ref = float(voxel_ref_mm) if voxel_ref_mm else float(sp[0])
     filas = []
-    for k, d in enumerate(desplazamientos):
+    for k, f in enumerate(desplazamientos):
+        d = float(f) * ref / float(sp[0])        # en voxeles de la estructura
         _progreso(progreso, k / len(desplazamientos),
-                  f"superficie desplazada {d:+g} voxeles")
+                  f"superficie desplazada {f:+g} voxeles de referencia")
         bw = desplazar_superficie(BW, d, sigma_vox)
         m = morfometria(bw, sp, do_mil=True)
-        fila = {"desplazamiento_vox": float(d),
-                "desplazamiento_um": float(d * sp[0] * 1000.0),
+        fila = {"desplazamiento_vox": d, "desplazamiento_ref": float(f),
+                "desplazamiento_um": float(f) * ref * 1000.0,
                 "t": nivel_de_desplazamiento(d, sigma_vox)}
         fila.update({c: _num(m.get(c)) for c in ("BVTV", "TbTh", "TbSp",
                                                  "TbN", "DA")})
@@ -233,6 +243,7 @@ def sensibilidad_superficie(BW, spacing, desplazamientos=DESPLAZAMIENTOS,
         filas.append(fila)
     return {"filas": filas,
             "parametros": {"sigma_vox": float(sigma_vox), "n_mec": int(n_mec),
+                           "voxel_ref_um": ref * 1000.0,
                            "eje": int(eje), "E_s_Pa": float(E_s),
                            "nu_s": float(nu_s), "apoyo": apoyo}}
 
@@ -366,8 +377,14 @@ def completar(doc, estructuras, que=("forma", "superficie", "contorno"),
 
     if "superficie" in que and ests and hace_falta("sensibilidad_superficie"):
         _progreso(progreso, 0.3, "sensibilidad a la superficie")
+        # El voxel de referencia es el del VOI, que es el del escaner; sin VOI
+        # en el documento, el mas fino de las estructuras.
+        try:
+            ref = float(np.ravel((doc.get("voi") or {})["spacing_mm"])[0])
+        except (KeyError, TypeError, IndexError, ValueError):
+            ref = min(float(sp[0]) for _c, _b, sp in ests)
         pe = {c: sensibilidad_superficie(bw, sp, n_mec=n_mec, E_s=E_s,
-                                         nu_s=nu_s)
+                                         nu_s=nu_s, voxel_ref_mm=ref)
               for c, bw, sp in ests}
         res["sensibilidad_superficie"] = {
             "por_estructura": pe,
@@ -396,7 +413,11 @@ def completar(doc, estructuras, que=("forma", "superficie", "contorno"),
             "simulacion_perdida"):
         from .simulacion import simular_perdida
         _progreso(progreso, 0.8, "simulacion de perdida osea")
-        r = simular_perdida(base[1], base[2], guardar_mascaras=False)
+        # A la rejilla del ensayo de la sesion: a 32^3 (la de omision de la
+        # simulacion) el spinodoide porcino queda en Tb.Th/h = 1,44, por
+        # debajo de TBTH_H_MIN.
+        r = simular_perdida(base[1], base[2], n_mec=n_mec,
+                            guardar_mascaras=False)
         r.pop("mascaras", None)
         r["estructura_codigo"] = base[0]
         res["simulacion_perdida"] = r
@@ -404,7 +425,8 @@ def completar(doc, estructuras, que=("forma", "superficie", "contorno"),
     if base is not None and "fallo" in que and hace_falta("fallo_progresivo"):
         from .simulacion import fallo_progresivo
         _progreso(progreso, 0.9, "fallo progresivo")
-        r = fallo_progresivo(base[1], base[2], guardar_mascaras=False)
+        r = fallo_progresivo(base[1], base[2], n_mec=n_mec,
+                             guardar_mascaras=False)
         r.pop("mascaras", None)
         r["estructura_codigo"] = base[0]
         res["fallo_progresivo"] = r
