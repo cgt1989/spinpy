@@ -1,0 +1,18 @@
+24 masc_remuestreo+grises BV/TV 0.2877 err 2.0 dV -2.58
+24 masc_remuestreo+exacta BV/TV 0.2877 err 2.1 dV -4.06
+24 masc_continuo_mismos_pts+exacta BV/TV 0.2846 err 0.3 dV -3.4
+24 masc_grises_trilineal+grises BV/TV 0.2907 err 4.4 dV -3.5
+24 masc_directa(estudio1)+exacta BV/TV 0.2734 err 2.1 dV -2.2
+24 difiere remuestreo vs continuo mismos puntos: 102 vs directa: 803
+32 masc_remuestreo+grises BV/TV 0.2917 err 7.9 dV -2.16
+32 masc_remuestreo+exacta BV/TV 0.2917 err 7.5 dV -3.21
+32 masc_continuo_mismos_pts+exacta BV/TV 0.2882 err 5.5 dV -2.54
+32 masc_grises_trilineal+grises BV/TV 0.2852 err 0.2 dV -1.18
+32 masc_directa(estudio1)+exacta BV/TV 0.2827 err 1.4 dV -2.02
+32 difiere remuestreo vs continuo mismos puntos: 219 vs directa: 1432
+48 masc_remuestreo+grises BV/TV 0.2856 err 2.8 dV -0.12
+48 masc_remuestreo+exacta BV/TV 0.2856 err 0.5 dV -1.41
+48 masc_continuo_mismos_pts+exacta BV/TV 0.2813 err -0.5 dV -0.41
+48 masc_grises_trilineal+grises BV/TV 0.2854 err 4.4 dV -0.42
+48 masc_directa(estudio1)+exacta BV/TV 0.2769 err -0.3 dV 0.02
+48 difiere remuestreo vs continuo mismos puntos: 669 vs directa: 3628

@@ -1,6 +1,6 @@
 """giroide.py: Giroide esqueletico (BV/TV 0,28) con superficie analitica, para el estudio de hex_mejorado."""
 import numpy as np
-from spinpy.espesor import espesor_local, estadisticas
+
 def g(x, y, z):
     return np.sin(x)*np.cos(y) + np.sin(y)*np.cos(z) + np.sin(z)*np.cos(x)
 # nivel para BV/TV 0.28 con muestreo fino
@@ -23,6 +23,7 @@ def mascara(n, celdas):
     X, Y, Z = np.meshgrid(c, c, c, indexing="ij")
     return g(X, Y, Z) > T
 if __name__ == "__main__":
+    from spinpy.espesor import espesor_local, estadisticas
     print("T", T)
     for cel in (2, 3, 4):
         BW = mascara(32, cel)

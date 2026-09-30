@@ -137,3 +137,121 @@ con el coste del ladrillo. Queda por demostrar:
    en FEBio se obtiene la columna «proy», no «proyI».
 3. **Un caso.** Un giroide y una cavidad; hace falta al menos el VOI de H4 y
    un spinodoide ajustado antes de integrarlo en `spinpy`.
+
+## 6. Proyección sobre los grises del micro-CT
+
+Código: `grises.py` (lectura sin binarizar, cubo en grises, campo para la
+proyección, micro-CT sintético) y `estudio_grises.py` (casos `sintetico` y
+`h4`). Predicciones G1 a G4 escritas en la cabecera de `estudio_grises.py`
+antes de correr.
+
+### 6.1 Lo que se verificó
+
+| prueba | resultado |
+|---|---|
+| Cubo en grises por vecino más próximo, umbralizado, frente a `voi.extraer_cubo` (volumen aleatorio, cubo dentro y cubo que asoma un 37,5 % fuera) | idéntico bit a bit |
+| Campo de la malla a resolución nativa: signo de f − T en los centros frente a la máscara | 100 % |
+
+La correspondencia entre la malla remuestreada y los grises es la de
+`elastic.remuestrear_bw` (vóxel nativo round(j (N−1)/(n−1))), escrita como
+aplicación afín.
+
+### 6.2 H4: no se ha podido correr
+
+La pila del escáner no está en el repositorio ni en el entorno donde se hizo
+este estudio (los scripts la buscan en `../H4`, junto al repositorio). El VOI
+de `H4/Segmentadas` tampoco serviría: está binarizado. Para correrlo:
+
+    python comparativa_febio_tet/hex_mejorado/estudio_grises.py h4
+
+con la pila en `../H4` (o `--pila RUTA`), tamaño de vóxel del `*_rec.log` (o
+`--tam-voxel 51.489`), umbral de Otsu de 3 clases como la aplicación, el
+tercio 0 (`--tercio` para otro) y n = 24, 32, 40, 48, 64 y la nativa. Antes de
+mallar comprueba que la máscara en grises reproduce la de `voi.extraer_cubo`
+y, si existe `H4/Segmentadas/VOI_proximal_cubico.vtk`, anota la fracción de
+vóxeles que coinciden con él (para confirmar el tercio). Resultados en
+`resultados/grises_h4.jsonl`.
+
+### 6.3 Micro-CT sintético del giroide
+
+El giroide de §3 «escaneado» a N = 75 (Tb.Th/h ≈ 6, como el VOI proximal de
+H4): volumen parcial (27 submuestras por vóxel), desenfoque gaussiano de
+0,7 vóxeles, ruido gaussiano (sin ruido y SNR 8) y umbral de Otsu. La máscara
+nativa se remuestrea a n y la malla se proyecta sobre los grises al mismo
+umbral, sin filtro (σ = 0) o con un filtro gaussiano de σ = 1 vóxel nativo.
+
+E_app frente al propio modelo a resolución nativa (n = 75) y rango total
+entre n = 24 y 75:
+
+| SNR | variante | 24 | 32 | 48 | rango 24 a 75 | E_app a 75 |
+|---|---|---|---|---|---|---|
+| sin ruido | hex8 | +8,8 % | +11,9 % | −6,7 % | 18,6 | 701,8 MPa |
+| sin ruido | hex8I | +1,8 % | +7,8 % | −8,2 % | 16,0 | 691,8 MPa |
+| sin ruido | proyI, σ 0 | −4,3 % | +1,2 % | −3,6 % | 5,5 | 734,1 MPa |
+| sin ruido | proyI, σ 1 | −4,3 % | +1,8 % | −3,7 % | 6,1 | 728,9 MPa |
+| 8 | hex8 | +11,1 % | +15,2 % | −6,4 % | 21,5 | 693,9 MPa |
+| 8 | hex8I | +4,4 % | +11,4 % | −7,7 % | 19,1 | 682,1 MPa |
+| 8 | proyI, σ 0 | −4,1 % | +5,6 % | −2,1 % | 9,7 | 727,7 MPa |
+| 8 | proyI, σ 1 | −1,3 % | +3,0 % | −2,6 % | 5,7 | 730,1 MPa |
+
+Frente al giroide continuo (688,6 MPa), proyI queda en +2,0, +7,9, +2,8 y
++6,6 % (sin ruido, σ 0) a n = 24, 32, 48 y 75.
+
+Estado de las predicciones:
+
+* **G1 falla.** Sin ruido, proyI sobre los grises no queda a ≤ 3 % del
+  giroide continuo: +7,9 % a 32³ y +6,6 % a la resolución nativa. A la nativa
+  la causa es la segmentación, no la malla: Otsu pone el umbral en 0,459 (no
+  en 0,5) sobre la imagen desenfocada, y el hueso segmentado tiene un 1,3 %
+  más de volumen que el continuo. Con umbral 0,5 el desenfoque adelgaza los
+  puntales y el error cambia de signo (`resultados/diagnostico_mayoria.log`,
+  filas «proyI_nearest»: −5 % a −8 % a 40³ y 48³). En imagen real, la
+  referencia correcta es la geometría que implica la imagen, no una
+  geometría que no se conoce.
+* **G2 se cumple a medias.** Con ruido y sin filtro la proyección sigue al
+  ruido (rango de 9,7 puntos, +5,6 % a 32³); con σ = 1 vuelve al rango del
+  caso sin ruido (5,7 puntos), pero no a ≤ 3 % en todas las n.
+
+### 6.4 Lo que la proyección no corrige: la topología de la máscara gruesa
+
+A 32³ todas las variantes se desvían en la misma dirección. Para separar la
+superficie de la máscara (`diagnostico_mascara.py`), se proyectó la misma
+malla sobre la superficie EXACTA del giroide cambiando sólo qué puntos se
+muestrean para construir la máscara de 32³:
+
+| máscara de 32³ | superficie | error frente al continuo |
+|---|---|---|
+| remuestreo por vecino más próximo de la nativa (lo que hace la aplicación) | grises | +7,9 % |
+| la misma | exacta | +7,5 % |
+| el continuo en los mismos puntos del remuestreo | exacta | +5,5 % |
+| el continuo en los centros de una rejilla uniforme (§3) | exacta | +1,4 % |
+| los grises trilineales en los centros de la malla | grises | +0,2 % (+4,4 % a 24³ y a 48³) |
+
+Con la misma superficie, la rigidez cambia de +1,4 % a +7,5 % según qué
+vóxeles queden encendidos. Con Tb.Th/h ≈ 2,6 un vóxel de más o de menos en un
+nudo crea o rompe una conexión, y la proyección, con el desplazamiento
+acotado a medio vóxel y la topología fija, no puede deshacerla. El ±2,4 % de
+§3 se obtuvo con una sola fase de muestreo; con otras fases la dispersión es
+mayor. Una máscara gruesa por fracción de volumen (mayoría) es peor: pierde
+conexiones, y con proyección y umbral 0,5 queda entre −6 % y −24 %, frente a
+−17 % a +1 % del vecino más próximo en las mismas condiciones
+(`diagnostico_mayoria.py`).
+
+### 6.5 Conclusión provisional
+
+Sobre grises, la proyección hace lo que se esperaba de la superficie: reduce
+a un tercio la dependencia de E_app con la resolución (rango de 5,5 a 6
+puntos frente a 16 a 21 de hex8 y hex8I entre 24³ y 75³), y con ruido
+necesita un filtro previo de un vóxel. No elimina el error topológico de la
+máscara gruesa, que a Tb.Th/h ≈ 2 a 3 deja una incertidumbre de unos ±4 %.
+Ese error lo tendría también TET10 mallado desde la misma máscara.
+
+Dos observaciones que el caso H4 tiene que confirmar o refutar:
+
+1. A resolución nativa, proyI y hex8I difieren un 6 % en el sintético (734 y
+   692 MPa sin ruido). Con Tb.Th/h ≈ 6 la superficie aún pesa en la rigidez,
+   lo que pone en duda G4.
+2. El umbral pesa tanto como la malla: pasar de Otsu (0,459) a 0,5 mueve
+   E_app entre 6 y 10 puntos en las tres variantes, a igual n. Es coherente con lo que ya
+   documenta `voi.py` sobre la segmentación como la mayor fuente de
+   incertidumbre.
