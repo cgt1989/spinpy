@@ -408,6 +408,7 @@ pip install sfepy                                  # opcional (Linux)
 cd comparativa_motores
 FENICSX_PYTHON=/ruta/al/python/de/fx python correr.py exactos nl cavidad espinodoide_hex espinodoide_tet
 SPINPY_SIN_PARDISO=1 python correr.py espinodoide_hex --n-hex 48 64 80 --motores ngsolve --solvers directo --gdl-directo-hex 1e7
+python calidad_tet10.py        # Tabla 3: calidad de las mallas TET10
 python figuras.py                                  # tablas.md y figs/
 python -m pytest ../tests/test_29_motores.py       # versión pequeña, ~20 s
 ```
