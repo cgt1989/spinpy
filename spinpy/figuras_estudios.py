@@ -142,8 +142,18 @@ def fig_fallo(doc, destino, idioma="es"):
     fig = _figura(6.6, 2.7)
     ax = fig.add_subplot(1, 2, 1)
     _estilo(ax, "y")
-    ax.plot(paso, F, "-o", color=col, ms=3.5, lw=1.2,
+    # Tras el colapso la carga de Pistoia sigue saliendo, pero ya no describe
+    # nada: la estructura ha perdido la mitad de su rigidez. Se dibuja en gris
+    # para que no se lea como resultado.
+    antes = paso < colapso if colapso is not None else np.ones_like(paso,
+                                                                     bool)
+    ax.plot(paso[antes], F[antes], "-o", color=col, ms=3.5, lw=1.2,
             label=("carga de fallo de Pistoia", "Pistoia failure load")[i])
+    if not antes.all():
+        k0 = max(int(np.argmax(~antes)) - 1, 0)
+        ax.plot(paso[k0:], F[k0:], "--o", color=TINTA_2, ms=3, lw=0.8,
+                mfc=FONDO, label=("tras el colapso (no citable)",
+                                  "after collapse (not citable)")[i])
     r = rec.get("resumen") or {}
     if r.get("paso_F_max") is not None and _f(r, "F_max") is not None:
         ax.plot([r["paso_F_max"]], [r["F_max"]], "*", color=TINTA, ms=9,
@@ -151,10 +161,11 @@ def fig_fallo(doc, destino, idioma="es"):
                                                     "collapse")[i])
     if colapso is not None:
         ax.axvspan(colapso - 0.5, paso.max() + 0.5, color=REJILLA, lw=0,
-                   alpha=0.7, label=("tras el colapso", "after collapse")[i])
+                   alpha=0.5, zorder=0)
     _etiquetas(ax, ("paso", "step")[i], "F [N]")
     _titulo(ax, f"(a) {NOMBRES[est][i]}")
-    _leyenda(ax)
+    ax.legend(frameon=False, fontsize=6.3, labelcolor=TINTA,
+              loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
 
     ax = fig.add_subplot(1, 2, 2)
     _estilo(ax, "y")
@@ -542,7 +553,9 @@ def fig_condiciones_contorno(doc, destino, idioma="es"):
           if any(_f(v.get(c) or {}, "E_rel") for c, _e, _h in CONDICIONES)}
     if not pe:
         return []
-    fig = _figura(4.6, 2.7)
+    # Mismo ancho que las demas: el PDF escala cada figura al ancho de la
+    # pagina, y una figura mas estrecha saldria con la letra mas grande.
+    fig = _figura(6.6, 2.6)
     ax = fig.add_subplot(1, 1, 1)
     _estilo(ax, "y")
     ancho = 0.26
