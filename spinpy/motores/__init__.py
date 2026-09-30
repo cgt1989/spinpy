@@ -131,7 +131,16 @@ class Cancelado(RuntimeError):
 
 
 def _hijo(conexion, problema, motor, hilos):
+    import faulthandler
     import os
+    import sys
+    # Si la biblioteca del motor revienta en codigo nativo, la pila de Python
+    # sale por stderr (cuando lo hay: en el ejecutable con ventana no).
+    if sys.stderr is not None:
+        try:
+            faulthandler.enable()
+        except Exception:
+            pass
     if hilos:
         for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS",
                   "OPENBLAS_NUM_THREADS", "SPINPY_HILOS"):
