@@ -76,7 +76,22 @@ def disponibles():
     return [m for m in MOTORES if instalado(m)]
 
 
+#: Distribucion de cada motor, para leer su version SIN importarlo.
+_DISTRIBUCION = {"ngsolve": "ngsolve", "fenicsx": "fenics-dolfinx",
+                 "skfem": "scikit-fem", "sfepy": "sfepy"}
+
+
 def version(motor):
+    """Version del motor. Se lee de los metadatos del paquete: importar la
+    biblioteca en el proceso de la GUI carga sus DLL junto a las de VTK y Qt,
+    y los motores solo deben cargarse en el proceso hijo que resuelve."""
+    dist = _DISTRIBUCION.get(motor)
+    if dist is not None:
+        try:
+            from importlib.metadata import version as _v
+            return _v(dist)
+        except Exception:
+            pass
     try:
         return _modulo(motor).version()
     except Exception:

@@ -21,6 +21,10 @@ on:
       etiqueta:
         description: "Etiqueta de la release a la que se adjunta (p. ej. v1.0.0)"
         required: true
+      adjuntar:
+        description: "Adjuntar el instalador a la release (desmarcar para solo probar la construccion)"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -58,6 +62,7 @@ jobs:
         run: .\instalador\construir.ps1 -Trabajo "$env:RUNNER_TEMP\spinpy_build" -Version $env:VERSION
 
       - name: Adjuntar a la release
+        if: github.event_name == 'release' || inputs.adjuntar
         shell: pwsh
         run: |
           gh release upload $env:ETIQUETA `
