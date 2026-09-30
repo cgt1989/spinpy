@@ -1,6 +1,6 @@
 # Motores de elementos finitos internos para spinpy: comparación de NGSolve, FEniCSx, scikit-fem y SfePy con el resolvedor de la aplicación
 
-Fecha: 2026-09-30. spinpy V2.0.0. Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
+Fecha: 2026-09-30. spinpy V2.0.1. Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
 
 ## Resumen
 
@@ -22,7 +22,7 @@ Los cinco motores comparados son:
 
 | Motor | Versión | Licencia | Lenguaje del núcleo | Resolvedores usados |
 |---|---|---|---|---|
-| App (spinpy) | 1.0.2 (sin cambios en 2.0.0) | MIT | Python (numpy, scipy, pyamg) | LU de SuperLU por debajo de 6000 GDL; CG + multigrid algebraico (pyamg) con modos rígidos por encima |
+| App (spinpy) | 1.0.2 (sin cambios en 2.0.1) | MIT | Python (numpy, scipy, pyamg) | LU de SuperLU por debajo de 6000 GDL; CG + multigrid algebraico (pyamg) con modos rígidos por encima |
 | NGSolve | 6.2.2607 | LGPL-2.1 | C++ con interfaz Python | PARDISO (MKL); CG + BDDC (P2); CG + pyamg sobre su matriz (hex8) |
 | FEniCSx (DOLFINx) | 0.11.0 | LGPL-3.0 | C++ con UFL y compilación JIT | Cholesky de MUMPS; CG + GAMG (PETSc) con modos rígidos |
 | scikit-fem | 12.0.2 | BSD-3 | Python (numpy, scipy) | SuperLU; CG + pyamg con modos rígidos |
@@ -378,7 +378,7 @@ Dos fallos del mallado TET10 de la propia app aparecieron por el camino y se cor
 
 La compilación JIT de FEniCSx costó entre 1,5 y 3,4 s la primera vez que se usó cada forma (después queda en caché en disco). En un ejecutable congelado para un usuario sin herramientas de desarrollo, ese paso exige incluir un compilador de C, lo que no es razonable.
 
-**Instalador de Windows.** El instalador de la V2.0.0, con NGSolve y scikit-fem, se construyó en el servicio de integración continua (Windows, Python 3.13, versiones fijadas en `instalador/requisitos_build.txt`) y su ejecutable pasó la autocomprobación, que resuelve un mismo ensayo lineal con hexaedros y con TET10 con todos los motores presentes y exige que coincidan. Llegar a ello exigió resolver dos problemas de empaquetado que no aparecen al instalar las ruedas en Linux. El primero: PyQt5-Qt5 5.15.2 trae el runtime de C++ `msvcp140.dll` en su versión 14.26 y netgen, el mallador en que se apoya NGSolve, trae la 14.50 con el mismo nombre; Windows reutiliza la primera que se carga, y como la interfaz carga PyQt5 al arrancar, NGSolve terminaba con una violación de acceso al importarse. La aplicación carga ahora la versión más reciente antes que PyQt5, y el ejecutable lleva una sola copia del runtime, la más reciente disponible al compilar. El segundo: netgen necesita las 47 bibliotecas de OpenCASCADE del paquete `netgen-occt` (unos 49 MB), que se instalan fuera de `site-packages` y que PyInstaller no recoge solo. La carpeta del programa ocupa 860 MB.
+**Instalador de Windows.** El instalador de la V2.0.1, con NGSolve y scikit-fem, se construyó en el servicio de integración continua (Windows, Python 3.13, versiones fijadas en `instalador/requisitos_build.txt`) y su ejecutable pasó la autocomprobación, que resuelve un mismo ensayo lineal con hexaedros y con TET10 con todos los motores presentes y exige que coincidan. Llegar a ello exigió resolver dos problemas de empaquetado que no aparecen al instalar las ruedas en Linux. El primero: PyQt5-Qt5 5.15.2 trae el runtime de C++ `msvcp140.dll` en su versión 14.26 y netgen, el mallador en que se apoya NGSolve, trae la 14.50 con el mismo nombre; Windows reutiliza la primera que se carga, y como la interfaz carga PyQt5 al arrancar, NGSolve terminaba con una violación de acceso al importarse. La aplicación carga ahora la versión más reciente antes que PyQt5, y el ejecutable lleva una sola copia del runtime, la más reciente disponible al compilar. El segundo: netgen necesita las 47 bibliotecas de OpenCASCADE del paquete `netgen-occt` (unos 49 MB), que se instalan fuera de `site-packages` y que PyInstaller no recoge solo. La carpeta del programa ocupa 860 MB.
 ## 5. Discusión
 
 **Exactitud.** Ninguno de los cuatro motores introdujo un sesgo detectable frente al resolvedor de la app ni frente a FEBio. Cuando el sistema se resolvió con un directo, las diferencias fueron del orden del redondeo (10⁻¹³ a 10⁻¹¹); cuando se resolvió con un iterativo convergido, del orden de su tolerancia. Esto era lo esperable si cada motor monta la misma matriz, y confirma que el emparejamiento de nodos, la orientación de las caras, la carga consistente y los apoyos se trasladaron bien a cada biblioteca, algo que no se puede dar por supuesto: dos de esos pasos (el espacio jerárquico de NGSolve y las aristas curvas de las mallas de spinpy) habrían producido resultados erróneos sin ningún mensaje de error. Las soluciones cerradas del bloque, lineal y no lineal, y la coincidencia con FEBio en la cavidad sitúan la verificación del código en el nivel que Erdemir et al. (2012) piden a un análisis de elementos finitos en biomecánica: comparación con soluciones analíticas y con otro código verificado.
@@ -449,7 +449,7 @@ No encontradas en los índices consultados (PubMed, SciSpace); deben cotejarse a
 |---|---|---|
 | **Identificación del modelo** | | |
 | Propósito del modelo y de la simulación | Cumple | Sección 1 |
-| Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V2.0.0 |
+| Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V2.0.1 |
 | **Estructura del modelo** | | |
 | Geometría y su origen (imagen, generación) | Cumple | Sección 2.2 (espinodoide con parámetros y semilla; bloque; cavidad) |
 | Discretización: tipo de elemento, orden, número de elementos y GDL | Cumple | Secciones 2.2, 3.2 y Tablas 1 y 2 |

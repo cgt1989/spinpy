@@ -87,7 +87,7 @@ if _test.is_dir():
             datos.append((str(_f),
                           str(Path("Test") / _f.relative_to(_test).parent)))
 
-# MOTORES FEM INTERNOS (spinpy.motores). Desde V2.0.0 el ejecutable no lleva
+# MOTORES FEM INTERNOS (spinpy.motores). Desde V2.0.1 el ejecutable no lleva
 # FEBio: los ensayos con malla suave y los no lineales los resuelven motores
 # que corren DENTRO del proceso de spinpy. Viajan los que tienen rueda binaria
 # para Windows en PyPI (comprobado 2026-09-30 con `pip download --platform

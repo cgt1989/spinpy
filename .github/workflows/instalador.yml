@@ -1,8 +1,9 @@
 # Construye el instalador de Windows y lo adjunta a la release.
 #
-# Se dispara al publicar una release. Para una release ya publicada (o para
-# repetir la construccion) se lanza a mano desde Actions -> "Instalador de
-# Windows" -> Run workflow, indicando la etiqueta.
+# Se dispara al publicar una release. Tambien se lanza a mano desde Actions ->
+# "Instalador de Windows" -> Run workflow, indicando la etiqueta: si la release
+# no existe, se crea al final (etiqueta en el commit compilado), solo si el
+# ejecutable paso su autocomprobacion.
 #
 # El ejecutable no depende de programas externos: los ensayos FEM los
 # resuelven los motores internos (spinpy.motores); NGSolve y scikit-fem
@@ -60,6 +61,24 @@ jobs:
       - name: Construir
         shell: pwsh
         run: .\instalador\construir.ps1 -Trabajo "$env:RUNNER_TEMP\spinpy_build" -Version $env:VERSION
+
+      # Lanzado a mano para una etiqueta que aun no tiene release: se crea
+      # aqui, DESPUES de construir y comprobar el ejecutable, con la etiqueta
+      # en el commit que se acaba de compilar y las notas de
+      # instalador/notas/<etiqueta>.md si existen.
+      - name: Crear la release si no existe
+        if: github.event_name == 'workflow_dispatch' && inputs.adjuntar
+        shell: pwsh
+        run: |
+          gh release view $env:ETIQUETA *> $null
+          if ($LASTEXITCODE -eq 0) { "La release $env:ETIQUETA ya existe"; exit 0 }
+          $notas = "instalador/notas/$($env:ETIQUETA).md"
+          if (Test-Path $notas) {
+              gh release create $env:ETIQUETA --target $env:GITHUB_SHA --title "spinpy V$env:VERSION" --notes-file $notas
+          } else {
+              gh release create $env:ETIQUETA --target $env:GITHUB_SHA --title "spinpy V$env:VERSION" --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo crear la release $env:ETIQUETA" }
 
       - name: Adjuntar a la release
         if: github.event_name == 'release' || inputs.adjuntar
