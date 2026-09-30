@@ -88,7 +88,7 @@ Write-Host "-> autocomprobacion del ejecutable" -ForegroundColor Yellow
 $informe = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "spinpy\autocomprobacion.txt"
 if (Test-Path $informe) { Remove-Item $informe -Force }
 $p = Start-Process $exe -ArgumentList "--autocomprobacion" -PassThru -Wait
-if (Test-Path $informe) { Get-Content $informe | Select-Object -Last 20 }
+if (Test-Path $informe) { Get-Content $informe }
 if ($p.ExitCode -ne 0) { throw "El EJECUTABLE no pasa su autocomprobacion (codigo $($p.ExitCode))" }
 
 # --- 6. zip portable --------------------------------------------------------

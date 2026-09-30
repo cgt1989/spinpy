@@ -35,6 +35,11 @@ from pathlib import Path
 #: Lo que se cargo (ruta, version) o None; para la autocomprobacion.
 CARGADO = None
 
+#: DLL del runtime de Visual C++ que no deben mezclarse de versiones distintas.
+RUNTIME = ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll",
+           "msvcp140_atomic_wait.dll", "msvcp140_codecvt_ids.dll",
+           "vcruntime140.dll", "vcruntime140_1.dll", "concrt140.dll")
+
 
 def version_dll(ruta):
     """Version de archivo (a, b, c, d) de una DLL, leida de su recurso
@@ -117,6 +122,35 @@ def precargar():
         import ctypes
         ctypes.WinDLL(str(mejor[0]))
         CARGADO = (str(mejor[0]), ".".join(str(x) for x in mejor[1]))
-    except Exception:
-        CARGADO = None
+    except Exception as e:                           # noqa: BLE001
+        CARGADO = ("no se pudo precargar", f"{type(e).__name__}: {e}")
     return CARGADO
+
+
+def cargados():
+    """[(nombre, ruta, version)] de las DLL del runtime ya cargadas en este
+    proceso (solo Windows); para diagnosticar mezclas de versiones."""
+    if os.name != "nt":
+        return []
+    out = []
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.GetModuleHandleW.restype = ctypes.c_void_p
+        k32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+        k32.GetModuleFileNameW.restype = wintypes.DWORD
+        k32.GetModuleFileNameW.argtypes = [ctypes.c_void_p, wintypes.LPWSTR,
+                                           wintypes.DWORD]
+        for nombre in RUNTIME:
+            h = k32.GetModuleHandleW(nombre)
+            if not h:
+                continue
+            buf = ctypes.create_unicode_buffer(1024)
+            k32.GetModuleFileNameW(h, buf, 1024)
+            v = version_dll(buf.value)
+            out.append((nombre, buf.value,
+                        ".".join(map(str, v)) if v else "?"))
+    except Exception:
+        pass
+    return out
