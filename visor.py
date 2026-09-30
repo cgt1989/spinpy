@@ -200,6 +200,11 @@ import time
 import traceback
 from pathlib import Path
 
+# PRIMERO spinpy, antes que pyvista y PyQt5: en Windows precarga el runtime de
+# C++ mas reciente (spinpy/_msvc.py). Si PyQt5 carga antes su msvcp140.dll de
+# 2020, el motor NGSolve muere al importarse (medido al compilar la V2.0.0).
+import spinpy  # noqa: E402,F401  isort:skip
+
 import numpy as np
 import pyvista as pv
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -8759,6 +8764,9 @@ def autocomprobacion():
     lineas.append(f" empaquetado: {bool(getattr(sys, 'frozen', False))}")
     lineas.append(f" ejecutable : {sys.executable}")
     lineas.append(f" datos      : {DATOS}")
+    if os.name == "nt":
+        from spinpy import _msvc
+        lineas.append(f" runtime C++: {_msvc.CARGADO or 'sin precargar'}")
     lineas.append("=" * 78)
     lineas.append("")
     lineas.append(" MODULOS")

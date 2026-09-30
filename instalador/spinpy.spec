@@ -106,6 +106,17 @@ ocultos += ["spinpy.motores.m_app", "spinpy.motores.m_ngsolve",
             "spinpy.motores.m_skfem", "spinpy.motores.m_fenicsx",
             "spinpy.motores.m_sfepy"]
 binarios = collect_dynamic_libs("ngsolve") + collect_dynamic_libs("netgen")
+# Las carpetas `netgen_mesher.libs` y `ngsolve.libs` (delvewheel) van tal
+# cual, con su msvcp140.dll 14.50: `spinpy/_msvc.py` la busca ahi y la carga
+# antes que la 14.26 de PyQt5. Sin ella netgen muere al importarse (0xC0000005).
+import importlib.util as _ilu  # noqa: E402
+for _mod, _libs in (("netgen", "netgen_mesher.libs"), ("ngsolve", "ngsolve.libs")):
+    _spec = _ilu.find_spec(_mod)
+    if _spec is None or not _spec.submodule_search_locations:
+        continue
+    _dir = Path(list(_spec.submodule_search_locations)[0]).parent / _libs
+    if _dir.is_dir():
+        binarios += [(str(_f), _libs) for _f in _dir.glob("*.dll")]
 datos += collect_data_files("ngsolve") + collect_data_files("netgen")
 
 datos += collect_data_files("pyvista")
