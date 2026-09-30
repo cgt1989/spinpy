@@ -1,5 +1,5 @@
 """
-m_ngsolve.py — Motor NGSolve (nucleo C++ con interfaz Python; LGPL-2.1).
+m_ngsolve.py: Motor NGSolve (nucleo C++ con interfaz Python; LGPL-2.1).
 
 La malla de spinpy pasa a netgen sin transformarla (`AddPoints`,
 `AddElements`): hexaedros de un voxel, o tetraedros por sus esquinas con
@@ -94,14 +94,25 @@ def _espacio(ng, p, mesh, orden, esq, plato):
     return fes, libres
 
 
-def _techo_z(ng, fes, mesh):
-    todos = np.nonzero(np.array(list(fes.GetDofs(mesh.Boundaries("techo"))),
-                                bool))[0]
+def _techo_z(ng, fes, p, esq):
+    """GDL z de los VERTICES del techo.
+
+    El espacio H1 de NGSolve es JERARQUICO: con orden 2 cada arista lleva
+    una funcion burbuja que vale cero en los vertices, y solo las funciones
+    de vertice forman particion de la unidad. De ahi dos reglas que no son las
+    de un espacio lagrangiano nodal:
+      * el plato impone el valor en los GDL de vertice; los de burbuja del
+        techo quedan fijos a CERO (u_z constante en el plano del techo);
+      * la reaccion es la suma de las fuerzas internas en los GDL de vertice
+        (trabajo virtual con v = e_z en el techo, cuyo interpolante tiene
+        burbujas nulas). Sumar tambien las burbujas daba 0,035 N en lugar de
+        0,04 N en un bloque TET10 (prueba del bloque 29).
+    Con orden 1 todos los GDL son de vertice y la regla coincide con la
+    nodal.
+    """
+    vt = np.searchsorted(esq, np.intersect1d(p["techo_nodos"], esq))
     d0 = _vertice(fes, ng, 0)
-    paso = d0[1] - d0[0]
-    if paso == fes.ndof // 3:          # componentes por bloques
-        return todos[todos // paso == 2]
-    return todos[(todos - d0[0]) % paso == 2]
+    return vt + d0[0] + 2 * (d0[1] - d0[0])
 
 
 def _a_spinpy(ng, p, gfu, mesh, esq):
@@ -123,11 +134,48 @@ def _a_spinpy(ng, p, gfu, mesh, esq):
 
 
 def _inversa(ng, mat, libres):
+    """Directo por omision: el Cholesky disperso de NGSolve.
+
+    MEDIDO (comparativa_motores/, 4 hilos): `sparsecholesky` fue mas rapido
+    y uso menos de la mitad de memoria que PARDISO de MKL en todos los casos:
+    hex8 a 48^3 5,3 s / 0,7 GB frente a 7,6 s / 1,5 GB; a 80^3 (662 000 GDL)
+    33 s / 3,4 GB frente a 52 s / 7,9 GB; TET10 a 48^3 (791 000 GDL) 45 s /
+    3,2 GB frente a 69 s / 8,3 GB. Por eso MKL no hace falta; PARDISO queda
+    como opcion con SPINPY_PARDISO=1.
+    """
+    if os.environ.get("SPINPY_PARDISO") and not os.environ.get(
+            "SPINPY_SIN_PARDISO"):
+        try:
+            return mat.Inverse(libres, inverse="pardiso"), "PARDISO (MKL)"
+        except Exception:
+            pass
+    return (mat.Inverse(libres, inverse="sparsecholesky"),
+            "sparsecholesky (NGSolve)")
+
+
+def _modo_auto(ng, m, orden, ndof):
+    """Resolvedor por omision, con lo medido en comparativa_motores/:
+
+    TET10 (P2): CG + BDDC. En el espinodoide a 32^3 (315 000 GDL) 18 s y
+    1,3 GB; el Cholesky, 14 s y 1,0 GB; a 48^3 (791 000 GDL) 59 s y 3,9 GB
+    frente a 45 s y 3,2 GB. Se deja BDDC porque su memoria crece mas despacio
+    que la del factor al subir la resolucion.
+    hex8 (orden 1): el Cholesky si cabe en la mitad de la memoria del equipo
+    (a 365 000 GDL, 14 s frente a 70 s del CG + pyamg); si no, el iterativo.
+    No lineal: directo (una factorizacion por iteracion de Newton).
+    """
+    if m["analisis"] != "lineal":
+        return "directo"
+    if orden == 2:
+        return "iterativo"
+    from .. import tiempos
     try:
-        return mat.Inverse(libres, inverse="pardiso"), "PARDISO (MKL)"
+        from ..fem import memoria_equipo_MB
+        tot = memoria_equipo_MB()
     except Exception:
-        return (mat.Inverse(libres, inverse="sparsecholesky"),
-                "sparsecholesky (NGSolve)")
+        tot = None
+    mem = tiempos.memoria_fem("hex8", ndof)
+    return "directo" if (tot is None or mem < 0.5 * tot) else "iterativo"
 
 
 def _energia(ng, material, F, lam, mu):
@@ -148,7 +196,7 @@ def resolver(p):
     ng, mesh, esq, orden = _malla(p)
     plato = m["control"] == "plato"
     fes, libres = _espacio(ng, p, mesh, orden, esq, plato)
-    techo_z = _techo_z(ng, fes, mesh)
+    techo_z = _techo_z(ng, fes, p, esq)
     L = np.array(list(libres), bool)
     lam, mu = lame(m["E"], m["nu"])
     u, v = fes.TnT()
@@ -156,8 +204,7 @@ def resolver(p):
     gfu = ng.GridFunction(fes)
     modo = m.get("solver", "auto")
     if modo == "auto":
-        modo = "iterativo" if (m["analisis"] == "lineal"
-                               and fes.ndof > 3e5) else "directo"
+        modo = _modo_auto(ng, m, orden, fes.ndof)
     info = {}
     if m["analisis"] == "lineal":
         t("montaje")
@@ -217,8 +264,12 @@ def resolver(p):
     else:
         t("montaje")
         a = ng.BilinearForm(fes, symmetric=True)
+        # `Compile()` reordena el arbol de expresiones de la energia (sin
+        # compilador de C: no es `realcompile`). MEDIDO en el espinodoide a
+        # 24^3, cuatro pasos SVK: 16,0 s sin compilar y 8,3 s compilado, con
+        # las mismas fuerzas a todas las cifras.
         a += ng.Variation(_energia(ng, m["material"],
-                                   ng.Id(3) + ng.Grad(u), lam, mu)
+                                   ng.Id(3) + ng.Grad(u), lam, mu).Compile()
                           * _dx(ng, orden))
         if not plato:
             a += ng.Variation(carga * u[2] * ng.ds("techo"))

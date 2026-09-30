@@ -5,7 +5,7 @@
 # Windows" -> Run workflow, indicando la etiqueta.
 #
 # El ejecutable no depende de programas externos: los ensayos FEM los
-# resuelven los motores internos (spinpy.motores); NGSolve, MKL y scikit-fem
+# resuelven los motores internos (spinpy.motores); NGSolve y scikit-fem
 # viajan dentro (instalador/requisitos_build.txt).
 #
 # Se usa el CPython oficial, no Anaconda: asi `dlls_conda.py` no tiene nada

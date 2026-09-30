@@ -975,8 +975,8 @@ def seccion_modelos(doc, idioma, r, numero):
             L.append("|---|---|---|---|---:|---:|---:|---:|---:|---:|")
 
             def c(x, fmt):
-                return "—" if x is None or (isinstance(x, float)
-                                            and not np.isfinite(x)) \
+                return "n/d" if x is None or (isinstance(x, float)
+                                              and not np.isfinite(x)) \
                     else r.n(x, fmt)
             for f in filas:
                 if f.get("no_disponible"):

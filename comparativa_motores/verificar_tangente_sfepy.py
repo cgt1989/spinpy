@@ -1,4 +1,4 @@
-"""verificar_tangente_sfepy.py — Tangente de dw_tl_he_svk frente a diferencias finitas de su residuo.
+"""verificar_tangente_sfepy.py: Tangente de dw_tl_he_svk frente a diferencias finitas de su residuo.
 
 Ejecutar desde comparativa_motores/ despues de crear /tmp/claude-0/cm/c.npz con un caso
 no lineal (bloque 4x4x6). Resultado medido: error relativo 0.37 con dw_tl_he_svk y 2e-11

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spinpy"
-version = "1.0.2"
+version = "1.1.0"
 description = "Ajuste de microestructuras espinodales a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -47,12 +47,11 @@ elastico = ["pyamg>=4.2"]
 
 # Motores FEM internos (spinpy.motores): malla suave TET10 y analisis no
 # lineales sin programas externos. NGSolve es el recomendado (comparativa_
-# motores/INFORME.md); `mkl` le da el directo PARDISO (sin el usa su propio
-# Cholesky). scikit-fem es Python puro. SfePy y FEniCSx se detectan si estan
-# instalados, pero no se piden: SfePy no tiene ruedas para Windows y FEniCSx
-# solo se distribuye por conda-forge.
-fem = ["ngsolve>=6.2.2601", "mkl; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
-       "scikit-fem>=11"]
+# motores/INFORME.md); su Cholesky propio resulto mas rapido que PARDISO, asi
+# que no se pide MKL. scikit-fem es Python puro. SfePy y FEniCSx se detectan
+# si estan instalados, pero no se piden: SfePy no tiene ruedas para Windows y
+# FEniCSx solo se distribuye por conda-forge.
+fem = ["ngsolve>=6.2.2601", "scikit-fem>=11"]
 
 # Mallado TET10 para exportar solidos con superficie lisa.
 malla = ["pymeshfix>=0.16", "tetgen>=0.6"]

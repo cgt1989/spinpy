@@ -1,5 +1,5 @@
 """
-mot_skfem.py — Envoltorio de linea de comandos del motor 'skfem' de spinpy.
+mot_skfem.py: Envoltorio de linea de comandos del motor 'skfem' de spinpy.
 
 El calculo es `spinpy.motores.m_skfem`: la campana mide el MISMO codigo que
 ejecuta la aplicacion. Este archivo solo traduce el caso del banco (.npz) y

@@ -1,5 +1,5 @@
 """
-_base.py — Lo comun a los cinco adaptadores de motor.
+_base.py: Lo comun a los cinco adaptadores de motor.
 
 Cada adaptador (`app`, `skfem`, `sfepy`, `ngsolve`, `fenicsx`) recibe el MISMO
 problema discreto en un .npz (nodos, conectividad, caras cargadas, apoyos,

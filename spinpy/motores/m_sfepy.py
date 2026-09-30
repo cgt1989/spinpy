@@ -1,5 +1,5 @@
 """
-m_sfepy.py — Motor SfePy (Python con extensiones C/Cython; BSD-3).
+m_sfepy.py: Motor SfePy (Python con extensiones C/Cython; BSD-3).
 
 Usa los terminos de SfePy (`dw_lin_elastic`, `dw_surface_ltr`,
 `dw_tl_he_svk`), su Newton y su capa de resolvedores:

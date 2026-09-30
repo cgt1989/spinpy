@@ -1,5 +1,5 @@
 """
-_comun.py — Lo que comparten los adaptadores de motor.
+_comun.py: Lo que comparten los adaptadores de motor.
 
 EL PROBLEMA
 -----------

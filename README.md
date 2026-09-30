@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="versión V1.0.2" src="https://img.shields.io/badge/versi%C3%B3n-V1.0.2-e8a33d">
+  <img alt="versión V1.1.0" src="https://img.shields.io/badge/versi%C3%B3n-V1.1.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 27 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-27%20bloques-5b6b7f">
+  <img alt="Verificación: 28 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-28%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -114,7 +114,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 | **Mide** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, tensor MIL y DA, Conn.D, SMI, espesor local, tamaño de poro, **Ellipsoid Factor** y curvaturas principales de la interfaz. |
 | **Ajusta** | Los parámetros que mejor reproducen un VOI real: búsqueda escalonada, réplicas con semillas nuevas, suelo de ruido autoconsistente y desempate mecánico opcional. |
 | **Homogeneiza** | El tensor elástico por celda unidad periódica sobre la rejilla de vóxeles, con multigrid algebraico y comprobación del residuo. |
-| **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. |
+| **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. |
 | **Simula** | Pérdida ósea *in silico* (adelgazamiento, trabéculas finas, desuso, recuperación) y fallo progresivo sobre el gemelo digital del VOI. |
 | **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad, lista de chequeo de reporte (Bouxsein et al. 2010 para micro-TC, Erdemir et al. 2012 para elementos finitos) y huella SHA-256 para reproducir cada máscara. |
 | **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL, y el ensayo de compresión completo a FEBio 4 (`.feb`). |
@@ -333,6 +333,11 @@ implementaciones.** Mover el umbral un ±15 % mueve Tb.Th un 62 %, frente al
 
 ## Comparación con FEBio
 
+> Validación hecha con la V1.0.x. Desde la V1.1.0 la aplicación ya no usa
+> FEBio (ver «Motores FEM internos» más abajo); estas campañas siguen siendo la
+> validación externa del resolvedor de la app, y la comparativa de motores
+> reprodujo sus cifras de la cavidad con ladrillos a 10⁻⁸.
+
 Cada análisis mecánico de la aplicación se ha resuelto otra vez, de forma
 independiente, con **FEBio 4.5** (Maas et al. 2012), el programa de elementos
 finitos de referencia en biomecánica. Dos campañas:
@@ -506,70 +511,82 @@ Necesita FEBio 4.5 (FEBio Studio 2). Los resultados quedan en
 
 ---
 
-## FEBio dentro de spinpy: «FEM automático» y «Analizar con FEBio»
+## Motores FEM internos: sin programas externos
 
-La aplicación resuelve también sus ensayos en FEBio desde la interfaz: el
-ensayo de la app, el protocolo de Tapia et al. (2026) y la homogeneización,
-con la malla de ladrillos de la app (hex8), con una **malla suave de
-tetraedros cuadráticos** (TET10) o con las dos, en lineal y no lineal (fuerza,
-plato rígido, carga de Pistoia). El mismo cálculo corre desde la línea de
-comandos:
+Desde la V1.1.0 todos los ensayos se resuelven **dentro de spinpy**. FEBio ya
+no se usa ni se busca; la exportación a `.feb` se conserva como formato de
+intercambio. En **Análisis mecánico**, «Motor FEM» elige quién resuelve, y
+«Malla» y «Análisis» qué se resuelve:
+
+| motor | mallas | análisis | en el instalador de Windows |
+|---|---|---|---|
+| **App (spinpy)** | ladrillos (hex8) | lineal | sí (resolvedor de siempre, validado) |
+| **NGSolve** (recomendado) | hex8 y TET10 | lineal y no lineal (St. Venant-Kirchhoff, neo-Hookeano) | sí |
+| scikit-fem | hex8 y TET10 | lineal y no lineal | sí |
+| FEniCSx | hex8 y TET10 | lineal y no lineal | no (solo conda-forge; compila C al ejecutarse) |
+| SfePy | hex8 y TET10 | lineal; no lineal solo SVK | no (sin ruedas para Windows) |
+
+«Comparar motores…» (panel) e **«Informe FEM (Auto)…»** (barra superior)
+resuelven la misma malla con **varios motores a la vez** y dan una tabla
+comparativa entre motores y frente a la app, que pasa también al informe de
+publicación. El informe automático tiene su propia fila «Motores FEM (tabla
+comparativa)». Cada resolución corre en un proceso hijo: «Detener» lo corta y
+un fallo de memoria no cierra la ventana. El mismo cálculo corre desde la
+línea de comandos:
 
 ```bash
-python -m spinpy.febio VOI.vtk --protocolo app tapia2026 --malla hex8 tet10
+python -m spinpy.fem VOI.vtk --protocolo app tapia2026 --malla hex8 tet10 --motores app ngsolve
 ```
 
-**Cómo obtener FEBio.** Este repositorio **no lleva binarios de FEBio**.
-Instala FEBio Studio 2 (gratuito, [febio.org](https://febio.org)); spinpy lo
-encuentra solo, o se elige `febio4.exe` en la ventana. El ejecutable de Windows
-del laboratorio lo trae incluido.
+### Informe: comparación de los motores
 
-**Licencia de FEBio: en trámite.** Los binarios de FEBio están bajo la FEBio
-Software License 4.0 de la Universidad de Utah, que no permite
-redistribuirlos. La licencia de redistribución **se está tramitando** con
-vistas a la publicación de este repositorio; hasta entonces la copia incluida
-en el ejecutable es solo para uso interno del laboratorio. El código fuente de
-FEBio es MIT ([febiosoftware/FEBio](https://github.com/febiosoftware/FEBio)).
-
-### Informe: malla suave (TET10) frente a ladrillos
-
-📄 **[Informe completo en PDF](comparativa_febio_tet/INFORME.pdf)** ·
-[versión Markdown](comparativa_febio_tet/INFORME.md) ·
-[datos](comparativa_febio_tet/resultados/cavidad.jsonl)
+📄 **[Informe completo en PDF](comparativa_motores/INFORME.pdf)** ·
+[versión Markdown](comparativa_motores/INFORME.md) ·
+[tablas](comparativa_motores/tablas.md) ·
+[datos](comparativa_motores/resultados/)
 
 | resultado | valor |
 |---|---|
-| FEBio lee los TET10 en el orden de spinpy (campo cuadrático exacto) | 3,9·10⁻¹⁰ |
-| bloque macizo, E_app = E_s (hex8 y TET10) | ≤ 1,5·10⁻⁹ |
-| FEBio hex8 frente a la app, VOI proximal de H4 a 32³ | 8,7·10⁻⁸ |
-| cavidad esférica: rigidez con malla suave frente a la analítica | < 0,5 % |
-| cavidad esférica: **pico de von Mises** con malla suave, 40³ | **+12 %, no converge** |
-| VOI proximal de H4 a 32³: E_app TET10 / E_app hex8 | **0,44** (2,3× más blanda) |
+| bloque macizo, E_app = E_s (hex8 y TET10, los cinco motores) | ≤ 10⁻¹¹ |
+| compresión no lineal hasta el 20 %, frente a la solución cerrada | ≤ 4·10⁻¹² |
+| cavidad con ladrillos, motores frente a FEBio 4.5 (E_app, p99) | 7,7·10⁻⁹ · 1,7·10⁻⁹ |
+| espinodoide, desplazamientos entre motores (directos) | 10⁻¹³ a 10⁻¹¹ |
+| TET10 a 790 599 GDL: NGSolve (Cholesky) · FEniCSx (MUMPS) · scikit-fem · SfePy | 45 s · 22 s · 905 s · 1010 s |
+| NGSolve: Cholesky propio frente a PARDISO de MKL | 1,4-1,6× más rápido, 2,3-2,8× menos memoria |
 
-<p align="center"><img src="comparativa_febio_tet/figs/fig_cavidad_pico.png" alt="Pico y p99 de von Mises en la pared de una cavidad esférica frente a la resolución, con ladrillos, malla suave y la referencia analítica" width="90%"></p>
+<p align="center"><img src="comparativa_motores/figs/fig3_tiempo_tet10.png" alt="Tiempo de resolución del espinodoide con malla suave TET10 frente a los grados de libertad, por motor y resolvedor" width="90%"></p>
 
-Tres conclusiones medidas:
+Tres hallazgos de fiabilidad, medidos, que decidieron la configuración: la
+tangente de St. Venant-Kirchhoff de SfePy no es la derivada de su residuo
+(error de 37 %, Newton lineal); el CG + GAMG de FEniCSx diverge en la malla
+TET10 de un espinodoide real; y el CG + pyamg de scikit-fem se detiene en un
+residuo de 10⁻¹⁰ con un error de desplazamiento de hasta 0,9 % en esas
+mallas. Por eso NGSolve resuelve la malla suave con BDDC o con su Cholesky,
+no con un multigrid algebraico genérico. El trabajo encontró y corrigió
+además dos fallos del mallado TET10 de la app (tetraedros planos sobre las
+caras del cubo que abortaban la malla, y nodos intermedios fuera del punto
+medio tras el ajuste a los planos).
 
-- **Con ladrillos, FEBio y la app resuelven el mismo problema** (≤ 10⁻⁷).
-- **La malla suave no hace converger el pico de von Mises**: en la cavidad
-  esférica oscila como el de los ladrillos y depende en varios puntos de las
-  iteraciones de suavizado. La rigidez sí es estable.
-- **En hueso real a 32³ la malla suave no es fiable**: con puntales de dos
-  vóxeles, el suavizado los estrecha y el VOI sale 2,3 veces más blando que con
-  ladrillos; el análisis no lineal ni siquiera converge. La comparación útil es
-  a 48³ o más (≈ 7 GB con TET10), pendiente; la ventana avisa por debajo de 48³.
+### Antecedente: malla suave (TET10) frente a ladrillos, con FEBio
 
-Además, el trabajo encontró y corrigió tres fallos: `solido.malla_tet10`
-rellenaba los poros cerrados, la corrección de volumen dejaba caer a tetgen, y
-con TET10 FEBio declaraba «no converge» por un criterio de residuo por debajo
-del piso de redondeo.
+📄 [Informe en PDF](comparativa_febio_tet/INFORME.pdf) ·
+[versión Markdown](comparativa_febio_tet/INFORME.md) ·
+[datos](comparativa_febio_tet/resultados/cavidad.jsonl)
+
+Con FEBio 4.5 (V1.0.x) se estableció que la malla suave no hace converger el
+pico de von Mises en la cavidad esférica (la rigidez sí es estable) y que en
+hueso real a 32³ los puntales de dos vóxeles salen demasiado blandos: la
+comparación útil es a 48³ o más. Esas conclusiones son de la malla, no del
+programa, y siguen valiendo con los motores internos.
 
 ---
 
 ## Documentación
 
 La validación mecánica frente a FEBio está en
-[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf).
+[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf),
+y la comparación de los motores FEM internos en
+[`comparativa_motores/INFORME.pdf`](comparativa_motores/INFORME.pdf).
 
 `docs/MANUAL_spinpy.pdf` documenta cada módulo y cada función, y se genera
 del propio código (`python docs/generar_manual.py`). Los docstrings de este

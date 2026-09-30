@@ -1,5 +1,5 @@
 """
-casos.py — Los problemas de la comparativa, todos construidos por spinpy.
+casos.py: Los problemas de la comparativa, todos construidos por spinpy.
 
 Cada funcion devuelve un caso de `comun` (malla + apoyo + carga) listo para
 los cinco motores. La geometria sale SIEMPRE del codigo de la app (mascara
