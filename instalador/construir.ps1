@@ -19,7 +19,7 @@
 #>
 param(
     [string]$Trabajo = "$env:USERPROFILE\spinpy_build",
-    [string]$Version = "2.0.0",
+    [string]$Version = "2.0.1",
     [switch]$SaltarEntorno,
     [switch]$SoloZip
 )

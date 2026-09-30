@@ -1,7 +1,7 @@
 """
 febio.py — Nombre anterior de `spinpy.fem`, conservado por compatibilidad.
 
-Desde V2.0.0 spinpy ya no ejecuta FEBio: los ensayos con malla de ladrillos o
+Desde V2.0.1 spinpy ya no ejecuta FEBio: los ensayos con malla de ladrillos o
 suave, lineales y no lineales, los resuelven los motores internos
 (`spinpy.motores`, elegidos en `spinpy.fem`). La EXPORTACION del ensayo a un
 archivo .feb para abrirlo en FEBio Studio sigue en `escribe.escribir_febio` y
