@@ -25,12 +25,18 @@ LO QUE SE VERIFICA
       modelo).
   (6) Proceso hijo (`resolver_aislado`, el de la GUI): da lo mismo que en el
       proceso actual, y cancelar lo detiene con `Cancelado`.
+  (7) Orden de convergencia con solucion exacta (`comparativa_motores/
+      convergencia.py`, version pequena): cubo con el desplazamiento de
+      Papkovich-Neuber en el contorno, n = 4, 8, 16 (hex8, TET4) y 2, 4, 8
+      (TET10). La pendiente del error en L2 frente a h debe ser la teorica,
+      k + 1: 2 con hex8 y TET4, 3 con TET10.
 
 TOLERANCIAS DECLARADAS ANTES DE MEDIR
   (1), (2) 1e-9 relativa (resolvedor directo; iterativo a 1e-10).
   (3) 1e-8 relativa a la fuerza cerrada (Newton a 1e-10 del residuo).
   (4) 1e-6 del maximo de |u| (la app resuelve con CG a 1e-8).
   (5), (6) exacto.
+  (7) pendiente L2 a menos de 0,15 de k + 1 (las dos ultimas mallas).
 """
 from __future__ import annotations
 
@@ -240,3 +246,32 @@ def test_version_runtime_msvc(tmp_path):
     assert _msvc.version_dll(vieja) == (14, 26, 28720, 3)
     assert _msvc.elegir([vieja, nueva]) == (nueva, (14, 50, 35719, 0))
     assert _msvc.version_dll(tmp_path / "no_existe.dll") is None
+
+
+MOTORES_CONV = [m for m in ("app", "ngsolve", "skfem", "sfepy") if m in DISP]
+
+
+@pytest.mark.parametrize("tipo,ns,k", [("hex8", (4, 8, 16), 1),
+                                       ("tet4", (4, 8, 16), 1),
+                                       ("tet10", (2, 4, 8), 2)])
+def test_orden_convergencia(registro, tipo, ns, k):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]
+                           / "comparativa_motores"))
+    import convergencia as cv
+    for mot in MOTORES_CONV:
+        if mot == "app" and tipo != "hex8":
+            continue
+        h, e = [], []
+        for n in ns:
+            nodos, elems = cv.malla_cubo(n, tipo)
+            U, _ = cv.MOTORES_H[mot](nodos, elems, cv.u_exacta(nodos))
+            h.append(1.0 / n)
+            e.append(cv.errores(nodos, elems, U, tipo)["e_L2"])
+        orden = float(np.log(e[-2] / e[-1]) / np.log(h[-2] / h[-1]))
+        ok = abs(orden - (k + 1)) < 0.15
+        _anotar(registro, f"orden de convergencia L2, {tipo}, {mot}", k + 1,
+                orden, abs(orden - k - 1), "0,15", ok,
+                nota=f"error L2 {e[-1]:.2e} a h = {h[-1]:g}")
+        assert ok, (mot, tipo, orden)

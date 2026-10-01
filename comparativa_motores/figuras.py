@@ -286,6 +286,183 @@ def fig_no_lineal(filas, destino):
     return destino
 
 
+# ---------------------------------------------------------------------------
+# Convergencia con solucion exacta (convergencia.py)
+# ---------------------------------------------------------------------------
+
+ELEMENTO = {"hex8": "hex8 (Q1)", "tet4": "TET4 (P1)", "tet10": "TET10 (P2)"}
+#: Las rectas de cada elemento van en tinta (el color sigue al MOTOR, como en
+#: el resto de figuras); el elemento lo distinguen el trazo y la etiqueta.
+TRAZO = {"hex8": (TINTA_2, "-"), "tet4": (TINTA_2, "--"),
+         "tet10": (TINTA, ":")}
+
+
+def pendiente(x, y):
+    """Pendiente de la recta de minimos cuadrados de log(y) frente a log(x)."""
+    return float(np.polyfit(np.log(x), np.log(y), 1)[0])
+
+
+def serie_h(filas, tipo, clave, motor=None):
+    """(h, e) de un elemento: el motor pedido o, si no, la referencia de
+    cada malla (los motores coinciden a 1e-9, ver `du_rel_ref`)."""
+    pts = {}
+    for d in filas:
+        if d["estudio"] != "h" or not d.get("ok") or d["elemento"] != tipo:
+            continue
+        if motor is not None and d["motor"] != motor:
+            continue
+        if motor is None and (d.get("du_rel_ref") or 0) != 0:
+            continue
+        pts[d["h"]] = d[clave]
+    h = np.array(sorted(pts, reverse=True))
+    return h, np.array([pts[x] for x in h])
+
+
+def tabla_convergencia(filas):
+    """Orden observado por elemento y motor (pendiente global y local)."""
+    L = ["#### Convergencia con solución exacta (refinamiento h)", "",
+         "| Elemento | Motor | n | GDL | error L2 rel. | error H1 rel. | "
+         "orden local L2 | orden local H1 | Δu/ref | tiempo (s) |",
+         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    for tipo in ELEMENTO:
+        for mot in MOTORES:
+            fs = sorted((d for d in filas if d["estudio"] == "h"
+                         and d.get("ok") and d["elemento"] == tipo
+                         and d["motor"] == mot), key=lambda d: d["n"])
+            ant = None
+            for d in fs:
+                oL = oH = "n/d"
+                if ant is not None:
+                    r = np.log(ant["h"] / d["h"])
+                    oL = f"{np.log(ant['e_L2'] / d['e_L2']) / r:.3f}"
+                    oH = f"{np.log(ant['e_H1'] / d['e_H1']) / r:.3f}"
+                L.append(f"| {ELEMENTO[tipo]} | {NOMBRE[mot]} | {d['n']} | "
+                         f"{d['n_gdl']} | {d['e_L2_rel']:.4e} | "
+                         f"{d['e_H1_rel']:.4e} | {oL} | {oH} | "
+                         f"{sci(d.get('du_rel_ref'))} | "
+                         f"{fmt(d.get('tiempo_s'), '.2f')} |")
+                ant = d
+    L += ["", "#### Convergencia con solución exacta (refinamiento p, "
+          "malla fija)", "",
+          "| Motor | n | grado p | GDL | error L2 rel. | error H1 rel. | "
+          "tiempo (s) |", "|---|---:|---:|---:|---:|---:|---:|"]
+    for d in filas:
+        if d["estudio"] == "p" and d.get("ok"):
+            L.append(f"| {NOMBRE[d['motor']]} | {d['n']} | {d['grado']} | "
+                     f"{d['n_gdl']} | {d['e_L2_rel']:.4e} | "
+                     f"{d['e_H1_rel']:.4e} | {fmt(d.get('tiempo_s'), '.2f')}"
+                     " |")
+    return L + [""]
+
+
+def fig_convergencia(filas, destino):
+    """(a, b) Error relativo en L2 y en la seminorma H1 frente al tamano de
+    elemento h, con la pendiente de cada elemento; los marcadores de los
+    motores se superponen. (c) Refinamiento p con la malla fija: log(e)
+    frente al grado es una recta. (d) Error L2 frente a los GDL: h frente a
+    p."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    fig, axs = plt.subplots(2, 2, figsize=(7.2, 6.2))
+    ax_a, ax_b, ax_c, ax_d = axs.ravel()
+    mots_h = [m for m in MOTORES if any(d["estudio"] == "h" and d["motor"] == m
+                                        and d.get("ok") for d in filas)]
+    for ax, clave, nombre, letra in ((ax_a, "e_L2_rel", "L2", "(a)"),
+                                     (ax_b, "e_H1_rel", "H1", "(b)")):
+        _estilo(ax)
+        ax.grid(True, which="minor", color=REJILLA, lw=0.3)
+        for tipo, (col, ls) in TRAZO.items():
+            h, e = serie_h(filas, tipo, clave)
+            if h.size < 2:
+                continue
+            m_ = pendiente(h, e)
+            ax.plot(h, e, ls, color=col, lw=1.4, zorder=1,
+                    label=f"{ELEMENTO[tipo]}: pendiente {m_:.3f}"
+                    .replace(".", ","))
+            for j, mot in enumerate(mots_h):
+                hm, em = serie_h(filas, tipo, clave, mot)
+                if hm.size:
+                    ax.plot(hm, em, ls="none", marker=MARCA[mot],
+                            color=COLOR[mot], ms=7 - 0.9 * j, mfc="none",
+                            mew=1.1, zorder=2 + j)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        from matplotlib.ticker import FixedLocator, NullFormatter
+        hs = sorted({d["h"] for d in filas if d["estudio"] == "h"})
+        ax.xaxis.set_major_locator(FixedLocator(hs))
+        ax.xaxis.set_minor_locator(FixedLocator([]))
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xticklabels([f"1/{round(1 / x)}" for x in hs])
+        ax.set_xlabel("tamaño de elemento h (mm)", fontsize=7.5,
+                      color=TINTA_2)
+        ax.set_ylabel(f"error relativo en {nombre}", fontsize=7.5,
+                      color=TINTA_2)
+        ax.set_title(f"{letra} refinamiento h, norma {nombre}", fontsize=8,
+                     color=TINTA, loc="left")
+        ax.legend(frameon=False, fontsize=6.3, labelcolor=TINTA,
+                  loc="lower right", handlelength=2.6)
+    # motores (comun a a y b), arriba a la izquierda de (a): ahi no hay datos
+    ax_a.add_artist(ax_a.legend_)
+    ax_a.legend(handles=[Line2D([], [], ls="none", marker=MARCA[m],
+                                color=COLOR[m], mfc="none", mew=1.1, ms=6,
+                                label=NOMBRE[m]) for m in mots_h],
+                frameon=False, fontsize=6.3, labelcolor=TINTA,
+                loc="upper left", title="motor", title_fontsize=6.3)
+    # (c) refinamiento p
+    _estilo(ax_c)
+    pp = [d for d in filas if d["estudio"] == "p" and d.get("ok")]
+    for mot in [m for m in MOTORES if any(d["motor"] == m for d in pp)]:
+        fs = sorted((d for d in pp if d["motor"] == mot),
+                    key=lambda d: d["grado"])
+        g = np.array([d["grado"] for d in fs])
+        for clave, ls, et in (("e_L2_rel", "-", "L2"), ("e_H1_rel", "--",
+                                                        "H1")):
+            e = np.array([d[clave] for d in fs])
+            b = -np.polyfit(g, np.log(e), 1)[0]
+            ax_c.plot(g, e, ls, marker=MARCA[mot], color=COLOR[mot], lw=1.4,
+                      ms=5, mfc=FONDO if ls == "--" else COLOR[mot],
+                      mew=1.2, label=f"{NOMBRE[mot]}, {et}: "
+                      f"e ∝ exp(−{b:.2f} p)".replace(".", ","))
+    ax_c.set_yscale("log")
+    ax_c.set_xlabel("grado del polinomio p (malla fija, h = 0,25 mm)",
+                    fontsize=7.5, color=TINTA_2)
+    ax_c.set_ylabel("error relativo", fontsize=7.5, color=TINTA_2)
+    ax_c.set_title("(c) refinamiento p (TET4 → TET10 → TETN)", fontsize=8,
+                   color=TINTA, loc="left")
+    ax_c.legend(frameon=False, fontsize=6, labelcolor=TINTA)
+    # (d) h frente a p por GDL
+    _estilo(ax_d)
+    ax_d.grid(True, which="minor", color=REJILLA, lw=0.3)
+    for tipo in ("tet4", "tet10"):
+        col, ls = TRAZO[tipo]
+        fs = sorted((d for d in filas if d["estudio"] == "h" and d.get("ok")
+                     and d["elemento"] == tipo and d["motor"] == "ngsolve"),
+                    key=lambda d: d["n_gdl"])
+        if fs:
+            ax_d.plot([d["n_gdl"] for d in fs], [d["e_L2_rel"] for d in fs],
+                      ls, color=col, lw=1.4, marker="o", ms=4, mfc=FONDO,
+                      label=f"refinamiento h, {ELEMENTO[tipo]}")
+    for mot in [m for m in MOTORES if any(d["motor"] == m for d in pp)]:
+        fs = sorted((d for d in pp if d["motor"] == mot),
+                    key=lambda d: d["grado"])
+        ax_d.plot([d["n_gdl"] for d in fs], [d["e_L2_rel"] for d in fs], "-",
+                  marker=MARCA[mot], color=COLOR[mot], lw=1.4, ms=5,
+                  label=f"refinamiento p, {NOMBRE[mot]}")
+    ax_d.set_xscale("log")
+    ax_d.set_yscale("log")
+    ax_d.set_xlabel("grados de libertad", fontsize=7.5, color=TINTA_2)
+    ax_d.set_ylabel("error relativo en L2", fontsize=7.5, color=TINTA_2)
+    ax_d.set_title("(d) coste: error frente a GDL", fontsize=8, color=TINTA,
+                   loc="left")
+    ax_d.legend(frameon=False, fontsize=6, labelcolor=TINTA)
+    fig.tight_layout()
+    fig.savefig(destino, dpi=200, facecolor=FONDO)
+    plt.close(fig)
+    return destino
+
+
 def main():
     FIGS.mkdir(exist_ok=True)
     ex, nl = leer("exactos"), leer("nl")
@@ -303,6 +480,8 @@ def main():
         L += tabla_lineal(et, "Espinodoide, malla suave (TET10)")
     if nl:
         L += tabla_nl(nl)
+    if leer("convergencia"):
+        L += tabla_convergencia(leer("convergencia"))
     (AQUI / "tablas.md").write_text("\n".join(L), encoding="utf-8")
     if eh:
         fig_escalado(eh, FIGS / "fig1_tiempo_hex8.png", t_sin_jit,
@@ -318,9 +497,14 @@ def main():
         fig_escalado(et, FIGS / "fig4_memoria_tet10.png",
                      lambda d: d.get("rss_pico_MB"), "memoria de pico (MB)",
                      "Espinodoide TET10: memoria de pico del proceso")
+    conv = leer("convergencia")
+    if conv:
+        fig_convergencia(conv, FIGS / "fig5_convergencia.png")
+    # Concordancia entre motores sobre una misma malla: ya no es figura del
+    # informe (la Figura 5 es la convergencia), queda como complemento.
     todas = [d for d in eh + et + cav if d.get("ok")]
     if todas:
-        fig_exactitud(todas, FIGS / "fig5_exactitud.png")
+        fig_exactitud(todas, FIGS / "concordancia_motores.png")
     if nl:
         fig_no_lineal(nl, FIGS / "fig6_no_lineal.png")
     print((AQUI / "tablas.md").read_text()[:3000])

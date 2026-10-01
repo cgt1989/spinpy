@@ -42,8 +42,8 @@ keywords:
   - trabecular bone
   - micro-CT
 license: MIT
-version: 2.0.1
-date-released: '2026-09-30'
+version: 2.0.2
+date-released: '2026-10-01'
 
 references:
   - type: article
