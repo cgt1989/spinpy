@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Artefactos numéricos de los motores FEM de spinpy</title>
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<style>
+:root {
+  --tinta: #1d1c1a; --tinta2: #4a4945; --tinta3: #77756f;
+  --regla: #d9d7d0; --papel: #ffffff; --fondo: #f6f5f1; --fondo2: #eeece6;
+  --azul: #2a78d6; --azul-o: #184f95; --azul-c: #e6f0fc;
+  --naranja: #eb6834; --naranja-c: #fdeee7; --aqua: #1baf7a;
+  --grave: #c43c3b; --grave-c: #fbe9e9; --mod: #b07800; --mod-c: #fdf3dc;
+  --leve: #2f7d32; --leve-c: #e7f3e7; --nulo: #77756f; --nulo-c: #efeee9;
+}
+@page { size: A4; margin: 20mm 18mm 20mm 18mm;
+  @bottom-left { content: "spinpy · Artefactos numéricos de los motores FEM"; font: 7.5pt "IBM Plex Sans"; color: #77756f; }
+  @bottom-right { content: counter(page) " / " counter(pages); font: 7.5pt "IBM Plex Sans"; color: #77756f; }
+}
+@page portada { margin: 0; @bottom-left { content: none } @bottom-right { content: none } }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; background: var(--papel); color: var(--tinta);
+  font: 10pt/1.5 "Source Serif 4", Georgia, serif; hyphens: auto; }
+h1, h2, h3, h4, .sans { font-family: "IBM Plex Sans", Arial, sans-serif; }
+h2 { font-size: 17pt; font-weight: 600; margin: 0 0 4mm; letter-spacing: -0.01em; break-after: avoid; }
+h2 .num { color: var(--azul); margin-right: 3mm; }
+h3 { font-size: 11.5pt; font-weight: 600; margin: 6mm 0 2mm; break-after: avoid; }
+h4 { font-size: 9pt; font-weight: 600; margin: 4mm 0 1mm; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta2); break-after: avoid; }
+p { margin: 0 0 2.6mm; text-align: justify; }
+ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+li { margin-bottom: 1.2mm; }
+code, .mono { font-family: "IBM Plex Mono", monospace; font-size: 8.4pt; background: var(--fondo); padding: 0 1mm; border-radius: 2px; }
+sup.ref { font-family: "IBM Plex Sans"; font-size: 6.8pt; color: var(--azul-o); }
+.salto { break-before: page; }
+.nobreak { break-inside: avoid; }
+.seccion-et { font: 600 8pt "IBM Plex Sans"; color: var(--azul); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 1mm; }
+.entradilla { font-size: 11pt; line-height: 1.55; color: var(--tinta2); margin-bottom: 5mm; }
+
+/* ---------- Portada ---------- */
+.portada { page: portada; height: 297mm; display: grid; grid-template-rows: 112mm 1fr auto; }
+.portada .banda { background: #14233a; color: #fff; padding: 22mm 20mm 12mm; position: relative; overflow: hidden; }
+.portada .banda svg { position: absolute; right: -4mm; bottom: -6mm; opacity: 0.85; width: 70mm; height: 70mm; }
+.portada .tipo { font: 600 8.5pt "IBM Plex Sans"; letter-spacing: 0.18em; text-transform: uppercase; color: #86b6ef; }
+.portada h1 { font-size: 25pt; line-height: 1.14; margin: 6mm 0 4mm; font-weight: 600; max-width: 112mm; letter-spacing: -0.015em; }
+.portada .sub { font: 400 11pt/1.45 "IBM Plex Sans"; color: #cde2fb; max-width: 105mm; }
+.portada .cuerpo { padding: 12mm 20mm 0; display: grid; grid-template-columns: 1fr 64mm; gap: 10mm; }
+.portada .cuerpo p { font-size: 10.2pt; }
+.portada .preguntas { background: var(--fondo); border-radius: 3mm; padding: 6mm; font-family: "IBM Plex Sans"; font-size: 8.8pt; line-height: 1.45; }
+.portada .preguntas b { display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.1em; color: var(--azul-o); margin-bottom: 2mm; }
+.portada .preguntas ol { padding-left: 4.5mm; margin: 0; }
+.portada .pie { padding: 0 20mm 16mm; font: 8.5pt/1.5 "IBM Plex Sans"; color: var(--tinta3); display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; border-top: 0.4mm solid var(--regla); margin: 0 20mm; padding: 5mm 0 16mm; }
+.portada .pie b { display: block; color: var(--tinta); font-weight: 600; }
+
+/* ---------- Resumen en una página ---------- */
+.cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 2mm 0 6mm; }
+.cifra { background: var(--fondo); border-radius: 2.5mm; padding: 4mm 4mm 3.5mm; break-inside: avoid; }
+.cifra .v { font: 600 19pt/1 "IBM Plex Sans"; white-space: nowrap; color: var(--tinta); letter-spacing: -0.02em; }
+.cifra .u { font: 500 10pt "IBM Plex Sans"; color: var(--tinta2); }
+.cifra .t { font: 8pt/1.35 "IBM Plex Sans"; color: var(--tinta2); margin-top: 2mm; }
+table { border-collapse: collapse; width: 100%; font: 8.2pt/1.35 "IBM Plex Sans"; margin: 2mm 0 4mm; }
+th { text-align: left; font-weight: 600; color: var(--tinta2); border-bottom: 0.4mm solid var(--tinta); padding: 1.6mm 1.8mm; font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.04em; vertical-align: bottom; }
+td { border-bottom: 0.2mm solid var(--regla); padding: 1.8mm 1.8mm; vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr { break-inside: avoid; }
+.sev { display: inline-flex; align-items: center; gap: 1.2mm; font: 600 7.4pt "IBM Plex Sans"; padding: 0.5mm 1.8mm; border-radius: 10mm; white-space: nowrap; }
+.sev::before { content: ""; width: 2.2mm; height: 2.2mm; border-radius: 50%; background: currentColor; }
+.sev.g { color: var(--grave); background: var(--grave-c); }
+.sev.m { color: var(--mod); background: var(--mod-c); }
+.sev.l { color: var(--leve); background: var(--leve-c); }
+.sev.n { color: var(--nulo); background: var(--nulo-c); }
+.sev.g::after { content: "  ▲"; font-size: 6pt; }
+.chip { display: inline-block; font: 500 7.2pt "IBM Plex Sans"; border: 0.25mm solid var(--regla); border-radius: 1.2mm; padding: 0.2mm 1.4mm; margin: 0 0.8mm 0.8mm 0; color: var(--tinta2); background: #fff; }
+.codigo { display: inline-block; font: 600 8pt "IBM Plex Mono"; background: var(--tinta); color: #fff; border-radius: 1.2mm; padding: 0.3mm 1.6mm; }
+
+/* ---------- Cajas ---------- */
+.caja { border-radius: 2.5mm; padding: 4mm 5mm; margin: 3mm 0 4mm; break-inside: avoid; font-size: 9.4pt; }
+.caja .tit { font: 600 8pt "IBM Plex Sans"; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5mm; display: flex; align-items: center; gap: 2mm; }
+.caja p:last-child, .caja ul:last-child { margin-bottom: 0; }
+.caja.clave { background: var(--azul-c); } .caja.clave .tit { color: var(--azul-o); }
+.caja.leer { background: var(--fondo); border-left: 1.2mm solid var(--tinta3); border-radius: 0 2.5mm 2.5mm 0; }
+.caja.leer .tit { color: var(--tinta2); }
+.caja.alerta { background: var(--naranja-c); } .caja.alerta .tit { color: #a8441c; }
+.icono { width: 4mm; height: 4mm; }
+
+/* ---------- Figuras ---------- */
+figure { margin: 3mm 0 5mm; break-inside: avoid; }
+figure img { width: auto; max-width: 100%; max-height: 82mm; display: block; margin: 0 auto; }
+figcaption { font: 8pt/1.45 "IBM Plex Sans"; color: var(--tinta2); margin-top: 2mm; }
+figcaption b { color: var(--tinta); }
+
+/* ---------- Diagrama de la cadena ---------- */
+.cadena { margin: 4mm 0 2mm; }
+
+/* ---------- Fichas ---------- */
+.ficha { break-before: page; }
+.ficha-cab { display: grid; grid-template-columns: 1fr auto; align-items: end; border-bottom: 0.5mm solid var(--tinta); padding-bottom: 3mm; margin-bottom: 4mm; }
+.ficha-cab .et { font: 600 8pt "IBM Plex Sans"; color: var(--tinta3); letter-spacing: 0.12em; text-transform: uppercase; }
+.ficha-cab h2 { margin: 1mm 0 0; font-size: 16pt; }
+.ficha-cab .derecha { text-align: right; }
+.ficha-cab .derecha .sev { font-size: 8pt; padding: 1mm 2.6mm; }
+.ficha-cuerpo { display: grid; grid-template-columns: 1fr 60mm; gap: 6mm; }
+.lado { font-family: "IBM Plex Sans"; font-size: 8.2pt; line-height: 1.4; }
+.lado .bloque { background: var(--fondo); border-radius: 2.5mm; padding: 3.5mm; margin-bottom: 3.5mm; break-inside: avoid; }
+.lado .bloque h5 { margin: 0 0 2mm; font-size: 7.4pt; text-transform: uppercase; letter-spacing: 0.1em; color: var(--tinta2); }
+.lado .kv { display: grid; grid-template-columns: 1fr auto; gap: 1.2mm 2mm; font-size: 7.8pt; align-items: baseline; }
+.lado .kv span:nth-child(even) { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.lado svg { width: 100%; height: auto; display: block; }
+.soluciones { margin-top: 2mm; }
+.sol { display: grid; grid-template-columns: 7mm 1fr; gap: 2mm; margin-bottom: 2.6mm; break-inside: avoid; }
+.sol .k { font: 600 8pt "IBM Plex Sans"; background: var(--azul); color: #fff; border-radius: 50%; width: 5.6mm; height: 5.6mm; display: grid; place-items: center; }
+.sol p { margin: 0; }
+.sol .meta { font: 7.6pt "IBM Plex Sans"; color: var(--tinta3); margin-top: 0.6mm; }
+
+/* ---------- Hoja de ruta ---------- */
+.ruta td:first-child { width: 7mm; font-weight: 600; color: var(--azul-o); }
+.esfuerzo { font: 600 7.2pt "IBM Plex Sans"; letter-spacing: 0.05em; }
+.lista-chequeo td:nth-child(3) { white-space: nowrap; }
+.refs { font-size: 8.6pt; line-height: 1.45; padding-left: 6mm; }
+.refs li { margin-bottom: 1.6mm; text-align: left; }
+.glosario { display: grid; grid-template-columns: 30mm 1fr; gap: 1.6mm 4mm; font-size: 8.8pt; }
+.glosario dt { font: 600 8.4pt "IBM Plex Sans"; }
+.glosario dd { margin: 0; }
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PORTADA ======================= -->
+<section class="portada">
+  <div class="banda">
+    <svg width="96mm" height="96mm" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><pattern id="vox" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="5.2" height="5.2" fill="#2a78d6" opacity="0.55"/></pattern></defs>
+      <path d="M10 92 L10 70 Q22 60 20 46 Q18 30 30 22 Q42 14 52 22 Q60 30 72 26 Q86 20 90 8 L98 8 L98 30 Q86 40 78 44 Q66 50 64 62 Q62 76 74 84 L74 92 Z" fill="url(#vox)"/>
+      <path d="M10 92 L10 70 Q22 60 20 46 Q18 30 30 22 Q42 14 52 22 Q60 30 72 26 Q86 20 90 8 L98 8 L98 30 Q86 40 78 44 Q66 50 64 62 Q62 76 74 84 L74 92 Z" fill="none" stroke="#86b6ef" stroke-width="0.8"/>
+      <g fill="#eb6834"><circle cx="20" cy="46" r="2.2"/><circle cx="90" cy="8" r="2.2"/><circle cx="64" cy="62" r="2.2"/></g>
+    </svg>
+    <div class="tipo">Informe técnico de diagnóstico · comparativa_motores</div>
+    <h1>Artefactos numéricos en los ensayos de compresión con los motores FEM internos de spinpy</h1>
+    <div class="sub">Qué zonas del hueso modelado concentran tensiones que no proceden de su arquitectura, cuánto pesan en los números que se citan y cómo pueden corregirse.</div>
+  </div>
+  <div class="cuerpo">
+    <div>
+      <p>La versión 2 de spinpy resuelve sus ensayos con motores de elementos finitos internos (NGSolve, scikit-fem y, si están instalados, FEniCSx y SfePy). La comparativa previa demostró que esos motores resuelven <i>el mismo problema discreto</i> con diferencias del orden del redondeo. Este informe aborda la pregunta siguiente: qué parte de lo que ese problema discreto predice es un <b>artefacto</b>, es decir, una consecuencia de cómo se recorta el volumen, se malla, se carga y se resuelve, y no de la arquitectura trabecular.</p>
+      <p>Se resolvieron ocho ensayos lineales sobre el mismo espinodoide (dos tipos de malla, tres resoluciones, dos condiciones de carga y dos de apoyo) y se rastreó el origen de cada valor alto de von Mises. El documento está organizado como una guía: un resumen en una página, una explicación del método, una ficha por artefacto con lo medido y las opciones para corregirlo, y una hoja de ruta priorizada.</p>
+    </div>
+    <div class="preguntas">
+      <b>Preguntas que responde</b>
+      <ol>
+        <li>¿Dónde se concentran los valores altos de tensión y cuánto se debe al modelo y no al hueso?</li>
+        <li>¿Qué artefactos alteran la rigidez aparente y cuáles solo la tensión local?</li>
+        <li>¿Qué cambia entre ladrillos (hex8) y malla suave (TET10)?</li>
+        <li>¿Qué se puede corregir en la aplicación y con qué esfuerzo?</li>
+      </ol>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>Versión</b>spinpy V2.0.2 (commit 8638200)<br>NGSolve 6.2.2607 · scikit-fem 12.0.2</div>
+    <div><b>Fecha</b>1 de octubre de 2026</div>
+    <div><b>Datos y código</b>comparativa_motores/artefactos.py<br>comparativa_motores/figuras_artefactos.py</div>
+  </div>
+</section>
+
+<!-- ======================= RESUMEN ======================= -->
+<section class="salto">
+  <div class="seccion-et">El informe en una página</div>
+  <h2>Resumen</h2>
+  <p class="entradilla">Los motores no introducen artefactos propios cuando se resuelven con un método directo o con BDDC. Los artefactos importantes nacen antes del resolvedor: en cómo se carga el techo del volumen, en las caras por donde se recortó y en la discretización de la superficie ósea.</p>
+
+  <div class="cifras">
+    <div class="cifra"><div class="v">×1,6<span class="u"> a </span>2,0</div><div class="t">E aparente con plato rígido frente a tracción uniforme en el techo (hex8 y TET10, 48³).</div></div>
+    <div class="cifra"><div class="v">34 <span class="u">%</span></div><div class="t">de la cola de von Mises (&gt; p99) cae en el 6 % del hueso más próximo al techo cargado.</div></div>
+    <div class="cifra"><div class="v">0,49</div><div class="t">tensión media a menos de 0,3 mm de una cara lateral, relativa al núcleo. Esa franja es el 21 % del hueso.</div></div>
+    <div class="cifra"><div class="v">+22 <span class="u">%</span></div><div class="t">cambio del p99 citado al pasar de 32³ a 64³ con hex8: la tensión de cola no converge.</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Código</th><th>Artefacto</th><th>Afecta sobre todo a</th><th>Magnitud medida</th><th>Gravedad</th></tr></thead>
+    <tbody>
+      <tr><td><span class="codigo">A1</span></td><td>Techo cargado con tracción uniforme sobre trabéculas cortadas</td><td>E aparente, p99, máximo, Pistoia</td><td>E ×0,62 frente al plato; p99 +32 % (hex8)</td><td><span class="sev g">Grave</span></td></tr>
+      <tr><td><span class="codigo">A2</span></td><td>Caras laterales cortadas por el recorte del VOI</td><td>E aparente, fracción portante</td><td>21 % del hueso con la mitad de tensión</td><td><span class="sev g">Grave</span></td></tr>
+      <tr><td><span class="codigo">A3</span></td><td>Rigidez que depende del tipo de malla (hex8 frente a TET10)</td><td>E aparente, comparaciones entre mallas</td><td>TET10 −27 % (tracción) y −10 % (plato)</td><td><span class="sev g">Grave</span></td></tr>
+      <tr><td><span class="codigo">A4</span></td><td>Escalera de vóxeles y tensión de cola sin convergencia</td><td>p99, máximo, mapas de tensión</td><td>p99 +22 % de 32³ a 64³; error local 25 a 45 %</td><td><span class="sev m">Moderada</span></td></tr>
+      <tr><td><span class="codigo">A5</span></td><td>Uniones por arista o vértice entre vóxeles (bisagras)</td><td>Máximo, mapas locales</td><td>×10 a ×13 de enriquecimiento; contiene el máximo a 64³</td><td><span class="sev m">Moderada</span></td></tr>
+      <tr><td><span class="codigo">A6</span></td><td>Error oculto del iterativo CG + pyamg con TET10</td><td>Desplazamientos, tensión local</td><td>0,9 % en u con residuo 10⁻¹⁰; p99 +0,1 %</td><td><span class="sev l">Leve</span></td></tr>
+      <tr><td><span class="codigo">A7</span></td><td>Definición de E aparente (media de nodos o por área)</td><td>E aparente</td><td>1 a 4 % (hasta 9 % en el VOI H4)</td><td><span class="sev l">Leve</span></td></tr>
+      <tr><td><span class="codigo">C</span></td><td>Controles: anclas del apoyo, base empotrada, tetraedros de mala calidad</td><td>Ninguno citado</td><td>Sin efecto detectable en la cola</td><td><span class="sev n">Sin efecto</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="caja clave">
+    <div class="tit"><svg class="icono" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4v5M8 11v1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Lo esencial</div>
+    <p>Las zonas calientes son, en su mayoría, reales: el 83 al 97 % reaparece en el mismo sitio al cambiar de resolución o de tipo de elemento (frente a un 10 a 11 % esperable por azar). Lo que no es fiable es su <b>valor</b>, que depende de la malla, y la <b>rigidez aparente</b>, que depende sobre todo de cómo se carga el techo. Las tres correcciones con mejor relación entre beneficio y esfuerzo son ofrecer el plato rígido lineal como condición de carga (o informar ambas), excluir una franja de 0,3 a 0,6 mm junto a las caras del VOI en los estadísticos citados y añadir a la aplicación un indicador de error por recuperación de tensiones.</p>
+  </div>
+</section>
+
+<!-- ======================= 1. QUÉ ES UN ARTEFACTO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 1</div>
+  <h2><span class="num">1</span>Qué entendemos por artefacto</h2>
+  <p>En un ensayo de elementos finitos sobre un volumen de interés (VOI) de hueso trabecular, cada número que se publica es el resultado de una cadena de decisiones: segmentar la imagen, recortar un cubo, discretizarlo, aplicar unas condiciones de contorno, resolver un sistema lineal y resumir el campo de tensiones en un estadístico. Llamamos <b>artefacto</b> a toda parte del resultado que cambia al modificar una de esas decisiones sin modificar el hueso. La definición es operativa: un artefacto se detecta porque el resultado depende de algo que no debería importar.</p>
+  <p>La distinción importa porque los artefactos no afectan por igual a todas las magnitudes. La rigidez aparente es una integral sobre todo el volumen y tolera bien el error local, pero es muy sensible a lo que ocurre en los bordes del espécimen. La tensión de cola (el p99 de von Mises en la superficie, que la aplicación cita, o el máximo, que no cita) depende de unos pocos elementos y, por tanto, de su forma, de su tamaño y de su vecindad. Las guías de reporte de elementos finitos en biomecánica piden precisamente separar la verificación del cálculo (el error de discretización) de las decisiones de modelado que condicionan la respuesta<sup class="ref">1</sup>.</p>
+
+  <figure class="cadena">
+    <svg viewBox="0 0 680 210" width="100%" font-family="IBM Plex Sans" font-size="11">
+      <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#77756f"/></marker></defs>
+      <g font-weight="600" fill="#1d1c1a">
+        <rect x="4" y="20" width="100" height="46" rx="6" fill="#eeece6"/><text x="54" y="40" text-anchor="middle">Imagen y</text><text x="54" y="55" text-anchor="middle">recorte del VOI</text>
+        <rect x="118" y="20" width="100" height="46" rx="6" fill="#eeece6"/><text x="168" y="40" text-anchor="middle">Malla</text><text x="168" y="55" text-anchor="middle">hex8 o TET10</text>
+        <rect x="232" y="20" width="100" height="46" rx="6" fill="#eeece6"/><text x="282" y="40" text-anchor="middle">Condiciones</text><text x="282" y="55" text-anchor="middle">de contorno</text>
+        <rect x="346" y="20" width="100" height="46" rx="6" fill="#eeece6"/><text x="396" y="40" text-anchor="middle">Resolvedor</text><text x="396" y="55" text-anchor="middle">del sistema</text>
+        <rect x="460" y="20" width="100" height="46" rx="6" fill="#eeece6"/><text x="510" y="40" text-anchor="middle">Postproceso</text><text x="510" y="55" text-anchor="middle">del campo</text>
+        <rect x="574" y="20" width="100" height="46" rx="6" fill="#14233a"/><text x="624" y="40" text-anchor="middle" fill="#fff">Número</text><text x="624" y="55" text-anchor="middle" fill="#fff">citado</text>
+      </g>
+      <g stroke="#77756f" stroke-width="1.4" marker-end="url(#fl)">
+        <line x1="104" y1="43" x2="116" y2="43"/><line x1="218" y1="43" x2="230" y2="43"/><line x1="332" y1="43" x2="344" y2="43"/><line x1="446" y1="43" x2="458" y2="43"/><line x1="560" y1="43" x2="572" y2="43"/>
+      </g>
+      <g font-size="10" fill="#4a4945">
+        <g transform="translate(4,84)"><rect width="100" height="22" rx="4" fill="#fbe9e9"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#c43c3b">A2</tspan> caras cortadas</text></g>
+        <g transform="translate(118,84)"><rect width="100" height="22" rx="4" fill="#fbe9e9"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#c43c3b">A3</tspan> rigidez de malla</text></g>
+        <g transform="translate(118,110)"><rect width="100" height="22" rx="4" fill="#fdf3dc"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#b07800">A4</tspan> escalera</text></g>
+        <g transform="translate(118,136)"><rect width="100" height="22" rx="4" fill="#fdf3dc"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#b07800">A5</tspan> bisagras</text></g>
+        <g transform="translate(232,84)"><rect width="100" height="22" rx="4" fill="#fbe9e9"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#c43c3b">A1</tspan> techo cargado</text></g>
+        <g transform="translate(346,84)"><rect width="100" height="22" rx="4" fill="#e7f3e7"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#2f7d32">A6</tspan> iterativo</text></g>
+        <g transform="translate(460,84)"><rect width="100" height="22" rx="4" fill="#e7f3e7"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#2f7d32">A7</tspan> definición E</text></g>
+        <g transform="translate(460,110)"><rect width="100" height="22" rx="4" fill="#fdf3dc"/><text x="8" y="15"><tspan font-weight="600" font-family="IBM Plex Mono" fill="#b07800">A4</tspan> estadístico</text></g>
+      </g>
+      <g font-size="9.5" fill="#77756f">
+        <text x="4" y="186">Gravedad:</text>
+        <rect x="58" y="177" width="10" height="10" rx="5" fill="#c43c3b"/><text x="72" y="186">grave</text>
+        <rect x="110" y="177" width="10" height="10" rx="5" fill="#b07800"/><text x="124" y="186">moderada</text>
+        <rect x="178" y="177" width="10" height="10" rx="5" fill="#2f7d32"/><text x="192" y="186">leve</text>
+        <text x="240" y="186">El resolvedor, con método directo o BDDC, no añade artefactos medibles (comparativa de motores).</text>
+      </g>
+    </svg>
+    <figcaption><b>Figura 1.</b> Dónde nace cada artefacto en la cadena que lleva de la imagen al número citado. Cuatro de los siete aparecen antes de resolver el sistema; por eso cambiar de motor no los corrige.</figcaption>
+  </figure>
+
+  <h3>Artefacto, error y física: tres cosas distintas</h3>
+  <div class="dos">
+    <div>
+      <p><b>Error de discretización.</b> Diferencia entre la solución del problema discreto y la del problema continuo con la misma geometría. Disminuye al refinar la malla. La comparativa de motores verificó que su orden es el teórico en un cubo con solución exacta.</p>
+      <p><b>Artefacto de modelado.</b> Diferencia entre el problema continuo planteado y el que se quería plantear: un techo cargado de una forma que no existe <i>in situ</i>, caras que en el hueso real continúan, una superficie con escalones. No disminuye al refinar.</p>
+    </div>
+    <div>
+      <p><b>Concentración física.</b> Tensión alta que el hueso tendría de verdad, por ejemplo en una trabécula delgada que trabaja a flexión. Es la señal que se quiere medir.</p>
+      <p>El método de la sección 2 separa estos tres componentes con dos herramientas: la <b>persistencia</b> (una concentración física aparece en el mismo sitio con cualquier malla) y la <b>sensibilidad</b> (un artefacto cambia cuando se cambia la decisión que lo produce).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 2. MÉTODO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 2</div>
+  <h2><span class="num">2</span>Cómo se buscaron</h2>
+  <h3>El espécimen y los ensayos</h3>
+  <p>Se usó el espinodoide de referencia de la comparativa de motores (densidad relativa 0,30, número de onda 12π, 700 ondas, conos de 30°, 30° y 90°, semilla 1, cubo de 5 mm de lado). Con la misma semilla, el campo aleatorio que define la estructura es idéntico a cualquier resolución: al cambiar n cambia la discretización, no el hueso. La longitud de onda de la estructura es de unos 0,83 mm.</p>
+  <p>Sobre él se resolvió el ensayo de compresión lineal de la aplicación (E = 20 GPa, ν = 0,3) con NGSolve: Cholesky disperso con hexaedros y CG con precondicionador BDDC con TET10, las opciones por omisión del motor recomendado. La Tabla 1 resume los ocho ensayos y un noveno con el iterativo de scikit-fem. Los valores TET10 de 32³ y 48³ reproducen los de la comparativa de motores a todas las cifras publicadas (E aparente 156,68 y 219,02 MPa; p99 85,77 y 79,03 MPa), lo que sirve de control del banco de pruebas.</p>
+
+  <table>
+    <thead><tr><th>Malla</th><th class="n">n</th><th>Carga en el techo</th><th>Base</th><th class="n">GDL</th><th class="n">Elementos</th><th class="n">E aparente (MPa)</th><th class="n">p99 / σ</th><th class="n">t (s)</th></tr></thead>
+    <tbody>
+      <tr><td>hex8</td><td class="n">32</td><td>tracción uniforme</td><td>deslizante</td><td class="n">62 595</td><td class="n">9 735</td><td class="n">258,0</td><td class="n">49,7</td><td class="n">1,1</td></tr>
+      <tr><td>hex8</td><td class="n">48</td><td>tracción uniforme</td><td>deslizante</td><td class="n">173 484</td><td class="n">33 219</td><td class="n">301,1</td><td class="n">53,5</td><td class="n">4,5</td></tr>
+      <tr><td>hex8</td><td class="n">64</td><td>tracción uniforme</td><td>deslizante</td><td class="n">365 655</td><td class="n">78 874</td><td class="n">282,3</td><td class="n">60,9</td><td class="n">16,0</td></tr>
+      <tr><td>hex8</td><td class="n">48</td><td>plato rígido</td><td>deslizante</td><td class="n">173 484</td><td class="n">33 219</td><td class="n">489,0</td><td class="n">40,4</td><td class="n">3,2</td></tr>
+      <tr><td>hex8</td><td class="n">48</td><td>tracción uniforme</td><td>empotrada</td><td class="n">173 484</td><td class="n">33 219</td><td class="n">313,1</td><td class="n">51,8</td><td class="n">3,4</td></tr>
+      <tr><td>TET10</td><td class="n">32</td><td>tracción uniforme</td><td>deslizante</td><td class="n">314 880</td><td class="n">54 741</td><td class="n">156,7</td><td class="n">85,8</td><td class="n">16,7</td></tr>
+      <tr><td>TET10</td><td class="n">48</td><td>tracción uniforme</td><td>deslizante</td><td class="n">790 599</td><td class="n">143 208</td><td class="n">219,0</td><td class="n">79,0</td><td class="n">59,9</td></tr>
+      <tr><td>TET10</td><td class="n">48</td><td>plato rígido</td><td>deslizante</td><td class="n">790 599</td><td class="n">143 208</td><td class="n">440,6</td><td class="n">50,4</td><td class="n">54,6</td></tr>
+      <tr><td>TET10 (scikit-fem, CG + pyamg)</td><td class="n">32</td><td>tracción uniforme</td><td>deslizante</td><td class="n">314 880</td><td class="n">54 741</td><td class="n">157,0</td><td class="n">85,9</td><td class="n">174,6</td></tr>
+    </tbody>
+  </table>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3); margin-top: -2mm;"><b>Tabla 1.</b> Ensayos resueltos. E aparente por la definición de área (media de u<sub>z</sub> sobre las caras cargadas); p99 de von Mises en la capa superficial, ponderado por volumen, dividido por la tensión aparente σ (fuerza de reacción entre sección bruta). GDL: grados de libertad.</p>
+
+  <h3>Cuatro instrumentos de medida</h3>
+  <p>A cada elemento se le asignaron etiquetas de origen posible, no excluyentes: estar a 0,3 mm o menos (un tercio de la longitud de onda) de una cara lateral, del techo, de la base o de un nodo ancla; tocar una unión por arista o vértice entre vóxeles (hex8); tocar una arista cóncava de la escalera (hex8); o ser un tetraedro de mala calidad, con diedro mínimo inferior a 5° o relación radio-arista superior a 3 (TET10). Con esas etiquetas se calcularon cuatro magnitudes.</p>
+
+  <div class="dos">
+    <div class="caja leer"><div class="tit">Enriquecimiento de la cola</div>
+      <p>Fracción de la cola (volumen por encima del p99 de superficie) que cae en una zona, dividida por la fracción de la superficie que ocupa esa zona. Un valor de 1 indica que la zona contiene tanta cola como le corresponde por tamaño; 6 indica seis veces más; 0,3, que la zona está descargada.</p></div>
+    <div class="caja leer"><div class="tit">Sensibilidad del p99 (Δp99)</div>
+      <p>Cambio relativo del p99 citado cuando se excluyen del cálculo los elementos de la zona. Traduce el enriquecimiento a lo que importa en el informe de la aplicación: cuánto se mueve el número publicado.</p></div>
+    <div class="caja leer"><div class="tit">Indicador ZZ</div>
+      <p>Distancia entre la tensión de cada elemento y la que resulta de promediarla en sus nodos (recuperación de Zienkiewicz y Zhu<sup class="ref">10</sup>), dividida por su von Mises. En una solución suave ambas coinciden; un valor de 0,4 indica que la tensión del elemento es incierta en un orden del 40 %.</p></div>
+    <div class="caja leer"><div class="tit">Persistencia</div>
+      <p>Fracción de las zonas calientes de una malla que tienen otra zona caliente a 0,3 mm o menos en una segunda malla. Se compara con el mismo cálculo para elementos elegidos al azar (20 repeticiones), que da el nivel esperable sin relación espacial.</p></div>
+  </div>
+</section>
+
+<!-- ======================= 3. PANORAMA ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 3</div>
+  <h2><span class="num">3</span>Panorama: de dónde sale la cola de tensiones</h2>
+  <p>La Figura 2 resume la atribución. El techo cargado concentra entre 4 y 6 veces más cola de la que le corresponde por volumen en todas las mallas, y las uniones por arista o vértice entre vóxeles, entre 2 y 13 veces, con un enriquecimiento que <i>aumenta</i> al refinar. En el extremo opuesto, la franja junto a las caras laterales está descargada, y el entorno de los nodos ancla no aporta nada a la cola. Las aristas cóncavas de la escalera están en todas partes (más del 90 % de la superficie de los hexaedros toca alguna), de modo que no discriminan: la escalera no es un defecto localizado sino la forma de toda la superficie, y su efecto se estudia con el indicador ZZ (ficha A4).</p>
+  <figure>
+    <img src="figs/f_enriquecimiento.svg" alt="Enriquecimiento de la cola por zona y malla">
+    <figcaption><b>Figura 2.</b> Enriquecimiento de la cola de von Mises (&gt; p99 de la superficie) en cada zona, para tres resoluciones hex8 y para TET10 a 48³, con tracción uniforme en el techo. La línea vertical marca el valor 1 (la zona contiene tanta cola como volumen). Los puntos en «≈0» corresponden a zonas sin ningún elemento de la cola.</figcaption>
+  </figure>
+  <div class="caja leer"><div class="tit">Cómo leer la figura</div>
+    <p>Cada fila es una zona del espécimen y cada punto, una malla. Los puntos a la derecha de la línea vertical indican zonas que acumulan más tensión alta de la que les corresponde; a la izquierda, zonas descargadas. Que los puntos de una fila se desplacen al refinar (como en las uniones) indica que el fenómeno depende de la malla.</p>
+  </div>
+  <figure>
+    <img src="figs/f_dp99.svg" alt="Cambio del p99 al excluir cada zona">
+    <figcaption><b>Figura 3.</b> Cambio del p99 de superficie (la tensión que cita la aplicación) al excluir del cálculo los elementos de cada zona, a 48³. Excluir el techo lo baja entre un 8 y un 10 %; excluir las caras laterales lo sube entre un 6,6 y un 7,4 %, porque se retiran elementos poco cargados.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= FICHA A1 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">A1</span> · condiciones de contorno</div><h2>El techo cargado con tracción uniforme</h2></div>
+    <div class="derecha"><span class="sev g">Gravedad alta</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">p99</span><span class="chip">máximo</span><span class="chip">Pistoia</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>El ensayo de la aplicación reparte la carga como una presión uniforme sobre la parte del techo que es hueso. Al recortar el VOI, muchas trabéculas quedan cortadas en el plano del techo con un extremo libre: en el hueso real continuarían y estarían sujetas por sus vecinas, pero en el modelo reciben su parte de la carga sin nada que limite su desplazamiento lateral ni su giro. Trabajan como voladizos cargados en la punta.</p>
+      <h4>Por qué aparece</h4>
+      <p>La tracción uniforme es una condición de contorno estática: fija la fuerza y deja libre el desplazamiento. Las trabéculas cortadas más flexibles se hunden más que las demás y se deforman mucho, lo que eleva su tensión y baja la rigidez aparente. Con un plato rígido, el desplazamiento vertical del techo es el mismo en todos los nodos y las trabéculas cortadas solo transmiten la carga que su rigidez les permite. Cabe esperar que la respuesta <i>in situ</i>, en la que el hueso continúa más allá del techo, quede entre ambas, aunque con caras laterales libres ninguna de las dos es una cota en sentido estricto; las condiciones de desplazamiento uniforme tienden a sobrestimar la rigidez efectiva de volúmenes pequeños<sup class="ref">4,5</sup>. Es el equivalente computacional del artefacto de extremos de los ensayos de compresión con platos, que en especímenes reales subestima el módulo entre un 20 y un 40 %<sup class="ref">2</sup>.</p>
+      <h4>Qué medimos</h4>
+      <p>Con tracción uniforme, el 34 al 37 % de la cola de von Mises de los hexaedros cae en el 6 % del hueso situado a menos de 0,3 mm del techo (enriquecimiento de 5,8 a 6,2), y el 28 % con TET10 a 48³. Con plato rígido esa franja queda descargada (enriquecimiento de 0,43 con hex8 y 0,05 con TET10). El perfil de la Figura 4 muestra que el efecto no se limita al plano del techo: la tensión con tracción supera en más de un 20 % a la del plato desde 1,25 mm por debajo del techo con hex8 y desde 1,5 mm con TET10, es decir, en un 25 a 30 % de la altura del espécimen. En la mitad inferior, las dos condiciones dan el mismo perfil (cociente medio 0,99 a 1,00).</p>
+      <p>Las consecuencias sobre los números citados son grandes. El E aparente con plato es 1,62 veces el de tracción con hex8 y 2,01 veces con TET10; el p99 de superficie baja un 24 % (hex8) y un 36 % (TET10); el máximo de von Mises, un 42 % (hex8). Solo el 45 % de las zonas calientes con tracción reaparece con plato, frente al 83 a 97 % que persiste al cambiar de malla (sección 5): la condición de carga cambia también <i>dónde</i> se concentra la tensión.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 170">
+          <text x="50" y="12" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" font-weight="600" fill="#1d1c1a">Tracción</text>
+          <text x="150" y="12" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" font-weight="600" fill="#1d1c1a">Plato</text>
+          <g fill="#9ec5f4" stroke="#2a78d6" stroke-width="1">
+            <path d="M14 160 L14 120 Q18 100 30 92 L30 58 L38 58 L38 92 Q50 100 52 120 L60 120 L60 58 L68 58 L68 160 Z"/>
+            <path d="M114 160 L114 120 Q118 100 130 92 L130 58 L138 58 L138 92 Q150 100 152 120 L160 120 L160 58 L168 58 L168 160 Z"/>
+          </g>
+          <g stroke="#eb6834" stroke-width="1.6" fill="#eb6834">
+            <line x1="34" y1="26" x2="34" y2="52"/><path d="M30 48 L34 56 L38 48 Z"/>
+            <line x1="64" y1="26" x2="64" y2="52"/><path d="M60 48 L64 56 L68 48 Z"/>
+          </g>
+          <path d="M34 58 Q40 70 30 92" stroke="#c43c3b" stroke-width="1.4" fill="none" stroke-dasharray="3 2"/>
+          <rect x="106" y="46" width="72" height="10" rx="2" fill="#4a4945"/>
+          <g stroke="#4a4945" stroke-width="1.4" fill="#4a4945"><line x1="142" y1="22" x2="142" y2="42"/><path d="M138 38 L142 46 L146 38 Z"/></g>
+          <line x1="4" y1="160" x2="196" y2="160" stroke="#77756f" stroke-width="1"/>
+          <text x="50" y="140" text-anchor="middle" font-family="IBM Plex Sans" font-size="8" fill="#c43c3b">voladizo</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">Con tracción, cada extremo cortado recibe carga y puede girar; con plato, todos bajan lo mismo.</p>
+      </div>
+      <div class="bloque"><h5>En cifras (48³)</h5>
+        <div class="kv">
+          <span>E plato / E tracción, hex8</span><span>1,62</span>
+          <span>E plato / E tracción, TET10</span><span>2,01</span>
+          <span>Δp99 plato, hex8</span><span>−24 %</span>
+          <span>Δp99 plato, TET10</span><span>−36 %</span>
+          <span>Cola en la franja del techo</span><span>34 %</span>
+          <span>Profundidad afectada</span><span>1,25 a 1,5 mm</span>
+          <span>Zonas calientes que persisten</span><span>45 %</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_perfil_z.svg" alt="Perfil de tensión con la altura">
+    <figcaption><b>Figura 4.</b> Percentil 95 de von Mises (todo el tejido, ponderado por volumen) en franjas de 0,25 mm de altura, con tracción uniforme y con plato rígido en el techo. Bandas grises: las franjas de 0,3 mm junto a la base y al techo usadas en la atribución.</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/f_corte.svg" alt="Rebanada del campo de von Mises">
+    <figcaption><b>Figura 5.</b> Rebanada de 0,6 mm de espesor (y entre 2,2 y 2,8 mm) del campo de von Mises con hex8 a 48³, en la misma escala de color. Con tracción (a) aparecen concentraciones en las trabéculas cortadas del techo que desaparecen con plato (b); las de la mitad inferior se mantienen.</figcaption>
+  </figure>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Ofrecer el plato rígido lineal como condición de carga del ensayo.</b> Los motores ya lo resuelven (<code>control="plato"</code> en <code>motores.problema_de_malla</code>) y <code>fem.ensayo</code> lo calcula cuando se pide <code>nl_plato</code> (el cociente <code>cociente_plato_fuerza_lineal</code>). Falta exponerlo como análisis lineal independiente y en la GUI.</p><div class="meta">Esfuerzo bajo · corrige la mayor fuente de sesgo en E aparente</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Informar siempre las dos condiciones como cota.</b> Tracción y plato son dos condiciones extremas plausibles para el techo; publicar ambas, o su cociente, informa al lector de cuánto depende el resultado de la condición de carga.</p><div class="meta">Esfuerzo bajo · transparencia</div></div></div>
+    <div class="sol"><div class="k">3</div><div><p><b>Cargar a través de una capa de hueso.</b> Simular un VOI mayor y medir en el cubo central (configuración embebida), o usar condiciones mixtas compatibles con la periodicidad, que dan propiedades más próximas a las efectivas<sup class="ref">4,5</sup>.</p><div class="meta">Esfuerzo alto · necesita un VOI mayor o una implementación nueva</div></div></div>
+    <div class="sol"><div class="k">4</div><div><p><b>Excluir una franja del techo de los estadísticos de tensión.</b> Un percentil calculado sin los 0,3 mm superiores bajó el p99 entre un 6 y un 11 % según la malla. Es una mitigación del síntoma, no de la causa, y debe declararse.</p><div class="meta">Esfuerzo bajo · solo para tensiones</div></div></div>
+  </div>
+</section>
+
+<!-- ======================= FICHA A2 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">A2</span> · recorte del VOI</div><h2>Las caras laterales cortadas</h2></div>
+    <div class="derecha"><span class="sev g">Gravedad alta</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">fracción portante</span><span class="chip">p99</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>Las cuatro caras laterales del cubo cortan trabéculas que en el hueso continuarían. Una trabécula cortada en el lateral pierde la conexión con la red que la sostenía y deja de transmitir carga vertical. Un volumen de hueso que existe en el modelo, que cuenta en el BV/TV y en la sección, trabaja poco o nada.</p>
+      <h4>Por qué aparece</h4>
+      <p>Las caras laterales son superficies libres en el modelo, pero no en el hueso. El fenómeno es bien conocido en especímenes reales con el nombre de artefacto lateral: en núcleos de vértebra humana la franja periférica mayoritariamente descargada midió entre 0,19 y 0,58 mm, y su efecto subestimó el módulo en un 27 ± 11 % de media, más en especímenes pequeños y de menor densidad<sup class="ref">3</sup>.</p>
+      <h4>Qué medimos</h4>
+      <p>El 21 % del hueso (hex8) y el 20 % (TET10) está a 0,3 mm o menos de una cara lateral. Su tensión media es el 49 % de la del núcleo con hex8 a 48³, el 51 % a 64³ y el 43 % con TET10 (Figura 6). La tensión se recupera hasta el valor del núcleo a unos 0,6 mm de la cara, del mismo orden que la franja descrita en hueso real. La franja lateral contiene entre 0 y 11 % de la cola, con un enriquecimiento de 0 a 0,5, y excluirla sube el p99 entre un 4,7 y un 8,1 %.</p>
+      <p>La relación entre esta descarga y el E aparente no se cuantificó directamente en este estudio. Por analogía con los datos experimentales<sup class="ref">3</sup>, cabe esperar que el E aparente de un VOI de 5 mm esté subestimado respecto del que tendría el mismo hueso <i>in situ</i>, pero la magnitud en estas estructuras sintéticas requiere el ensayo que se propone abajo.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 160">
+          <rect x="40" y="20" width="120" height="120" fill="none" stroke="#1d1c1a" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <g fill="none" stroke-width="7" stroke-linecap="round">
+            <path d="M10 40 Q60 60 100 40 T190 50" stroke="#cde2fb"/>
+            <path d="M20 120 Q70 95 120 120 T195 110" stroke="#cde2fb"/>
+            <path d="M70 5 Q60 80 80 155" stroke="#cde2fb"/>
+            <path d="M130 5 Q150 80 120 155" stroke="#cde2fb"/>
+          </g>
+          <g fill="none" stroke-width="7" stroke-linecap="butt">
+            <path d="M40 46.5 Q60 60 100 40 T160 46" stroke="#2a78d6"/>
+            <path d="M40 112 Q70 95 120 120 T160 114" stroke="#2a78d6"/>
+            <path d="M68 20 Q60 80 77 140" stroke="#2a78d6"/>
+            <path d="M139 20 Q150 80 126 140" stroke="#2a78d6"/>
+          </g>
+          <rect x="40" y="20" width="16" height="120" fill="#eb6834" opacity="0.18"/>
+          <rect x="144" y="20" width="16" height="120" fill="#eb6834" opacity="0.18"/>
+          <text x="100" y="155" text-anchor="middle" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">en claro: lo que el recorte elimina</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">Las trabéculas horizontales cortadas en el lateral (franjas naranjas) pierden su apoyo y quedan descargadas.</p>
+      </div>
+      <div class="bloque"><h5>En cifras</h5>
+        <div class="kv">
+          <span>Hueso a ≤ 0,3 mm del lateral</span><span>20 a 21 %</span>
+          <span>Tensión franja / núcleo, hex8 48³</span><span>0,49</span>
+          <span>Ídem, TET10 48³</span><span>0,43</span>
+          <span>Distancia de recuperación</span><span>≈ 0,6 mm</span>
+          <span>Δp99 al excluirla</span><span>+4,7 a +8,1 %</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_perfil_lateral.svg" alt="Perfil de tensión junto a las caras laterales" style="width:72%">
+    <figcaption><b>Figura 6.</b> Von Mises medio (todo el tejido, ponderado por volumen) frente a la distancia a la cara lateral más próxima, normalizado por el valor del núcleo (distancias de 0,7 a 1,0 mm). Banda gris: la franja de 0,3 mm usada en la atribución.</figcaption>
+  </figure>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Medir dentro de una región de interés central.</b> Calcular los estadísticos citados y la deformación aparente (como haría un extensómetro) solo en el núcleo, a más de 0,3 a 0,6 mm de las caras, sin dejar de resolver el VOI completo.</p><div class="meta">Esfuerzo bajo · el postproceso ya trabaja por elemento</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Cuantificar la corrección en cada VOI.</b> Repetir el ensayo en el cubo completo y en un subcubo central de la misma imagen y declarar el cociente, como en el método de corrección validado para especímenes reales<sup class="ref">3</sup>.</p><div class="meta">Esfuerzo medio · duplica el tiempo de cálculo</div></div></div>
+    <div class="sol"><div class="k">3</div><div><p><b>Extraer VOIs mayores que la región que se informa.</b> Es la solución de fondo, la misma que la configuración embebida de la ficha A1<sup class="ref">5</sup>, y está limitada por la imagen disponible y por la memoria.</p><div class="meta">Esfuerzo alto · depende del protocolo de imagen</div></div></div>
+  </div>
+</section>
+
+<!-- ======================= FICHA A3 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">A3</span> · malla</div><h2>La rigidez depende del tipo de malla</h2></div>
+    <div class="derecha"><span class="sev g">Gravedad alta</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">comparaciones hex8 y TET10</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>Sobre la misma máscara, la malla suave de tetraedros cuadráticos (TET10) da una rigidez aparente claramente menor que la de ladrillos: un 39 % menor a 32³ y un 27 % menor a 48³ con tracción en el techo. La diferencia no se explica por el volumen, que la aplicación corrige: la pérdida de volumen del suavizado fue del 0,12 % y del 0,03 %.</p>
+      <h4>Por qué aparece</h4>
+      <p>Intervienen al menos dos mecanismos de signo contrario sobre los que los datos permiten una lectura parcial. Por un lado, los hexaedros de un vóxel rigidizan las trabéculas que trabajan a flexión cuando hay menos de tres o cuatro elementos en su espesor<sup class="ref">6</sup>, y las uniones por arista o vértice (ficha A5) transmiten carga por nodos compartidos. Por otro, el suavizado estrecha los cuellos delgados: el informe de la integración con FEBio documentó que a 32³ los puntales de unos dos vóxeles quedan adelgazados y la malla suave sale más del doble de blanda en un VOI real.</p>
+      <h4>Qué medimos</h4>
+      <p>El hallazgo más útil de este estudio es la interacción con la condición de carga. Con plato rígido, la diferencia entre mallas baja del −27 % al −10 % en E aparente (440,6 frente a 489,0 MPa) y la del p99, de +48 % a +25 %. El resultado es compatible con que buena parte de la blandura de la malla suave con tracción proceda de las trabéculas cortadas del techo (ficha A1), más finas y más flexibles tras el suavizado, y no del interior del espécimen; el diseño no permite separar ambas contribuciones con más precisión.</p>
+      <p>Ninguna de las dos mallas ha convergido en rigidez (Figura 7a). Con hex8, el E aparente pasó de 258,0 a 301,1 y a 282,3 MPa (+17 % y −6 %), y con TET10 de 156,7 a 219,0 MPa (+40 %). La literatura situó la convergencia del módulo aparente por debajo del 10 % cuando el espesor trabecular medio supera cuatro elementos<sup class="ref">8</sup>; a 32³ estas trabéculas tienen unos dos vóxeles de espesor.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 120">
+          <g fill="#9ec5f4" stroke="#2a78d6" stroke-width="0.8">
+            <path d="M10 20 h10 v10 h10 v10 h10 v40 h-10 v10 h-10 v10 h-10 z"/>
+          </g>
+          <path d="M110 20 Q125 25 132 45 Q138 60 132 75 Q125 95 110 100 L110 20 Z" fill="#fde0d4" stroke="#eb6834" stroke-width="1"/>
+          <path d="M150 20 Q160 40 158 60 Q160 80 150 100" fill="none" stroke="#eb6834" stroke-width="1"/>
+          <path d="M150 20 Q154 40 153 60 Q154 80 150 100" fill="none" stroke="#c43c3b" stroke-width="1.2" stroke-dasharray="3 2"/>
+          <text x="25" y="114" text-anchor="middle" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">hex8: escalones</text>
+          <text x="130" y="114" text-anchor="middle" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">TET10: superficie suave</text>
+          <text x="166" y="60" font-family="IBM Plex Sans" font-size="7.5" fill="#c43c3b">cuello</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">El suavizado elimina los escalones, pero también puede estrechar un puntal de dos vóxeles.</p>
+      </div>
+      <div class="bloque"><h5>En cifras</h5>
+        <div class="kv">
+          <span>E TET10 / hex8, 32³</span><span>0,61</span>
+          <span>E TET10 / hex8, 48³</span><span>0,73</span>
+          <span>Ídem con plato, 48³</span><span>0,90</span>
+          <span>p99 TET10 / hex8, 48³</span><span>1,48</span>
+          <span>Ídem con plato</span><span>1,25</span>
+          <span>Pérdida de volumen TET10</span><span>0,03 a 0,12 %</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_convergencia.svg" alt="Convergencia de E aparente y p99">
+    <figcaption><b>Figura 7.</b> (a) E aparente y (b) p99 de von Mises de superficie frente a la resolución, con tracción en el techo. Ninguna de las dos magnitudes se estabiliza en el intervalo explorado. Un estudio independiente con hueso humano encontró igualmente que los tetraedros cuadráticos predicen tensiones locales más altas que los hexaedros de vóxel con rigideces aparentes calibradas iguales<sup class="ref">9</sup>.</figcaption>
+  </figure>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>No comparar hex8 y TET10 con tracción en el techo.</b> Si la comparación entre mallas es el objetivo, hacerla con plato rígido, que aísla el efecto del interior.</p><div class="meta">Esfuerzo nulo · cambio de protocolo</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Exigir una resolución mínima en función del espesor trabecular.</b> La aplicación ya mide Tb.Th; avisar cuando Tb.Th/h sea menor que 4 con hex8 y bloquear TET10 por debajo de 48³ (hoy es un aviso).</p><div class="meta">Esfuerzo bajo · usa medidas existentes</div></div></div>
+    <div class="sol"><div class="k">3</div><div><p><b>Estudio de convergencia por espécimen.</b> <code>resistencia.estudio_convergencia</code> existe para hex8; extenderlo a los motores y a TET10 y declarar el cambio de E aparente entre las dos resoluciones más finas.</p><div class="meta">Esfuerzo medio · multiplica el tiempo de cálculo</div></div></div>
+  </div>
+</section>
+
+<!-- ======================= FICHA A4 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">A4</span> · discretización de la superficie</div><h2>La escalera de vóxeles y la cola que no converge</h2></div>
+    <div class="derecha"><span class="sev m">Gravedad moderada</span><div style="margin-top:1.5mm"><span class="chip">p99</span><span class="chip">máximo</span><span class="chip">mapas</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>Con hexaedros, la superficie del hueso es una escalera: cada vóxel de borde tiene aristas cóncavas y convexas que no existen en la superficie real. La tensión calculada en esos elementos oscila alrededor del valor verdadero, con errores locales altos que se compensan al promediar sobre varios elementos<sup class="ref">6</sup>. Con TET10 la superficie es suave, pero la rugosidad residual del suavizado escala con el vóxel.</p>
+      <h4>Qué medimos</h4>
+      <p>Más del 90 % de la superficie de los hexaedros toca una arista cóncava, de modo que la escalera no puede aislarse como zona: es toda la superficie. Su huella aparece en el indicador ZZ. El error de recuperación global fue de 0,45, 0,34 y 0,28 con hex8 a 32³, 48³ y 64³, y de 0,46 y 0,36 con TET10 a 32³ y 48³ (Figura 8a). Disminuye al refinar, con una pendiente de 0,71 (hex8) y 0,64 (TET10) en escala logarítmica, por debajo del orden que cabría esperar para la tensión en una solución suave (1 con hex8 y 2 con TET10). Dos factores son compatibles con esa diferencia: las singularidades en aristas y entallas, y que la geometría discreta cambia con la resolución, de modo que no se trata de un refinamiento puro.</p>
+      <p>En la superficie, la mediana del indicador relativo fue de 0,29 con hex8 a 48³, y en la cola, de 0,39 (Figura 8b): los elementos más cargados son también los de tensión más incierta. En consecuencia, el p99 de superficie no convergió con hex8 (49,7, 53,5 y 60,9 σ; +22 % de 32³ a 64³) y bajó con TET10 (85,8 y 79,0 σ). La comparación con FEBio sobre una cavidad esférica ya había mostrado que el pico de la malla suave oscila con la resolución.</p>
+      <div class="caja alerta"><div class="tit">Implicación práctica</div><p>Un mapa de von Mises de un único ensayo no permite distinguir, elemento a elemento, una concentración física de una oscilación de la escalera. La persistencia de la sección 5 indica que la <i>localización</i> de las zonas calientes sí es fiable; su <i>valor</i>, con estas resoluciones, lo es en torno a un 30 a 40 %.</p></div>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Indicador ZZ</h5>
+        <div class="kv">
+          <span>hex8 32³ / 48³ / 64³</span><span>0,45 / 0,34 / 0,28</span>
+          <span>TET10 32³ / 48³</span><span>0,46 / 0,36</span>
+          <span>Mediana en la cola, hex8 48³</span><span>0,39</span>
+          <span>Mediana en la cola, TET10 48³</span><span>0,39</span>
+        </div>
+      </div>
+      <div class="bloque"><h5>p99 de superficie / σ</h5>
+        <div class="kv">
+          <span>hex8 32³ → 64³</span><span>49,7 → 60,9</span>
+          <span>TET10 32³ → 48³</span><span>85,8 → 79,0</span>
+          <span>Máximo hex8 64³</span><span>208 σ</span>
+          <span>Máximo TET10 48³</span><span>387 σ</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_zz.svg" alt="Indicador ZZ">
+    <figcaption><b>Figura 8.</b> (a) Indicador de error por recuperación de tensiones (norma de la diferencia entre la tensión del elemento y la promediada en nodos, relativa a la norma de von Mises, ponderada por volumen) frente al tamaño de vóxel. (b) Distribución del indicador relativo por elemento en la superficie, hex8 a 48³: la cola está desplazada hacia valores mayores.</figcaption>
+  </figure>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Calcular y mostrar el indicador ZZ en la aplicación.</b> Es un cálculo por elemento de coste despreciable (función <code>indicador_zz</code> en <code>artefactos.py</code>). Permite colorear la confianza del mapa y adjuntar al p99 una incertidumbre local.</p><div class="meta">Esfuerzo bajo · mayor ganancia en interpretación</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Promediar en regiones de varios elementos o filtrar la frontera.</b> El promedio sobre la sección redujo el error de von Mises por debajo del 4 % en vigas digitales, y un filtro específico de frontera redujo el pico predicho en un 30 % en hueso trabecular<sup class="ref">6,7</sup>.</p><div class="meta">Esfuerzo medio · cambia la definición del estadístico</div></div></div>
+    <div class="sol"><div class="k">3</div><div><p><b>Evaluar la tensión en puntos de Gauss y no en el centroide.</b> Las deformaciones de tejido convergieron respecto de un umbral solo cuando se evaluaron en puntos de Gauss<sup class="ref">8</sup>. Hoy el postproceso usa el centro del vóxel y el centroide del tetraedro.</p><div class="meta">Esfuerzo medio · afecta a Pistoia y al p99</div></div></div>
+  </div>
+</section>
+
+<!-- ======================= FICHA A5 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">A5</span> · topología de la malla de vóxeles</div><h2>Las uniones por arista o vértice: bisagras artificiales</h2></div>
+    <div class="derecha"><span class="sev m">Gravedad moderada</span><div style="margin-top:1.5mm"><span class="chip">máximo</span><span class="chip">mapas</span><span class="chip">p99 (poco)</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>Cuando dos vóxeles de hueso se tocan solo por una arista o por un vértice, sin compartir una cara, la malla hexaédrica los une por dos nodos o por uno. En el hueso no existe una conexión así: o la trabécula es continua y tiene un espesor finito, o no lo es. En el modelo, esa unión transmite fuerza a través de un punto o de una línea y concentra la tensión en los elementos que la rodean.</p>
+      <h4>Por qué aparece</h4>
+      <p>El filtro de hueso portante de la aplicación (<code>resistencia._solo_portante</code>) usa conectividad por caras para decidir qué componentes unen base y techo, pero una vez filtrada la máscara, la malla comparte nodos también entre vóxeles que solo se tocan por arista o vértice. Las uniones aparecen donde la trabécula real es más fina que el vóxel o pasa en diagonal.</p>
+      <h4>Qué medimos</h4>
+      <p>Se contaron 176, 122 y 62 vértices singulares y 141, 97 y 59 aristas singulares a 32³, 48³ y 64³. Los elementos que las tocan son una fracción pequeña y decreciente de la superficie (4,1 %, 1,1 % y 0,3 %), pero su enriquecimiento de la cola <i>crece</i> al refinar (2,4; 10,7 y 12,5). A 64³ contienen el máximo global de von Mises (208 σ). Excluirlas cambia el p99 entre −1,5 % y −4,2 %. El efecto es, por tanto, pequeño sobre el estadístico citado y dominante sobre el máximo, que la aplicación ya declara no citable.</p>
+      <p>El crecimiento del enriquecimiento con la resolución es el comportamiento que se espera de una singularidad: al refinar, la tensión junto al punto de unión aumenta sin límite mientras la zona afectada se reduce.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 130">
+          <g fill="#9ec5f4" stroke="#2a78d6" stroke-width="1">
+            <rect x="40" y="20" width="40" height="40"/><rect x="80" y="60" width="40" height="40"/>
+            <rect x="0" y="20" width="40" height="40" opacity="0.6"/><rect x="120" y="60" width="40" height="40" opacity="0.6"/>
+          </g>
+          <circle cx="80" cy="60" r="5" fill="#c43c3b"/>
+          <path d="M60 40 Q 70 75 100 80" fill="none" stroke="#c43c3b" stroke-width="1.2" stroke-dasharray="3 2"/>
+          <text x="86" y="52" font-family="IBM Plex Sans" font-size="8.5" fill="#c43c3b">un solo nodo</text>
+          <text x="100" y="122" text-anchor="middle" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">dos vóxeles unidos por una arista (vista 2D)</text>
+        </svg>
+      </div>
+      <div class="bloque"><h5>En cifras</h5>
+        <div class="kv">
+          <span>Vértices singulares 32³ / 48³ / 64³</span><span>176 / 122 / 62</span>
+          <span>Aristas singulares</span><span>141 / 97 / 59</span>
+          <span>Fracción de la superficie</span><span>4,1 / 1,1 / 0,3 %</span>
+          <span>Enriquecimiento</span><span>2,4 / 10,7 / 12,5</span>
+          <span>Δp99 al excluirlas</span><span>−1,5 a −4,2 %</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Detectarlas y declararlas.</b> La función <code>etiquetas_voxel</code> de <code>artefactos.py</code> las cuenta con una tabla de consulta de 256 entradas y se ejecuta en milisegundos. El informe de la aplicación podría listar su número junto al tamaño de malla.</p><div class="meta">Esfuerzo bajo</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Repararlas antes de mallar.</b> Añadir un vóxel puente en cada unión (dilatación local) o eliminar el vóxel menos conectado, y declarar el cambio de volumen. Es una decisión de modelado: el puente rigidiza y la eliminación desconecta, por lo que conviene comparar ambas en un estudio de sensibilidad.</p><div class="meta">Esfuerzo medio · cambia la geometría</div></div></div>
+    <div class="sol"><div class="k">3</div><div><p><b>Excluir sus elementos de los estadísticos locales.</b> Útil para mapas y máximos; sobre el p99 el efecto es pequeño.</p><div class="meta">Esfuerzo bajo · solo postproceso</div></div></div>
+  </div>
+</section>
+
+<!-- ======================= FICHA A6 y A7 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Fichas <span class="codigo">A6</span> y <span class="codigo">A7</span> · resolvedor y postproceso</div><h2>Dos artefactos leves, uno de ellos silencioso</h2></div>
+    <div class="derecha"><span class="sev l">Gravedad baja</span></div>
+  </div>
+  <h3><span class="codigo">A6</span> El iterativo que declara convergencia sin haberla alcanzado</h3>
+  <div class="ficha-cuerpo">
+    <div>
+      <p><b>Qué es.</b> Un resolvedor iterativo se detiene cuando el residuo relativo es menor que una tolerancia. El error de la solución está acotado por el residuo multiplicado por el número de condición de la matriz; en mallas TET10 de hueso, con tetraedros diminutos y astillas, ese número es grande y un residuo pequeño puede convivir con un error apreciable. La comparativa de motores ya documentó este caso con scikit-fem (CG con pyamg).</p>
+      <p><b>Qué medimos aquí.</b> Repetido sobre la malla TET10 a 32³, el iterativo terminó con residuo 1,0·10⁻¹⁰ y un error máximo de desplazamiento del 0,89 % frente a NGSolve. En las magnitudes citadas, el efecto fue pequeño: E aparente +0,23 % y p99 +0,14 %. El error relativo de von Mises por elemento tuvo una mediana del 0,5 % y un percentil 99 del 30 %, este último en elementos de tensión baja. Un resultado nuevo es que el error <i>no</i> se concentra en los tetraedros de mala calidad: estos son el 3,2 % de la malla y solo el 1,9 % del 0,1 % de elementos con más error. Se trata de un error global de baja frecuencia, no de un defecto local.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>En cifras (TET10 32³)</h5>
+        <div class="kv">
+          <span>Residuo declarado</span><span>1,0·10⁻¹⁰</span>
+          <span>Error máximo en u</span><span>0,89 %</span>
+          <span>ΔE aparente</span><span>+0,23 %</span>
+          <span>Δp99</span><span>+0,14 %</span>
+          <span>Tiempo frente a BDDC</span><span>175 s / 17 s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p><b>Cómo resolverlo.</b> El modo automático de los motores ya elige BDDC o un directo con TET10. Conviene impedir explícitamente el CG con pyamg en TET10 o, si se mantiene, comprobar la solución con una estimación del error en energía o con una resolución directa en un subconjunto. Los tetraedros de mala calidad no producen artefactos en la tensión citada: su enriquecimiento de la cola fue de 1,0 a 32³ y 0,46 a 48³, y excluirlos no cambió el p99 (0,0 % y +0,1 %).</p>
+
+  <h3><span class="codigo">A7</span> Dos definiciones de rigidez aparente</h3>
+  <p><b>Qué es.</b> La aplicación calcula el E aparente con la media simple del desplazamiento de los nodos del techo (su definición con vóxeles) o con la media ponderada por área de las caras cargadas. Con tracción, el techo no baja de forma uniforme y las dos medias difieren.</p>
+  <p><b>Qué medimos.</b> La diferencia fue de +1,2 %, −0,7 % y −0,6 % con hex8 a 32³, 48³ y 64³, y de −4,1 % y −3,0 % con TET10 (donde la media nodal pesa de forma distinta los nodos de esquina e intermedios). Con plato las dos coinciden por construcción. En el VOI proximal H4 la diferencia llegó al 9 %, según el informe de la integración con FEBio.</p>
+  <p><b>Cómo resolverlo.</b> Usar una sola definición en los informes (la de área, que es la integral correcta y la que se generaliza a TET10) y declarar la otra como comprobación. Con el plato rígido de la ficha A1 el problema desaparece.</p>
+
+  <h3><span class="codigo">C</span> Controles sin efecto</h3>
+  <p>Tres decisiones que podrían haber producido artefactos no los produjeron. <b>Las anclas</b> del apoyo deslizante (tres restricciones puntuales que eliminan el movimiento de sólido rígido) no contienen ningún elemento de la cola en ninguna malla, como se espera porque su reacción es nula por equilibrio. <b>La base empotrada</b> frente a la deslizante cambió el E aparente un +4,0 % y el p99 un −3,3 %, y el 96 % de las zonas calientes se mantuvo en su sitio. <b>Los tetraedros de mala calidad</b> no alteraron la tensión citada (ficha A6).</p>
+
+  <div class="caja leer"><div class="tit">Artefactos ya documentados en la comparativa de motores</div>
+    <p>No se repitieron aquí porque se resolvieron o se aislaron en la propia integración: la tangente inconsistente de St. Venant-Kirchhoff en SfePy, la divergencia del precondicionador GAMG de FEniCSx con TET10, la suma de grados de libertad de burbuja en el espacio jerárquico de NGSolve, la rama de equilibrio equivocada de Newton con plato sin predictor y los nodos intermedios fuera del punto medio de la arista. Detalle en <code>comparativa_motores/INFORME.md</code>, sección 4.7.</p>
+  </div>
+</section>
+
+<!-- ======================= 5. FÍSICO O ARTEFACTO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 5</div>
+  <h2><span class="num">5</span>¿Qué es físico y qué no?</h2>
+  <p>Si las zonas calientes fueran producto de la malla, cambiarían de lugar al cambiar la resolución o el tipo de elemento. La Figura 9 muestra lo contrario: el 92 % de las zonas calientes de hex8 a 32³ tiene otra zona caliente a 0,3 mm o menos en hex8 a 64³, el 97 % de 48³ a 64³, el 84 % entre las dos TET10 y el 83 % entre hex8 y TET10 a 48³. Con elementos elegidos al azar, la misma medida da entre un 8 y un 18 %. La correlación de rangos de von Mises entre mallas, sobre puntos homólogos de la superficie, fue de 0,75 a 0,86.</p>
+  <figure>
+    <img src="figs/f_persistencia.svg" alt="Persistencia de las zonas calientes">
+    <figcaption><b>Figura 9.</b> Fracción de las zonas calientes (&gt; p99 de superficie) de la primera configuración que reaparecen a 0,3 mm o menos en la segunda. Trazo negro: nivel de azar (media de 20 sorteos de elementos superficiales).</figcaption>
+  </figure>
+  <p>La condición de carga es la única decisión que mueve las zonas calientes: con plato, solo el 45 % reaparece. Esto refuerza la lectura de la ficha A1: el techo con tracción no solo eleva la tensión, sino que crea zonas calientes nuevas.</p>
+  <div class="caja clave"><div class="tit">Lectura conjunta</div>
+    <p>La arquitectura decide <b>dónde</b> se concentra la tensión, y esa información es robusta frente a la malla. La malla decide <b>cuánto</b> marca el valor local, con una incertidumbre del 30 al 40 % elemento a elemento. Las condiciones de contorno deciden ambas cosas en el cuarto superior del espécimen y la rigidez de todo el conjunto.</p>
+  </div>
+</section>
+
+<!-- ======================= 6. HOJA DE RUTA ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 6</div>
+  <h2><span class="num">6</span>Hoja de ruta para corregirlos</h2>
+  <p>Las propuestas se ordenan por la relación entre el sesgo que corrigen y el esfuerzo que requieren en el código actual. Las cuatro primeras se apoyan en piezas que ya existen.</p>
+  <table class="ruta">
+    <thead><tr><th>#</th><th>Acción</th><th>Corrige</th><th>Dónde en el código</th><th>Esfuerzo</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Plato rígido lineal como análisis independiente del ensayo, en la CLI y en la GUI; informar el cociente plato/tracción</td><td>A1, A3, A7</td><td><code>fem.ensayo</code>, <code>fem.ANALISIS</code>, <code>dialogo_febio.py</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>2</td><td>Región de interés central para los estadísticos citados y para la deformación aparente, con franja configurable (0,3 a 0,6 mm por omisión)</td><td>A1, A2</td><td><code>fem.estadisticos</code>, <code>resistencia.criterio_pistoia</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>3</td><td>Indicador ZZ por elemento: mapa de confianza y mediana en la cola junto al p99</td><td>A4</td><td><code>fem.tension_elemental</code>, informe</td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>4</td><td>Recuento de uniones por arista o vértice en el informe de malla; aviso si superan un umbral</td><td>A5</td><td><code>fem.mallar</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>5</td><td>Aviso por resolución según Tb.Th/h (&lt; 4 con hex8) y bloqueo de TET10 por debajo de 48³</td><td>A3, A4</td><td><code>visor.py</code>, <code>fem.tamano_previsto</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>6</td><td>Excluir el CG con pyamg en TET10 o verificar su solución</td><td>A6</td><td><code>motores/m_skfem.py</code>, <code>m_ngsolve.py</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>7</td><td>Estudio de convergencia por espécimen con los motores (hex8 y TET10)</td><td>A3, A4</td><td><code>resistencia.estudio_convergencia</code></td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>8</td><td>Reparación topológica de las uniones (puente o eliminación) con estudio de sensibilidad</td><td>A5</td><td>antes de <code>solido.malla_hex</code></td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>9</td><td>Tensión en puntos de Gauss y promedio regional o filtrado de frontera</td><td>A4</td><td>postproceso</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>10</td><td>Configuración embebida o condiciones mixtas compatibles con la periodicidad</td><td>A1, A2</td><td>nuevo protocolo</td><td class="esfuerzo" style="color:var(--grave)">Alto</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Experimentos que faltan</h3>
+  <ul>
+    <li><b>Magnitud del artefacto lateral sobre el E aparente</b> en estas estructuras: ensayar el cubo completo y subcubos centrales de 3 y 4 mm de la misma imagen.</li>
+    <li><b>Reproducir el estudio en VOIs reales</b> (H4 y porcinos): el espinodoide es una estructura sintética, isótropa en su clase y sin placas.</li>
+    <li><b>Separar los dos mecanismos de la ficha A3</b> (rigidización de la escalera y adelgazamiento por suavizado) con un parámetro de suavizado variable y con plato rígido.</li>
+    <li><b>Resolución mayor para TET10</b> (64³, unos 1,9 millones de GDL) para comprobar si la rigidez converge hacia la de hex8.</li>
+  </ul>
+</section>
+
+<!-- ======================= 7. LIMITACIONES ======================= -->
+<section>
+  <h2 style="margin-top:8mm"><span class="num">7</span>Limitaciones</h2>
+  <ul>
+    <li>Se estudió un único espinodoide sintético. La magnitud de los artefactos de borde depende de la separación trabecular y del tamaño del espécimen<sup class="ref">3</sup>, y puede ser distinta en hueso real y en otras clases de espinodoide.</li>
+    <li>La franja de 0,3 mm se fijó antes de medir como un tercio de la longitud de onda; otras anchuras cambian los valores de enriquecimiento, aunque no su signo según los perfiles de las Figuras 4 y 6.</li>
+    <li>Las etiquetas no son excluyentes. Un elemento puede estar a la vez en el techo y en una unión singular, por lo que los cambios del p99 por zona no son aditivos.</li>
+    <li>Solo se analizó el régimen lineal. El informe de la integración con FEBio mostró que, en régimen no lineal, los cuellos de la malla suave pueden comportarse como mecanismos, lo que amplificaría el artefacto A3.</li>
+    <li>El indicador ZZ estima el error de discretización relativo a una solución recuperada; no es una cota rigurosa ni capta el error de modelado (A1, A2).</li>
+    <li>Ningún resultado se contrastó con ensayos experimentales; la validación del modelo frente a medidas mecánicas queda fuera del alcance de este diagnóstico.</li>
+  </ul>
+</section>
+
+<!-- ======================= GLOSARIO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Apoyo</div>
+  <h2>Glosario</h2>
+  <dl class="glosario">
+    <dt>VOI</dt><dd>Volumen de interés: el cubo de hueso recortado de la imagen de micro-CT que se ensaya.</dd>
+    <dt>hex8</dt><dd>Hexaedro lineal de ocho nodos; en spinpy, un elemento por vóxel.</dd>
+    <dt>TET10</dt><dd>Tetraedro cuadrático de diez nodos, sobre una superficie suavizada de la máscara.</dd>
+    <dt>GDL</dt><dd>Grados de libertad: incógnitas del sistema lineal (tres desplazamientos por nodo).</dd>
+    <dt>σ aparente</dt><dd>Fuerza de reacción dividida por la sección bruta del VOI. Todas las tensiones del informe se expresan en múltiplos de ella.</dd>
+    <dt>E aparente</dt><dd>Tensión aparente dividida por la deformación aparente (acortamiento medio del techo dividido por la altura).</dd>
+    <dt>Capa superficial</dt><dd>Elementos con una cara en contacto con el poro, sin contar las caras del cubo. Es donde la aplicación calcula el p99.</dd>
+    <dt>p99</dt><dd>Percentil 99 de von Mises en la capa superficial, ponderado por volumen. La aplicación lo cita porque el máximo no converge.</dd>
+    <dt>Cola</dt><dd>Elementos de la capa superficial con von Mises igual o superior al p99.</dd>
+    <dt>Tracción uniforme</dt><dd>Carga del techo como presión constante sobre el hueso del plano superior (control por fuerza).</dd>
+    <dt>Plato rígido</dt><dd>Desplazamiento vertical igual impuesto en todos los nodos del techo, sin fricción (control por desplazamiento).</dd>
+    <dt>Base deslizante</dt><dd>Desplazamiento vertical nulo en la base y tres restricciones puntuales (anclas) contra el movimiento de sólido rígido.</dd>
+    <dt>BDDC</dt><dd>Precondicionador por subestructuración (descomposición de dominio) que usa NGSolve con TET10.</dd>
+    <dt>Indicador ZZ</dt><dd>Estimador de error por recuperación de tensiones de Zienkiewicz y Zhu.</dd>
+    <dt>Pistoia</dt><dd>Criterio de fallo aparente: carga a la que el 2 % del tejido alcanza una deformación efectiva crítica.</dd>
+  </dl>
+
+  <h2 style="margin-top:9mm">Reproducir</h2>
+  <p>Los resultados se generan con dos órdenes desde <code>comparativa_motores/</code>. La primera resuelve los nueve ensayos (unos 10 minutos en un equipo de 4 núcleos y 15 GB, dominados por el iterativo de scikit-fem) y escribe <code>resultados/artefactos.json</code> y los campos por elemento en <code>resultados/artefactos_campos/</code> (no versionados, 19 MB). La segunda calcula los perfiles y el nivel de azar (<code>resultados/artefactos_extra.json</code>) y las figuras.</p>
+  <p><code>python artefactos.py</code><br><code>python figuras_artefactos.py</code></p>
+  <p>El PDF se imprime desde <code>informe_artefactos/informe_artefactos.html</code> con Chromium sin interfaz (<code>informe_artefactos/imprimir.sh</code>).</p>
+</section>
+
+<!-- ======================= REFERENCIAS ======================= -->
+<section class="salto">
+  <h2>Referencias</h2>
+  <ol class="refs">
+    <li>Erdemir A, Guess TM, Halloran J, Tadepalli SC, Morrison TM. Considerations for reporting finite element analysis studies in biomechanics. J Biomech. 2012;45(4):625-33. doi:10.1016/j.jbiomech.2011.11.038</li>
+    <li>Keaveny TM, Pinilla TP, Crawford RP, Kopperdahl DL, Lou A. Systematic and random errors in compression testing of trabecular bone. J Orthop Res. 1997;15(1):101-10. doi:10.1002/jor.1100150115</li>
+    <li>Un K, Bevill G, Keaveny TM. The effects of side-artifacts on the elastic modulus of trabecular bone. J Biomech. 2006;39(11):1955-63. doi:10.1016/j.jbiomech.2006.05.012</li>
+    <li>Pahr DH, Zysset PK. Influence of boundary conditions on computed apparent elastic properties of cancellous bone. Biomech Model Mechanobiol. 2008;7(6):463-76. doi:10.1007/s10237-007-0109-7</li>
+    <li>Wili P, Maquer G, Panyasantisuk J, Zysset PK. Estimation of the effective yield properties of human trabecular bone using nonlinear micro-finite element analyses. Biomech Model Mechanobiol. 2017;16(6):1925-36. doi:10.1007/s10237-017-0928-0</li>
+    <li>Guldberg RE, Hollister SJ, Charras GT. The accuracy of digital image-based finite element models. J Biomech Eng. 1998;120(2):289-95. doi:10.1115/1.2798314</li>
+    <li>Charras GT, Guldberg RE. Improving the local solution accuracy of large-scale digital image-based finite element analyses. J Biomech. 2000;33(2):255-9. doi:10.1016/s0021-9290(99)00141-4</li>
+    <li>Niebur GL, Yuen JC, Hsia AC, Keaveny TM. Convergence behavior of high-resolution finite element models of trabecular bone. J Biomech Eng. 1999;121(6):629-35. doi:10.1115/1.2800865</li>
+    <li>Zojaji M, Klei MV, Ploeg HL. Heterogeneous material mapping of micro-finite element models of human trabecular bone cores. Med Eng Phys. 2026;147(5). doi:10.1088/1873-4030/ae5c09. PMID: 41946369</li>
+    <li>Zienkiewicz OC, Zhu JZ. A simple error estimator and adaptive procedure for practical engineering analysis. Int J Numer Methods Eng. 1987;24(2):337-57. doi:10.1002/nme.1620240206</li>
+  </ol>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3);">Documentos internos citados: <code>comparativa_motores/INFORME.md</code> (comparativa de motores, V2.0.2) y <code>comparativa_febio_tet/INFORME.md</code> (malla suave en FEBio). Las referencias 1 a 9 se verificaron en PubMed; la 10 es un artículo metodológico clásico de ingeniería, fuera del ámbito de PubMed.</p>
+</section>
+
+<!-- ======================= ANEXO: LISTA DE CHEQUEO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Anexo</div>
+  <h2>Lista de chequeo de reporte</h2>
+  <p><b>Diseño del trabajo.</b> Estudio computacional de verificación y sensibilidad de un modelo de elementos finitos (sin sujetos humanos ni animales, sin datos experimentales). Las guías PRISMA, CONSORT y STROBE no son aplicables. Se usa la guía específica para estudios de elementos finitos en biomecánica de Erdemir et al. (2012)<sup class="ref">1</sup>, la misma que emplea el informe de la comparativa de motores; no consta una versión posterior que la sustituya. El estado indica si este informe cumple, cumple parcialmente, no cumple o si el ítem no es aplicable.</p>
+  <table class="lista-chequeo">
+    <thead><tr><th>Ítem</th><th>Contenido</th><th>Estado</th><th>Modificación necesaria</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Identificación del modelo</td></tr>
+      <tr><td>1</td><td>Tipo de modelo, propósito y magnitudes de interés</td><td><span class="sev l">Cumple</span></td><td>Portada y secciones 1 y 2.</td></tr>
+      <tr><td>2</td><td>Versión del software y del código del modelo</td><td><span class="sev l">Cumple</span></td><td>Portada (spinpy, commit, NGSolve, scikit-fem).</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura del modelo</td></tr>
+      <tr><td>3</td><td>Geometría: origen, segmentación, recorte</td><td><span class="sev m">Parcial</span></td><td>Espinodoide sintético descrito por sus parámetros; no hay segmentación de imagen. En VOIs reales, añadir resolución, umbral y orientación.</td></tr>
+      <tr><td>4</td><td>Malla: tipo de elemento, tamaño, número de elementos y nodos</td><td><span class="sev l">Cumple</span></td><td>Tabla 1.</td></tr>
+      <tr><td>5</td><td>Calidad de la malla</td><td><span class="sev l">Cumple</span></td><td>Fichas A5 y A6; métricas completas en la comparativa de motores (Tabla 3).</td></tr>
+      <tr><td>6</td><td>Propiedades del material y su justificación</td><td><span class="sev m">Parcial</span></td><td>E = 20 GPa y ν = 0,3, protocolo de la aplicación; añadir la justificación bibliográfica del módulo de tejido.</td></tr>
+      <tr><td>7</td><td>Condiciones de contorno y cargas</td><td><span class="sev l">Cumple</span></td><td>Sección 2, ficha A1 y glosario.</td></tr>
+      <tr><td>8</td><td>Interacciones y contacto</td><td><span class="sev n">No aplica</span></td><td>Sin contacto ni interfaces.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura de la simulación</td></tr>
+      <tr><td>9</td><td>Procedimiento de solución, resolvedor y tolerancias</td><td><span class="sev l">Cumple</span></td><td>Sección 2 y Tabla 1 (Cholesky, CG + BDDC a 10⁻¹⁰, CG + pyamg).</td></tr>
+      <tr><td>10</td><td>Hardware y tiempos</td><td><span class="sev l">Cumple</span></td><td>Tabla 1 y sección «Reproducir».</td></tr>
+      <tr><td>11</td><td>Postproceso: definición de las magnitudes derivadas</td><td><span class="sev l">Cumple</span></td><td>Sección 2 y glosario.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Verificación</td></tr>
+      <tr><td>12</td><td>Verificación del código</td><td><span class="sev l">Cumple</span></td><td>Por referencia a la comparativa de motores (órdenes teóricos y FEBio); control del banco con los valores TET10 publicados.</td></tr>
+      <tr><td>13</td><td>Verificación del cálculo (convergencia de malla)</td><td><span class="sev m">Parcial</span></td><td>Tres resoluciones hex8 y dos TET10 sin convergencia; ampliar a 64³ con TET10 y declarar el error estimado de cada magnitud.</td></tr>
+      <tr><td>14</td><td>Análisis de sensibilidad</td><td><span class="sev l">Cumple</span></td><td>Condición de carga, apoyo, malla y resolvedor.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Validación</td></tr>
+      <tr><td>15</td><td>Comparación con datos experimentales</td><td><span class="sev g">No cumple</span></td><td>Fuera del alcance (diagnóstico numérico); declarado en Limitaciones. Para un manuscrito, añadir ensayos mecánicos o correlación digital de volúmenes.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Disponibilidad</td></tr>
+      <tr><td>16</td><td>Disponibilidad del modelo, datos y código</td><td><span class="sev l">Cumple</span></td><td>Código y resultados en el repositorio; campos por elemento regenerables.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</body>
+</html>
