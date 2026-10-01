@@ -1,18 +1,18 @@
 # Motores de elementos finitos internos para spinpy: comparación de NGSolve, FEniCSx, scikit-fem y SfePy con el resolvedor de la aplicación
 
-Fecha: 2026-09-30. spinpy V2.0.1. Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
+Fecha: 2026-10-01 (revisión de la Figura 5: convergencia con refinamiento h y p). spinpy V2.0.1. Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `convergencia.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
 
 ## Resumen
 
 **Objetivo.** Eliminar la dependencia de spinpy respecto de FEBio, un ejecutable externo, sin perder la malla suave de tetraedros cuadráticos (TET10) ni los análisis no lineales, y con una fiabilidad demostrada y no supuesta.
 
-**Métodos.** Se integraron en spinpy cuatro bibliotecas de elementos finitos que corren dentro del proceso de la aplicación (NGSolve 6.2, FEniCSx 0.11, scikit-fem 12.0 y SfePy 2026.3) y se compararon con el resolvedor propio de la aplicación sobre problemas discretos idénticos: un bloque macizo con solución exacta (hexaedros y TET10), la compresión uniaxial no lineal de un bloque con solución cerrada para St. Venant-Kirchhoff y para el neo-Hookeano de FEBio, una cavidad esférica con la referencia de FEBio guardada en el repositorio, un espinodoide trabecular de 30 672 a 661 965 grados de libertad (GDL) con hexaedros y de 314 880 a 790 599 GDL con TET10, y el mismo espinodoide en régimen no lineal. Se midieron la exactitud, la concordancia entre motores, el tiempo de pared, la memoria de pico y la viabilidad de distribución.
+**Métodos.** Se integraron en spinpy cuatro bibliotecas de elementos finitos que corren dentro del proceso de la aplicación (NGSolve 6.2, FEniCSx 0.11, scikit-fem 12.0 y SfePy 2026.3) y se compararon con el resolvedor propio de la aplicación sobre problemas discretos idénticos: un bloque macizo con solución exacta (hexaedros y TET10), la compresión uniaxial no lineal de un bloque con solución cerrada para St. Venant-Kirchhoff y para el neo-Hookeano de FEBio, una cavidad esférica con la referencia de FEBio guardada en el repositorio, un espinodoide trabecular de 30 672 a 661 965 grados de libertad (GDL) con hexaedros y de 314 880 a 790 599 GDL con TET10, y el mismo espinodoide en régimen no lineal. Además, en un cubo con solución analítica de las ecuaciones de Navier se midió el orden de convergencia con refinamiento h (hexaedros trilineales, TET4 y TET10) y p (tetraedros de grado 1 a 8). Se midieron la exactitud, el orden de convergencia, la concordancia entre motores, el tiempo de pared, la memoria de pico y la viabilidad de distribución.
 
-**Resultados.** En los problemas lineales, los cinco motores dieron el mismo desplazamiento dentro de la tolerancia de sus resolvedores con todos los directos y con los iterativos, salvo una excepción descrita más abajo (diferencias máximas de 10⁻¹³ a 10⁻¹⁰; 10⁻⁹ con la app, que resuelve a 10⁻⁸). En el bloque macizo todos reprodujeron E_app = E_s a 10⁻¹¹ o mejor, y en la compresión no lineal los cuatro motores externos reprodujeron la fuerza cerrada a 4·10⁻¹² hasta el 20 % de acortamiento. Frente a FEBio, la cavidad con hexaedros coincidió a 7,7·10⁻⁹ en E_app y a 1,7·10⁻⁹ en el p99 de von Mises. Hubo tres excepciones de fiabilidad: la tangente de St. Venant-Kirchhoff de SfePy no es la derivada de su residuo (error de 37 %), lo que hace que Newton converja linealmente y no alcance el 2 % de deformación en el espinodoide; el iterativo de FEniCSx (CG + GAMG) divergió en la malla TET10 del espinodoide a 32³; y el CG + pyamg de scikit-fem se detuvo en un residuo de 10⁻¹⁰ con un error de desplazamiento de hasta 0,9 % en las mallas TET10 del espinodoide. En tiempo, con TET10 a 790 599 GDL, NGSolve resolvió en 45 s (Cholesky propio, 3,2 GB) o 59 s (CG + BDDC, 3,9 GB), FEniCSx en 22 s (MUMPS, 3,8 GB), y scikit-fem y SfePy en 905 y 1010 s. Solo NGSolve y scikit-fem publican ruedas para Windows en PyPI; FEniCSx requiere conda y un compilador de C en tiempo de ejecución, y SfePy solo publica ruedas para Linux.
+**Resultados.** En los problemas lineales, los cinco motores dieron el mismo desplazamiento dentro de la tolerancia de sus resolvedores con todos los directos y con los iterativos, salvo una excepción descrita más abajo (diferencias máximas de 10⁻¹³ a 10⁻¹⁰; 10⁻⁹ con la app, que resuelve a 10⁻⁸). En el bloque macizo todos reprodujeron E_app = E_s a 10⁻¹¹ o mejor, y en la compresión no lineal los cuatro motores externos reprodujeron la fuerza cerrada a 4·10⁻¹² hasta el 20 % de acortamiento. Frente a FEBio, la cavidad con hexaedros coincidió a 7,7·10⁻⁹ en E_app y a 1,7·10⁻⁹ en el p99 de von Mises. Con la solución analítica, el error de los cinco motores disminuyó al ritmo que predice la teoría a priori: pendientes log-log en L2 de 1,99 (hexaedros), 1,98 (TET4) y 3,00 (TET10), y en la seminorma H1 de 1,00, 0,99 y 1,99; con la malla fija, el error L2 bajó de forma exponencial con el grado, de 4,4·10⁻² (p = 1) a 3,8·10⁻¹² (p = 8). Hubo tres excepciones de fiabilidad: la tangente de St. Venant-Kirchhoff de SfePy no es la derivada de su residuo (error de 37 %), lo que hace que Newton converja linealmente y no alcance el 2 % de deformación en el espinodoide; el iterativo de FEniCSx (CG + GAMG) divergió en la malla TET10 del espinodoide a 32³; y el CG + pyamg de scikit-fem se detuvo en un residuo de 10⁻¹⁰ con un error de desplazamiento de hasta 0,9 % en las mallas TET10 del espinodoide. En tiempo, con TET10 a 790 599 GDL, NGSolve resolvió en 45 s (Cholesky propio, 3,2 GB) o 59 s (CG + BDDC, 3,9 GB), FEniCSx en 22 s (MUMPS, 3,8 GB), y scikit-fem y SfePy en 905 y 1010 s. Solo NGSolve y scikit-fem publican ruedas para Windows en PyPI; FEniCSx requiere conda y un compilador de C en tiempo de ejecución, y SfePy solo publica ruedas para Linux.
 
 **Conclusión.** NGSolve es el motor adecuado para lo que la aplicación no resolvía por sí misma (TET10 y no lineal): exacto en todas las pruebas, rápido, instalable sin programas externos en Windows, con licencia LGPL-2.1 y sin necesidad de MKL, porque su Cholesky propio fue más rápido y usó menos de la mitad de memoria que PARDISO en todos los casos medidos. El resolvedor propio de la app se mantiene para la malla de ladrillos en lineal, donde es competitivo y está validado. FEBio deja de ser necesario; la exportación a `.feb` se conserva como formato de intercambio.
 
-> Con resolvedores bien convergidos, los cinco motores resuelven el mismo problema y dan el mismo resultado hasta la décima o duodécima cifra. NGSolve es el que conviene integrar: resuelve la malla suave y el no lineal en segundos o en un minuto, se instala con la aplicación en Windows y no necesita ningún programa externo.
+> Con resolvedores bien convergidos, los cinco motores resuelven el mismo problema y dan el mismo resultado hasta la décima o duodécima cifra. Al refinar la malla, el error en desplazamientos baja al ritmo que predice la teoría: unas cuatro veces menos con cada malla el doble de fina en elementos lineales y unas ocho veces menos en cuadráticos. NGSolve es el que conviene integrar: resuelve la malla suave y el no lineal en segundos o en un minuto, se instala con la aplicación en Windows y no necesita ningún programa externo.
 
 ## 1. Objetivo
 
@@ -49,6 +49,7 @@ Los motores que construyen su propio espacio P2 sobre las esquinas del tetraedro
 4. **Espinodoide** trabecular (ρ = 0,30, número de onda 12π, 700 ondas, conos de 30°, 30° y 90°, semilla 1, lado de 5 mm) con hexaedros a 24³, 32³, 48³, 64³ y 80³. Con la misma semilla el campo aleatorio es el mismo a cualquier resolución; al subir n cambia la discretización, no la estructura.
 5. **Espinodoide con malla suave TET10** a 32³ y 48³ (`fem.mallar`, opciones por omisión: 20 iteraciones de Taubin, decimado 0,5, corrección de volumen).
 6. **Espinodoide no lineal** a 24³ con hexaedros, plato rígido al 0,25 %, 0,5 %, 1 % y 2 %, con los dos materiales.
+7. **Cubo con solución exacta** (`comparativa_motores/convergencia.py`): cubo unidad sin fuerzas de volumen, con el desplazamiento de una solución cerrada de las ecuaciones de Navier impuesto en todo el contorno (sección 3.8). Refinamiento h con hex8, TET4 y TET10 a n = 4, 8, 16 y 32 celdas por lado; refinamiento p con tetraedros de grado 1 a 8 sobre la malla fija de n = 4.
 
 Material: E_s = 20 GPa, ν = 0,30. Ensayo de la app: tensión aparente de 1 MPa sobre la sección bruta, apoyo deslizante.
 
@@ -275,6 +276,47 @@ e_{T}=\frac{\left\|\mathbf{K}_{T}(\mathbf{x})\,\mathbf{d}-\frac{\mathbf{R}(\math
 ```
 
 Una tangente consistente da e_T del orden del error de truncamiento de la diferencia centrada (≲ 10⁻⁸); un valor de orden uno indica una tangente que no es la derivada del residuo, y con ella Newton pierde la convergencia cuadrática.
+
+### 3.8 Solución exacta y orden de convergencia
+
+Las métricas de la sección 3.7 comparan dos soluciones del mismo problema discreto; no informan de cuánto se aleja la solución discreta de la del problema continuo ni de la velocidad con que ese error disminuye al refinar. Para medirlo se resolvió un problema con solución cerrada, siguiendo la lógica de la verificación de código por soluciones conocidas (Roache, 2002). En el cubo Ω = [0, 1]³ mm, sin fuerzas de volumen, se impuso en todo el contorno el desplazamiento de Papkovich-Neuber (Barber, 2010)
+
+```math
+%eq 30
+2\mu\,\mathbf{u}=4(1-\nu)\,\boldsymbol{\psi}-\nabla\left(\mathbf{x}\cdot\boldsymbol{\psi}+\phi\right),\qquad \boldsymbol{\psi}=\left(0,\,0,\,\sin(ax)\cos(by)\,e^{cz}\right),\qquad \phi=e^{dy}\cos(dz)
+```
+
+con a = 1,2, b = 1,6, c = (a² + b²)^(1/2) = 2 y d = 1,5 mm⁻¹. Como ψ y φ son armónicas, **u** satisface μΔ**u** + (λ + μ)∇(∇·**u**) = **0**; se comprobó de forma simbólica y, en el propio script, por diferencias centradas (residuo relativo de 3·10⁻⁸, del orden del truncamiento). La solución depende de ν, tiene divergencia no nula y no es polinómica, de modo que ningún espacio de elementos finitos la contiene y el error de discretización no se anula con ningún grado.
+
+**Refinamiento h.** El cubo se dividió en n³ celdas (h = 1/n mm, n = 4, 8, 16 y 32): hexaedros de un vóxel (hex8), o cada celda en los seis tetraedros de Kuhn que comparten su diagonal, con elementos lineales (TET4, P1) o cuadráticos (TET10, P2). Todos los motores recibieron la misma malla y los mismos valores nodales en el contorno (interpolación lagrangiana de **u**); NGSolve, cuya base de orden 2 es jerárquica, convierte el valor del punto medio de cada arista de contorno en el coeficiente de su función burbuja. NGSolve y FEniCSx resolvieron con sus directos (Cholesky propio; MUMPS), salvo TET10 a n = 32 (8,2·10⁵ GDL): en el cubo macizo el factor de Cholesky de NGSolve agotó los 15 GB del equipo, y en ese tamaño los dos usaron su iterativo (CG + BDDC; CG + GAMG con los modos rígidos) a 10⁻¹². La app resolvió los hexaedros con su matriz elemental (`elastic.hex8_ke`) y su receta de resolución (LU por debajo de 6 000 GDL; CG con multigrid algebraico a 10⁻⁸ por encima). scikit-fem y SfePy usaron SuperLU hasta 20 000 GDL y, por encima, CG con pyamg a 10⁻¹², y con TET10 se corrieron hasta n = 16 porque su montaje en Python y su iterativo tardan de 15 a 17 min a 8·10⁵ GDL (Tabla 2). El error se calculó con el postproceso común, a partir del desplazamiento nodal de cada motor interpolado con las funciones de forma del elemento (ecuaciones 5 y 6, y las lineales del TET4) y con una cuadratura de Gauss de 6 puntos por dirección (colapsada en los tetraedros):
+
+```math
+%eq 31
+e_{L2}=\frac{\|\mathbf{u}-\mathbf{u}_{h}\|_{L^{2}(\Omega)}}{\|\mathbf{u}\|_{L^{2}(\Omega)}},\qquad e_{H1}=\frac{|\mathbf{u}-\mathbf{u}_{h}|_{H^{1}(\Omega)}}{|\mathbf{u}|_{H^{1}(\Omega)}},\qquad |\mathbf{v}|_{H^{1}(\Omega)}^{2}=\int_{\Omega}\nabla\mathbf{v}:\nabla\mathbf{v}\,d\Omega
+```
+
+Para elementos de grado k y una solución suficientemente regular, la teoría a priori acota el error en la seminorma H1 (energía) y, en un dominio convexo como el cubo, también en L2 mediante el argumento de dualidad de Aubin-Nitsche (Brenner y Scott, 2008):
+
+```math
+%eq 32
+|\mathbf{u}-\mathbf{u}_{h}|_{H^{1}(\Omega)}\le C\,h^{k}\,|\mathbf{u}|_{H^{k+1}(\Omega)},\qquad \|\mathbf{u}-\mathbf{u}_{h}\|_{L^{2}(\Omega)}\le C\,h^{k+1}\,|\mathbf{u}|_{H^{k+1}(\Omega)}
+```
+
+En escala logarítmica, log e frente a log h es entonces una recta de pendiente k (H1) o k + 1 (L2): 1 y 2 con hex8 y TET4, 2 y 3 con TET10. El orden observado se estimó como la pendiente de la recta de mínimos cuadrados sobre las cuatro mallas y, localmente, entre mallas consecutivas:
+
+```math
+%eq 33
+p_{obs,i}=\frac{\ln\left(e_{i}/e_{i+1}\right)}{\ln\left(h_{i}/h_{i+1}\right)}
+```
+
+**Refinamiento p.** Con la malla fija de n = 4 (384 tetraedros, h = 0,25 mm) se aumentó el grado del polinomio de p = 1 (TET4) y p = 2 (TET10) hasta p = 8 (TETN), con los dos motores que admiten grado arbitrario: NGSolve (base jerárquica) y FEniCSx (Lagrange con nodos de Gauss-Lobatto-Legendre deformados, la variante bien condicionada para grados altos). Para una solución analítica en todo el dominio, la versión p converge de forma exponencial (Babuška y Suri, 1994):
+
+```math
+%eq 34
+\|\mathbf{u}-\mathbf{u}_{p}\|\le C\,e^{-\beta p}\;\Longleftrightarrow\;\ln\|\mathbf{u}-\mathbf{u}_{p}\|\le\ln C-\beta p
+```
+
+de modo que la recta aparece en escala semilogarítmica (log e frente a p) y no en log-log; frente al número de GDL N ∝ p³, el error baja como exp(−γ N^(1/3)) y la curva log-log se inclina cada vez más. Aquí cada motor impuso el contorno con su propia interpolación (proyección de NGSolve, `Set`; interpolación en los nodos de FEniCSx) e integró el error con sus herramientas, con una regla de grado 2p + 8. En el refinamiento h, NGSolve calculó además el error con su propia integración; su coincidencia con el postproceso común (sección 4.5) valida los dos cálculos.
 ## 4. Resultados
 
 Las tablas completas, una fila por caso, motor y resolvedor, con tiempo por etapas, memoria, residuo, iteraciones y magnitudes, están en `tablas.md`. Aquí se resumen.
@@ -283,7 +325,7 @@ Las tablas completas, una fila por caso, motor y resolvedor, con tiempo por etap
 
 **Bloque macizo, lineal.** Con hexaedros (3 159 GDL) y con TET10 (13 446 GDL), los cinco motores y todos sus resolvedores dieron E_app = 20 000 MPa, con una diferencia máxima de desplazamientos frente a la referencia de 1,6·10⁻¹⁰ (CG + GAMG de FEniCSx, TET10) y de 10⁻¹³ a 10⁻¹⁵ con los directos. La fuerza de equilibrio (ecuación 14) coincidió con la aplicada a 1,3·10⁻¹² o mejor en todos los casos. La app resolvió el bloque de hexaedros con su LU directo a 3,4·10⁻¹³ de la referencia.
 
-**Compresión uniaxial no lineal.** En el bloque de 4 × 4 × 6 vóxeles con plato hasta el 20 %, las fuerzas de reacción fueron 37,05; 68,40; 94,35 y 115,20 N con St. Venant-Kirchhoff y 41,6387; 86,9777; 136,776 y 192,004 N con el neo-Hookeano, iguales a las cerradas (ecuaciones 25 a 27) con un error máximo de 4,1·10⁻¹² (tolerancia de Newton) en scikit-fem, NGSolve y FEniCSx, y de 4,4·10⁻¹⁶ en SfePy. scikit-fem, NGSolve y FEniCSx necesitaron tres iteraciones de Newton por paso; SfePy, entre 22 y 27 (sección 4.6).
+**Compresión uniaxial no lineal.** En el bloque de 4 × 4 × 6 vóxeles con plato hasta el 20 %, las fuerzas de reacción fueron 37,05; 68,40; 94,35 y 115,20 N con St. Venant-Kirchhoff y 41,6387; 86,9777; 136,776 y 192,004 N con el neo-Hookeano, iguales a las cerradas (ecuaciones 25 a 27) con un error máximo de 4,1·10⁻¹² (tolerancia de Newton) en scikit-fem, NGSolve y FEniCSx, y de 4,4·10⁻¹⁶ en SfePy. scikit-fem, NGSolve y FEniCSx necesitaron tres iteraciones de Newton por paso; SfePy, entre 22 y 27 (sección 4.7).
 
 ### 4.2 Cavidad esférica frente a FEBio
 
@@ -293,7 +335,7 @@ Con TET10 sobre la esfera analítica (206 142 GDL), los motores coincidieron ent
 
 ### 4.3 Espinodoide con malla de ladrillos
 
-La Tabla 1 resume el tiempo de montaje y resolución (sin importar el motor) y la memoria de pico. Los seis tamaños dan el mismo E_app en todos los motores hasta la sexta cifra (326,534; 261,146; 298,888; 280,474 y 264,850 MPa de 24³ a 80³), y la diferencia de desplazamientos frente a la referencia directa quedó entre 2·10⁻¹³ y 4·10⁻¹¹ en los motores externos y entre 4·10⁻¹⁰ y 9·10⁻¹⁰ en la app (Figura 5).
+La Tabla 1 resume el tiempo de montaje y resolución (sin importar el motor) y la memoria de pico. Los seis tamaños dan el mismo E_app en todos los motores hasta la sexta cifra (326,534; 261,146; 298,888; 280,474 y 264,850 MPa de 24³ a 80³), y la diferencia de desplazamientos frente a la referencia directa quedó entre 2·10⁻¹³ y 4·10⁻¹¹ en los motores externos y entre 4·10⁻¹⁰ y 9·10⁻¹⁰ en la app, que resuelve a 10⁻⁸ (`tablas.md`; la gráfica de estas diferencias, en `figs/concordancia_motores.png`).
 
 **Tabla 1.** Espinodoide hex8: tiempo (s) y memoria de pico (GB) por motor y resolvedor.
 
@@ -325,13 +367,11 @@ Con SuperLU (el directo de scikit-fem y SfePy), el tiempo creció de 7 y 5 s a 3
 | SfePy, CG + pyamg | 236,2 s · 1,40 GB · 1,8·10⁻¹¹ | 1009,7 s · 3,26 GB · 8,2·10⁻¹² |
 | scikit-fem, CG + pyamg | 258,4 s · 3,02 GB · **8,9·10⁻³** | 905,1 s · 7,05 GB · **1,6·10⁻³** |
 
-Los motores que convergieron coinciden en E_app (156,683 MPa a 32³ y 219,024 MPa a 48³), en el p99 de von Mises de la capa superficial (85,767 y 79,029 MPa) y en la tensión de fallo de Pistoia (2,7196 y 3,0729 MPa). scikit-fem con su iterativo se apartó: 157,039 MPa (+0,23 %) y un error de von Mises de hasta 7 % en algún elemento (sección 4.6).
+Los motores que convergieron coinciden en E_app (156,683 MPa a 32³ y 219,024 MPa a 48³), en el p99 de von Mises de la capa superficial (85,767 y 79,029 MPa) y en la tensión de fallo de Pistoia (2,7196 y 3,0729 MPa). scikit-fem con su iterativo se apartó: 157,039 MPa (+0,23 %) y un error de von Mises de hasta 7 % en algún elemento (sección 4.7).
 
 ![Figura 3. Tiempo del espinodoide con TET10. (a) Iterativos; (b) directos (línea discontinua: NGSolve con su Cholesky propio).](figs/fig3_tiempo_tet10.png)
 
 ![Figura 4. Memoria de pico con TET10.](figs/fig4_memoria_tet10.png)
-
-![Figura 5. Diferencia máxima de desplazamientos de cada motor y resolvedor frente a la referencia directa del caso, en todos los casos lineales del espinodoide y de la cavidad. Línea discontinua: la tolerancia del resolvedor de la app. Los dos picos de scikit-fem son sus soluciones iterativas en las mallas TET10.](figs/fig5_exactitud.png)
 
 **Calidad de las mallas TET10.** La Tabla 3 resume la forma de los tetraedros, medida sobre sus cuatro esquinas: la relación radio-arista (radio de la esfera circunscrita dividido por la arista más corta; 0,612 en el tetraedro regular) y el menor ángulo diedro de cada elemento. En ambas resoluciones la mediana de la relación radio-arista fue 1,04 y la del diedro mínimo, de 37° a 38°; alrededor del 4 % de los elementos superó una relación de 2 y el 1 % tuvo un diedro menor de 5°. Hubo astillas aisladas (diedro mínimo de 0,47° a 0,68°; menos de seis elementos por debajo de 1°). La malla de 32³ contiene además 577 tetraedros con volumen inferior a 10⁻⁶ veces la mediana; no son planos (mediana de su diedro mínimo, 34,9°) sino diminutos, con aristas del orden del 0,4 % de la arista típica. La de 48³ no tiene ninguno.
 
@@ -346,7 +386,25 @@ Los motores que convergieron coinciden en E_app (156,683 MPa a 32³ y 219,024 MP
 | Elementos con volumen < 10⁻⁶ × mediana | 577 | 0 |
 
 
-### 4.5 Espinodoide no lineal
+### 4.5 Convergencia con el refinamiento h y p
+
+**El error medido es el de la discretización.** En cada malla del cubo, los motores dieron el mismo desplazamiento nodal: la diferencia máxima frente a la referencia fue de 2,2·10⁻¹² en los motores externos y de 2,1·10⁻⁸ en la app, que resuelve a 10⁻⁸, y el error L2 difirió entre motores menos de 4·10⁻⁷ en términos relativos. Los valores nodales del contorno coincidieron con los de la solución exacta a 7·10⁻¹³ (relativo). La integración propia de NGSolve reprodujo el error del postproceso común a 3·10⁻⁹ (L2) y 3·10⁻¹¹ (H1). En consecuencia, lo que se observa al refinar es el error de aproximación del espacio de elementos finitos, no una diferencia de implementación.
+
+**Refinamiento h.** En escala log-log, el error frente a h fue una recta para los tres elementos y en las dos normas (Figura 5a y 5b). Las pendientes de mínimos cuadrados sobre las cuatro mallas fueron 1,993 (hex8), 1,979 (TET4) y 3,002 (TET10) en L2, y 0,998, 0,994 y 1,992 en la seminorma H1, frente a los valores teóricos de 2, 2 y 3, y de 1, 1 y 2 (ecuación 32). El orden local se acercó al teórico al refinar (Tabla 4): entre las dos mallas más finas fue 1,999, 1,996 y 3,002 en L2, y 1,000, 0,999 y 1,999 en H1. Con la misma malla de nodos, el TET4 tuvo un error 2,1 veces mayor que el hex8 en L2 y 1,9 veces mayor en H1, con el mismo orden. Con el mismo número de GDL (107 811), el TET10 a n = 16 dio un error L2 de 4,6·10⁻⁵, 19 veces menor que el TET4 a n = 32 (8,7·10⁻⁴; Figura 5d).
+
+**Tabla 4.** Orden de convergencia observado con la solución exacta (cubo unidad, h = 1/4 a 1/32 mm). hex8: los cinco motores; TET4 y TET10: NGSolve, FEniCSx, scikit-fem y SfePy (estos dos, con TET10, hasta n = 16). El error es relativo a la norma de la solución exacta, y las cifras coinciden en todos los motores hasta la cuarta cifra significativa. Orden local entre n = 4 y 8, 8 y 16, y 16 y 32. Detalle por motor y malla en `tablas.md`.
+
+| Elemento | Pendiente teórica L2 / H1 | Pendiente observada L2 / H1 | Orden local L2 | Orden local H1 | Error a n = 32, L2 / H1 |
+|---|---:|---:|---|---|---|
+| hex8 (Q1) | 2 / 1 | 1,993 / 0,998 | 1,983; 1,996; 1,999 | 0,995; 0,999; 1,000 | 4,04·10⁻⁴ / 2,07·10⁻² |
+| TET4 (P1) | 2 / 1 | 1,979 / 0,994 | 1,954; 1,986; 1,996 | 0,985; 0,996; 0,999 | 8,66·10⁻⁴ / 3,83·10⁻² |
+| TET10 (P2) | 3 / 2 | 3,002 / 1,992 | 2,998; 3,005; 3,002 | 1,980; 1,995; 1,999 | 5,75·10⁻⁶ / 4,55·10⁻⁴ |
+
+**Refinamiento p.** Con la malla fija de 384 tetraedros, el error L2 bajó de 4,4·10⁻² (p = 1) a 3,8·10⁻¹² (p = 8) con NGSolve, y de 5,3·10⁻² a 4,8·10⁻¹² con FEniCSx; en H1, de 3,0·10⁻¹ a 1,1·10⁻¹⁰ y 1,3·10⁻¹⁰. En escala semilogarítmica la relación fue prácticamente lineal (Figura 5c), con una tasa ajustada β de 3,32 en L2 en los dos motores y de 3,13 y 3,11 en H1, es decir, una reducción media del error de unas 23 a 28 veces por grado. La reducción por grado creció de 15 a 41 en L2 entre p = 1 y p = 8 (NGSolve), de modo que la curva se inclina ligeramente hacia abajo; una convergencia algo más rápida que la exponencial pura es compatible con una solución analítica en todo el dominio. Las diferencias entre NGSolve y FEniCSx se deben a la imposición del contorno, que cada uno hace con su propia interpolación: fueron del 19 % en L2 con p = 1, y entre el 0,3 % y el 1,6 % de p = 3 a p = 7. A p = 8 la diferencia creció al 26 %, con errores relativos de 4·10⁻¹², ya cerca del límite que imponen la aritmética de doble precisión y el número de condición de estas matrices; por eso no se probaron grados mayores. Frente al número de GDL (Figura 5d), el refinamiento p alcanzó con 107 811 GDL un error de 3,8·10⁻¹², siete órdenes de magnitud menor que el del TET10 y ocho menor que el del TET4 con los mismos GDL.
+
+![Figura 5. Convergencia de los motores hacia la solución exacta del cubo. (a, b) Error relativo en L2 y en la seminorma H1 frente al tamaño de elemento h (refinamiento h), con la pendiente de mínimos cuadrados de cada elemento; los marcadores de los cinco motores se superponen porque resuelven el mismo problema discreto. Las pendientes teóricas son k + 1 en L2 y k en H1 (k = 1 para hex8 y TET4; k = 2 para TET10). (c) Refinamiento p con la malla fija (h = 0,25 mm): el logaritmo del error decrece linealmente con el grado; trazo continuo, L2; discontinuo, H1. (d) Error L2 frente a los grados de libertad: el refinamiento h da rectas en log-log y el refinamiento p, una curva que se inclina cada vez más (convergencia exponencial).](figs/fig5_convergencia.png)
+
+### 4.6 Espinodoide no lineal
 
 Con el plato al 0,25 %, 0,5 %, 1 % y 2 % de acortamiento (30 672 GDL), scikit-fem, NGSolve y FEniCSx dieron las mismas fuerzas: 33,2523; 66,0776; 130,454 y 254,156 N con St. Venant-Kirchhoff y 33,3520; 66,4736; 132,016 y 260,223 N con el neo-Hookeano, con diferencias entre motores de 10⁻¹⁴ a 10⁻¹⁰ (la mayor, en FEniCSx, es la tolerancia relativa de SNES). Todos necesitaron tres o cuatro iteraciones por paso (Figura 6). Los tiempos fueron 4,2 s (FEniCSx, sin la compilación JIT), 9,1 s (NGSolve, Cholesky propio y energía compilada), 18,4 s (NGSolve con PARDISO y energía sin compilar) y 189 s (scikit-fem, que monta en Python). SfePy agotó las 30 iteraciones al 2 % y no dio resultado.
 
@@ -354,7 +412,7 @@ Con el plato al 0,25 %, 0,5 %, 1 % y 2 % de acortamiento (30 672 GDL), scikit-fe
 
 La respuesta se aparta de la proporcional ya a estas deformaciones: extrapolando linealmente el primer paso, la fuerza al 2 % sería 8 × 33,25 = 266,0 N con St. Venant-Kirchhoff y 8 × 33,35 = 266,8 N con el neo-Hookeano, frente a los 254,2 N (−4,5 %) y 260,2 N (−2,5 %) calculados. La diferencia entre los dos materiales, que coinciden en pequeñas deformaciones, indica que parte del ablandamiento procede de la ley constitutiva y no solo de la geometría; este diseño no permite separar ambas contribuciones con más precisión.
 
-### 4.6 Fiabilidad: lo que falló y por qué
+### 4.7 Fiabilidad: lo que falló y por qué
 
 1. **Tangente de SfePy.** La comparación de la matriz tangente de `dw_tl_he_svk` con la derivada numérica de su propio residuo (ecuación 29) dio e_T = 0,37, frente a 2·10⁻¹¹ para `dw_lin_elastic` en el mismo estado (`verificar_tangente_sfepy.py`). El residuo es correcto (la fuerza converge a la cerrada), pero la tangente no es su derivada y Newton converge linealmente, con un factor de contracción del residuo de ≈ 0,45 por iteración. En el espinodoide eso no basta para converger en 30 iteraciones al 2 %. Además, el neo-Hookeano de SfePy es la variante desacoplada (μ/2 (J^{−2/3} I₁ − 3) + K/2 (J − 1)²), que no es el de FEBio, y se declaró no disponible para no mezclar modelos.
 2. **GAMG de FEniCSx con TET10.** Con la receta de los ejemplos de elasticidad de DOLFINx (CG, GAMG con modos rígidos, suavizador de Chebyshev), la malla TET10 del espinodoide a 32³ dio un precondicionador indefinido (KSP_DIVERGED_INDEFINITE_PC). La malla contiene tetraedros casi degenerados junto a la superficie suavizada (volumen mínimo de 1,5·10⁻¹³ mm³ frente a una mediana de 5·10⁻⁴). En el motor integrado, el modo automático pasa entonces a MUMPS.
@@ -364,9 +422,9 @@ La respuesta se aparta de la proporcional ya a estas deformaciones: extrapolando
 
 Dos fallos del mallado TET10 de la propia app aparecieron por el camino y se corrigieron en `fem.preparar_tet10`. El primero: tetgen deja tetraedros «astilla» con sus cuatro esquinas sobre una cara del cubo, y al llevar los nodos a su plano exacto su volumen se hacía cero y la malla se rechazaba (29 elementos en el espinodoide a 32³; la ruta de FEBio habría abortado igual). Se retiran y se declara cuántos. El segundo: los nodos intermedios de las aristas con una esquina ajustada a un plano quedaban hasta 9·10⁻⁴ h fuera del punto medio; los motores reciben las aristas rectificadas (ecuación 1).
 
-### 4.7 Distribución e independencia
+### 4.8 Distribución e independencia
 
-**Tabla 4.** Viabilidad de cada motor dentro del instalador de Windows de spinpy.
+**Tabla 5.** Viabilidad de cada motor dentro del instalador de Windows de spinpy.
 
 | Motor | Rueda para Windows en PyPI | Tamaño instalado | Importación | Requisitos en tiempo de ejecución | Licencia |
 |---|---|---:|---:|---|---|
@@ -383,6 +441,8 @@ La compilación JIT de FEniCSx costó entre 1,5 y 3,4 s la primera vez que se us
 
 **Exactitud.** Ninguno de los cuatro motores introdujo un sesgo detectable frente al resolvedor de la app ni frente a FEBio. Cuando el sistema se resolvió con un directo, las diferencias fueron del orden del redondeo (10⁻¹³ a 10⁻¹¹); cuando se resolvió con un iterativo convergido, del orden de su tolerancia. Esto era lo esperable si cada motor monta la misma matriz, y confirma que el emparejamiento de nodos, la orientación de las caras, la carga consistente y los apoyos se trasladaron bien a cada biblioteca, algo que no se puede dar por supuesto: dos de esos pasos (el espacio jerárquico de NGSolve y las aristas curvas de las mallas de spinpy) habrían producido resultados erróneos sin ningún mensaje de error. Las soluciones cerradas del bloque, lineal y no lineal, y la coincidencia con FEBio en la cavidad sitúan la verificación del código en el nivel que Erdemir et al. (2012) piden a un análisis de elementos finitos en biomecánica: comparación con soluciones analíticas y con otro código verificado.
 
+**Convergencia.** Que los motores coincidan sobre una misma malla demuestra que resuelven el mismo problema discreto, pero no que ese problema aproxime bien el continuo. El estudio con solución analítica cubre ese hueco: los órdenes observados coincidieron con los teóricos, en los cinco motores y con los tres elementos, a menos de 0,025 con la pendiente global y a 0,005 o menos entre las dos mallas más finas de cada motor. Reproducir el orden teórico es la prueba más exigente de la verificación de código (Roache, 2002), porque un error en las funciones de forma, en la cuadratura o en la imposición del contorno suele degradarlo aunque la solución parezca razonable. Para el uso de la aplicación, el resultado tiene dos lecturas. Con elementos cuadráticos, reducir h a la mitad divide el error de desplazamientos por ocho y el de su gradiente, del que salen deformaciones y tensiones, por cuatro; con hexaedros o TET4, por cuatro y por dos. Además, el orden de las tensiones es menor que el de los desplazamientos, y su máximo local depende de la regularidad de la solución cerca de aristas y entallas, de la superficie suavizada y de los elementos casi degenerados, factores que el cubo no contiene. Esto es coherente con lo medido en la cavidad esférica, donde E_app, una magnitud integral, convergió y el pico de von Mises no (sección 6), aunque este estudio no permite separar la contribución de cada factor.
+
 **Fiabilidad frente a exactitud.** Las tres excepciones no son errores de exactitud del motor sino de su comportamiento en condiciones difíciles, y las tres se detectaron porque la comparación no se limitó a comprobar que cada resolvedor declarase convergencia. El caso de scikit-fem ilustra el riesgo: un residuo relativo de 9·10⁻¹¹, que cualquier criterio habitual aceptaría, convivió con un error del 0,9 % en desplazamientos y del 7 % en von Mises, porque las mallas suaves de hueso real contienen elementos casi degenerados que elevan el número de condición. En la aplicación, esto justifica usar por omisión un resolvedor directo o un precondicionador de subestructuración robusto (BDDC) con TET10, y no un multigrid algebraico genérico. El caso de SfePy recuerda que una tangente inconsistente no altera el resultado cuando el Newton converge, pero sí su convergencia, y en una estructura trabecular basta para no llegar a la carga pedida.
 
 **Rendimiento.** Con hexaedros, el resolvedor de la app (CG con multigrid algebraico en un solo hilo) queda a la par de los iterativos de los demás motores y solo lo superan los directos multihilo: a 661 965 GDL, 128 s frente a 28 s (MUMPS) y 33 s (Cholesky de NGSolve), con una memoria de 2,6 GB frente a 3,5 y 3,4 GB. Con TET10, donde la app no llega, los directos y BDDC resuelven 790 599 GDL en menos de un minuto, mientras que el CG con pyamg tarda un orden de magnitud más. La comparación entre los dos directos de NGSolve fue inesperada: su Cholesky propio fue más rápido que PARDISO en todos los casos (de 1,4 a 1,6 veces) y usó entre 2,3 y 2,8 veces menos memoria. No se investigó la causa; puede depender de la configuración con que NGSolve llama a PARDISO y no debe generalizarse a otros programas. En el no lineal, FEniCSx fue dos veces más rápido que NGSolve una vez compilada su forma; NGSolve redujo a la mitad su tiempo al compilar el árbol de expresiones de la energía, sin compilador externo.
@@ -392,12 +452,13 @@ La compilación JIT de FEniCSx costó entre 1,5 y 3,4 s la primera vez que se us
 ## 6. Limitaciones
 
 - Las medidas se hicieron en un único equipo Linux de 4 núcleos y 15 GB. Los tiempos absolutos cambiarán en otro equipo, y en Windows no se midieron; las proporciones entre motores deberían mantenerse, pero no se comprobó.
-- En Windows solo se comprobó que el ejecutable resuelve correctamente un ensayo pequeño con cada motor (autocomprobación, sección 4.7); los tiempos y la memoria no se midieron allí.
-- Este estudio compara motores sobre una misma malla y no estudia la convergencia con el refinamiento. Lo medido al respecto está en `comparativa_febio_tet/INFORME.md` (sección 4): en la cavidad esférica, E_app de la malla suave quedó a menos del 0,2 % de la referencia analítica en todos los refinamientos, mientras que el pico de von Mises no convergió (osciló entre −1,1 % y +12,1 % con los parámetros de suavizado por omisión). Los resultados de rigidez son, por tanto, más robustos a la discretización que los de tensión máxima.
+- En Windows solo se comprobó que el ejecutable resuelve correctamente un ensayo pequeño con cada motor (autocomprobación, sección 4.8); los tiempos y la memoria no se midieron allí.
+- El orden de convergencia se verificó en un cubo con solución analítica (sección 4.5). Eso establece que cada motor y cada elemento convergen al ritmo teórico, pero no cuantifica el error de discretización de las mallas de hueso: en ellas la geometría cambia con la resolución (escalones de vóxel, superficie suavizada) y las aristas y entallas concentran tensiones, de modo que no cabe esperar el orden teórico. Lo medido al respecto está en `comparativa_febio_tet/INFORME.md` (sección 4): en la cavidad esférica, E_app de la malla suave quedó a menos del 0,2 % de la referencia analítica en todos los refinamientos, mientras que el pico de von Mises no convergió (osciló entre −1,1 % y +12,1 % con los parámetros de suavizado por omisión). Los resultados de rigidez son, por tanto, más robustos a la discretización que los de tensión máxima.
 - Se evaluó un material elástico isótropo y dos hiperelásticos; no se evaluaron plasticidad, contacto ni daño, que ninguno de los flujos de la app usa.
 - Las cotas de homogeneización KUBC/SUBC con TET10 que daba la ruta de FEBio no se reimplementaron; la homogeneización periódica con hexaedros de la app no cambia.
 - Con control por fuerza, los motores aplican una tracción muerta y FEBio una presión seguidora; a las cargas de los protocolos la diferencia es del orden de la rotación de las caras del techo, pero no se cuantificó.
-- La tolerancia de los resolvedores iterativos (10⁻¹⁰) se fijó antes de medir; con malla suave no garantiza por sí sola la exactitud (sección 4.6).
+- El refinamiento p (grados 3 a 8) se midió con NGSolve y FEniCSx para mostrar el comportamiento de los motores; la aplicación usa como máximo elementos cuadráticos (TET10), y scikit-fem y SfePy no se evaluaron con grados mayores que 2.
+- La tolerancia de los resolvedores iterativos (10⁻¹⁰) se fijó antes de medir; con malla suave no garantiza por sí sola la exactitud (sección 4.7).
 
 ## 7. Reproducir
 
@@ -409,8 +470,9 @@ cd comparativa_motores
 FENICSX_PYTHON=/ruta/al/python/de/fx python correr.py exactos nl cavidad espinodoide_hex espinodoide_tet
 SPINPY_SIN_PARDISO=1 python correr.py espinodoide_hex --n-hex 48 64 80 --motores ngsolve --solvers directo --gdl-directo-hex 1e7
 python calidad_tet10.py        # Tabla 3: calidad de las mallas TET10
+FENICSX_PYTHON=/ruta/al/python/de/fx python convergencia.py h p --nuevo   # Figura 5 y Tabla 4
 python figuras.py                                  # tablas.md y figs/
-python -m pytest ../tests/test_29_motores.py       # versión pequeña, ~20 s
+python -m pytest ../tests/test_29_motores.py       # versión pequeña, ~1,5 min
 ```
 
 La campaña completa tardó unas tres horas en el equipo descrito. Los resultados quedan en `resultados/*.jsonl`, una línea por corrida.
@@ -441,6 +503,13 @@ No encontradas en los índices consultados (PubMed, SciSpace); deben cotejarse a
 11. Schöberl J. C++11 implementation of finite elements in NGSolve. ASC Report 30/2014. Vienna: Institute for Analysis and Scientific Computing, Vienna University of Technology; 2014.
 12. Bonet J, Wood RD. Nonlinear continuum mechanics for finite element analysis. 2nd ed. Cambridge: Cambridge University Press; 2008.
 
+Teoría de la convergencia y verificación por soluciones conocidas. Babuška y Suri se cotejó en Consensus y en la ficha del editor; las demás, en las fichas del editor localizadas por búsqueda web (título, autores, año, volumen, páginas y DOI):
+
+13. Babuška I, Suri M. The p and h-p versions of the finite element method, basic principles and properties. SIAM Rev. 1994;36(4):578-632. doi:10.1137/1036141
+14. Roache PJ. Code verification by the method of manufactured solutions. J Fluids Eng. 2002;124(1):4-10. doi:10.1115/1.1436090
+15. Brenner SC, Scott LR. The mathematical theory of finite element methods. 3rd ed. New York: Springer; 2008. (Texts in Applied Mathematics; 15). doi:10.1007/978-0-387-75934-0
+16. Barber JR. Elasticity. 3rd ed. Dordrecht: Springer; 2010. (Solid Mechanics and Its Applications; 172). doi:10.1007/978-90-481-3809-8
+
 ## 9. Lista de chequeo de la guía de reporte
 
 **Diseño.** Estudio computacional de verificación de código y comparación de desempeño entre programas de elementos finitos, sin participantes humanos ni animales. Las guías de reporte de la red EQUATOR para estudios clínicos u observacionales (CONSORT, STROBE, PRISMA, STARD, TRIPOD) no se aplican. La guía pertinente es la de consideraciones para el reporte de análisis de elementos finitos en biomecánica (Erdemir et al., 2012), cuyas categorías (identificación del modelo, estructura del modelo, estructura de la simulación, verificación, validación y disponibilidad) se revisan a continuación.
@@ -451,8 +520,8 @@ No encontradas en los índices consultados (PubMed, SciSpace); deben cotejarse a
 | Propósito del modelo y de la simulación | Cumple | Sección 1 |
 | Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V2.0.1 |
 | **Estructura del modelo** | | |
-| Geometría y su origen (imagen, generación) | Cumple | Sección 2.2 (espinodoide con parámetros y semilla; bloque; cavidad) |
-| Discretización: tipo de elemento, orden, número de elementos y GDL | Cumple | Secciones 2.2, 3.2 y Tablas 1 y 2 |
+| Geometría y su origen (imagen, generación) | Cumple | Sección 2.2 (espinodoide con parámetros y semilla; bloque; cavidad; cubo de la solución exacta) |
+| Discretización: tipo de elemento, orden, número de elementos y GDL | Cumple | Secciones 2.2, 3.2, 3.8 y Tablas 1, 2 y 4 |
 | Calidad de malla (ángulos, relación de aspecto) | Cumple | Sección 4.4 y Tabla 3 (relación radio-arista, diedro mínimo, elementos diminutos); datos en `resultados/calidad_tet10.json` |
 | Propiedades de los materiales y ley constitutiva | Cumple | Secciones 2.2 y 3.5 (E, ν, SVK, neo-Hookeano) |
 | Condiciones de contorno y cargas | Cumple | Sección 3.1 |
@@ -464,13 +533,14 @@ No encontradas en los índices consultados (PubMed, SciSpace); deben cotejarse a
 | **Verificación** | | |
 | Verificación del código frente a soluciones analíticas | Cumple | Secciones 4.1 y 3.6; bloque 29 de la suite |
 | Verificación frente a otro código verificado | Cumple | Sección 4.2 (FEBio) y concordancia entre cinco motores |
-| Verificación del cálculo: convergencia de malla | Cumple parcialmente | Este estudio compara motores sobre la misma malla; la sección 6 resume la convergencia medida en `comparativa_febio_tet/INFORME.md` (E_app estable a < 0,2 %; el pico de tensión no converge). Para un manuscrito, correr `resistencia.estudio_convergencia` sobre el espécimen analizado |
-| Convergencia del resolvedor (residuo, Newton) | Cumple | Secciones 3.3, 4.5 y 4.6; residuo e iteraciones por corrida en `tablas.md` |
+| Verificación del código: orden de convergencia con refinamiento h y p | Cumple | Secciones 3.8 y 4.5, Figura 5 y Tabla 4: solución analítica de Papkovich-Neuber, órdenes observados iguales a los teóricos en los cinco motores; bloque 29 de la suite |
+| Verificación del cálculo: convergencia de malla en el espécimen | Cumple parcialmente | El orden de convergencia se verificó en un cubo con solución exacta, no en las mallas de hueso; la sección 6 resume la convergencia medida en `comparativa_febio_tet/INFORME.md` (E_app estable a < 0,2 %; el pico de tensión no converge). Para un manuscrito, correr `resistencia.estudio_convergencia` sobre el espécimen analizado |
+| Convergencia del resolvedor (residuo, Newton) | Cumple | Secciones 3.3, 4.6 y 4.7; residuo e iteraciones por corrida en `tablas.md` |
 | **Validación** | | |
 | Comparación con datos experimentales | No aplica | El objetivo es verificar la implementación de los motores, no validar el modelo de hueso; la validación frente a resultados publicados está en `Test/` y `docs/validacion_literatura/` |
 | **Disponibilidad** | | |
 | Modelo, datos de entrada y resultados accesibles | Cumple | `comparativa_motores/` (código, casos, resultados JSONL, figuras) en el repositorio |
-| Programas y licencias | Cumple | Sección 4.7 (Tabla 4) |
+| Programas y licencias | Cumple | Sección 4.8 (Tabla 5) |
 | **Otros** | | |
 | Incertidumbre y sensibilidad de los resultados | Cumple parcialmente | Se informa la dependencia de la tolerancia del resolvedor y el efecto de la malla en la cavidad; no se estudió la sensibilidad a los hilos ni la variabilidad de tiempo entre repeticiones. Repetir cada medida de tiempo tres veces e informar la mediana y el rango |
 | Limitaciones | Cumple | Sección 6 |
