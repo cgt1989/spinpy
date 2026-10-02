@@ -1,15 +1,32 @@
-# Bibliografía del proyecto
+# Bibliografía
 
-Tomada de las citas del repositorio (`Test/README.md`, `Test/referencia/FUENTES.md`, `spinpy/informe.py`, `CITATION.cff`). **No sustituye la verificación**: antes de usarlas en un manuscrito, confirma cada una en PubMed o Consensus y comprueba que respalda la frase concreta. Las marcadas (v) tienen DOI en el repositorio; las demás faltan o deben comprobarse.
+Estado de cada cita: **[V]** verificada en una base científica en esta sesión (PubMed, Consensus o Scholar Gateway); **[R]** tomada de las citas del repositorio (`Test/README.md`, `Test/referencia/FUENTES.md`, `spinpy/informe.py`, `CITATION.cff`), pendiente de verificar. Incluso las [V] deben comprobarse contra la frase concreta que respaldan.
+
+## Verificadas en esta sesión [V]
+
+- Kumar S, Tan S, Zheng L, Kochmann DM. Inverse-designed spinodoid metamaterials. npj Comput Mater. 2020;6:73. doi:10.1038/s41524-020-0341-6 (Consensus).
+- Zheng L, Kumar S, Kochmann DM. Data-driven topology optimization of spinodoid metamaterials with seamlessly tunable anisotropy. Comput Methods Appl Mech Eng. 2021;383:113894. doi:10.1016/j.cma.2021.113894 (Consensus localizó el preprint de 2020; la versión publicada y el DOI provienen del repositorio).
+- Vafaeefar M, Moerman KM, Kavousi M, Vaughan TJ. A morphological, topological and mechanical investigation of gyroid, spinodoid and dual-lattice algorithms as structural models of trabecular bone. J Mech Behav Biomed Mater. 2023;138:105584 (publicado en línea 18 nov 2022). doi:10.1016/j.jmbbm.2022.105584. PMID 36436405 (PubMed).
+- Deng B, Kumar S, Vallone A, Kochmann DM, Greer JR. AI-enabled materials design of non-periodic 3D architectures with predictable direction-dependent elastic properties. Adv Mater. 2024;36(34). doi:10.1002/adma.202308149 (Scholar Gateway). Nota: el primer autor figura como "Deng, W." en la ficha de Scholar Gateway; confirmar nombre al citar.
+- Otto A, Rosenkranz M, Kalina KA, Kästner M. Data-driven inverse design of spinodoid architected materials. GAMM-Mitteilungen. 2025;48(4). doi:10.1002/gamm.70008 (Scholar Gateway y Consensus).
+- Risthaus L, Schneider M. Dirichlet boundary conditions for FFT-based micromechanics of bicontinuous stochastic microstructures. Proc Appl Math Mech. 2024;24(4). doi:10.1002/pamm.202400182 (Scholar Gateway).
+- Golnary F, et al. Data-driven analysis of spinodoid topologies: anisotropy, inverse design, and elasticity tensor distribution. Int J Mech Mater Des. 2024 (Consensus; completar autores, volumen y DOI al citar).
+- Raßloff A, et al. Inverse design of spinodoid structures using Bayesian optimization. Comput Mech. 2024 (Consensus; completar autores, volumen y DOI al citar).
+- Röding M, et al. Inverse design of anisotropic spinodoid materials with prescribed diffusivity. Sci Rep. 2022 (Consensus; completar autores, volumen y DOI al citar).
+- Park M, et al. Uncertainty-aware structure-property mapping of spinodoid metamaterials via heteroscedastic Gaussian process regression. Mater Des. 2026 (Consensus; completar datos al citar).
+- Mandolesi B, et al. Spinodal decomposition-inspired metamaterial: tailored homogenized elastic properties via the dimensionless Cahn-Hilliard equation. Eur J Mech A/Solids. 2025; y Spinodal metamaterials optimization based on genetic algorithm: controlling mechanical anisotropy via dimensionless Cahn-Hilliard equation. Eur J Mech A/Solids. 2025 (Consensus; completar datos al citar).
+- Yıldız S, et al. Data-driven multiphysics modeling and optimization of dual-phase spinodoid metamaterials. J Phys Mater. 2026 (Consensus; completar datos al citar).
+
+## Del repositorio, pendientes de verificar [R]
 
 ## Núcleo espinodal
 
-- Kumar S, Tan S, Zheng L, Kochmann DM. Inverse-designed spinodoid metamaterials. npj Comput Mater. 2020;6:73. doi:10.1038/s41524-020-0341-6 (CC BY 4.0). Respalda: generador GRF, conos, conjunto de nivel, clases, diseño inverso por red neuronal.
-- Zheng L, Kumar S, Kochmann DM. Data-driven topology optimization of spinodoid metamaterials with seamlessly tunable anisotropy. Comput Methods Appl Mech Eng. 2021;383:113894. doi:10.1016/j.cma.2021.113894 (CC BY). Respalda: ternas de las cuatro clases, rho >= 0.3, theta_min, cotas de Voigt y Hashin-Shtrikman, ortotropía, condiciones afines.
+- (Ya verificada arriba.) Respalda: generador GRF, conos, conjunto de nivel, clases, diseño inverso por red neuronal.
+- (Ya verificada arriba.) Respalda: ternas de las cuatro clases, rho >= 0.3, theta_min, cotas de Voigt y Hashin-Shtrikman, ortotropía, condiciones afines.
 - Guo Y, Sharma S, Kumar S. Inverse designing surface curvatures by deep learning. Adv Intell Syst. 2024;6(6):2300789. doi:10.1002/aisy.202300789 (CC BY 4.0). Respalda: perfil de curvaturas (k1, k2) ponderado por área, PNS de referencia, Fig. 7.
 - Cahn JW. Phase separation by spinodal decomposition in isotropic systems. J Chem Phys. 1965;42(1):93-99. doi:10.1063/1.1695731. Respalda: origen físico (descomposición espinodal).
 - Moerman KM. GIBBON: The geometry and image-based bioengineering add-on. J Open Source Softw. 2018;3(22):506. doi:10.21105/joss.00506. Respalda: implementación `spinodoid.m` del muestreo por rechazo.
-- Vafaeefar M, Moerman KM, Kavousi M, Vaughan TJ. A morphological, topological and mechanical investigation of gyroid, spinodoid and dual-lattice algorithms as structural models of trabecular bone. J Mech Behav Biomed Mater. 2023;138:105584. doi:10.1016/j.jmbbm.2022.105584. Respalda: dual-lattice, comparación de familias. El código la cita como 2022 (año de aceptación) y el CFF como 2022; unificar año al citar.
+- (Ya verificada arriba.) Respalda: dual-lattice, comparación de familias. El código la cita como 2022 (año de aceptación) y el CFF como 2022; unificar año al citar.
 
 ## Morfometría ósea
 

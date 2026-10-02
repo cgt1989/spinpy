@@ -1,56 +1,52 @@
 ---
 name: spinodoides
-description: Trabajo con microestructuras espinodales (spinodoides, Kumar et al. 2020) y su uso como sustitutos sintéticos del hueso trabecular en el proyecto spinpy: definición del generador (GRF, conos, conjunto de nivel), clases de anisotropía, convenciones de muestreo de ondas, ajuste a VOIs de micro-CT, morfometría, homogeneización, cotas de validación (Voigt, Hashin-Shtrikman), percolación, curvaturas, comparación con dual-lattice, pseudorreplicación y redacción de métodos y discusión con las referencias ya verificadas del proyecto. Úsala siempre que el usuario mencione spinodoide, espinodal, spinodoid, Kumar, Zheng, Guo, GRF, conos theta, TPMS, dual-lattice, ajuste a VOI, spinpy o hueso trabecular sintético, aunque no pida explícitamente la skill.
+description: Guía para cualquier análisis con microestructuras espinodales (spinodoides, Kumar et al. 2020): generación (GRF, conos, conjunto de nivel), ajuste a VOIs de hueso trabecular, morfometría, homogeneización, validación, curvaturas, percolación, diseño inverso y redacción, asegurando coherencia con lo publicado por Kumar, Zheng, Guo, Vafaeefar, Deng, Otto y otros autores y con los hallazgos previos del proyecto spinpy. Impone un protocolo de convenciones (ficha antes de analizar, comparación con cada autor, clasificación de desviaciones) para que ningún resultado nuevo contradiga o se compare de forma indebida con trabajos previos. Úsala siempre que el usuario mencione spinodoide, espinodal, spinodoid, Kumar, Zheng, Guo, GRF, conos theta, dual-lattice, TPMS, ajuste a VOI, spinpy o hueso trabecular sintético, aunque no pida la skill explícitamente.
 ---
 
-# Spinodoides
+# Spinodoides: guía de análisis coherente con la literatura
 
-Esta skill reúne lo que el proyecto spinpy ya estableció sobre los spinodoides: el método publicado, las decisiones de implementación, los hallazgos medidos y las referencias. Su objetivo es que cualquier trabajo nuevo parta de ese conocimiento y no lo rederive ni lo contradiga.
+Esta skill sirve para **guiar cualquier análisis posterior** sobre spinodoides, no para repetir uno anterior. Su principio rector: **ningún resultado nuevo se produce ni se compara con un autor previo sin haber declarado antes la convención con la que se generó y se midió**. Casi todas las aparentes contradicciones con la literatura de spinodoides vienen de convenciones distintas (muestreo de ondas, condiciones de contorno, definición de métricas, objetivo del ajuste), no de errores.
 
-## Flujo de trabajo
+## Flujo de trabajo obligatorio
 
-1. Identifica qué se pide: generar, ajustar, medir, validar, interpretar o redactar.
-2. Lee el archivo de `references/` que corresponda (tabla de abajo). No cargues todos.
-3. Antes de afirmar algo sobre el método, distingue si es **citado** (está en el artículo), **deducido** (se infiere de él) o **medido** (resultado del proyecto). Decláralo así en el texto.
-4. Si la tarea es de redacción científica, aplica además la skill `redaccion-articulos-cientificos` (estilo, verificación en PubMed y Consensus, guía de reporte).
-5. Las ejecuciones largas (réplica de Zheng ~90 min) se lanzan en segundo plano y no se repiten sin motivo.
+1. **Clasifica la tarea**: generar, ajustar a un VOI, medir, homogeneizar, validar, diseño inverso o sustituto, interpretar o redactar.
+2. **Rellena la ficha de convenciones** (plantilla en `references/protocolo-coherencia.md`) con los valores que usará el análisis. Si un valor no está definido, pregunta o declara el supuesto; no lo dejes implícito.
+3. **Compara la ficha con las convenciones de cada autor relevante** (`references/convenciones-autores.md`). Clasifica cada diferencia como: equivalente, desviación declarada o conflicto.
+4. **Aplica las reglas de diseño** (abajo). Cuando el análisis toque un tema específico, lee solo el archivo que corresponda.
+5. **Antes de afirmar algo contra o a favor de un autor**, comprueba si compararon lo mismo (mismo objetivo de ajuste, misma convención, mismo régimen). Si no, formula la afirmación como complementaria, no como contradicción.
+6. **Reporta** con la sección de convenciones y las desviaciones declaradas. Si se redacta un manuscrito, usa además la skill `redaccion-articulos-cientificos` y verifica cada cita en PubMed, Consensus o Scholar Gateway.
 
-| Necesidad | Leer |
+| Tema | Leer |
 |---|---|
-| Ecuaciones, parámetros, clases, muestreo, ternas de ángulos | `references/metodo-kumar2020.md` |
-| Ajuste a VOI, métricas, invariantes, función de error, N efectivo | `references/ajuste-y-morfometria.md` |
-| Cotas, percolación, curvaturas, hallazgos y errores ya corregidos | `references/validacion-y-hallazgos.md` |
-| Citas completas con DOI y qué respalda cada una | `references/bibliografia.md` |
+| Ficha, clasificación de desviaciones, redacción de contrastes | `references/protocolo-coherencia.md` |
+| Qué hizo y qué asumió cada autor (con estado de verificación) | `references/convenciones-autores.md` |
+| Ecuaciones, ternas de ángulos, muestreo | `references/metodo-kumar2020.md` |
+| Ajuste a VOI, métricas, N efectivo (implementación spinpy) | `references/ajuste-y-morfometria.md` |
+| Cotas, percolación, curvaturas, errores ya corregidos | `references/validacion-y-hallazgos.md` |
+| Citas con DOI y su estado de verificación | `references/bibliografia.md` |
 
-## Núcleo del método (resumen operativo)
-
-Un spinodoide es el conjunto de nivel de un campo aleatorio gaussiano construido como suma de ondas planas de un único número de onda:
+## Núcleo del método
 
 ```
-GRF(x) = sqrt(2/N) * SUM_i cos( beta * <n_i, x> + gamma_i ),  gamma_i ~ U[0, 2pi)
+GRF(x) = sqrt(2/N) * SUM_i cos( beta * <n_i, x> + gamma_i ),   gamma_i ~ U[0, 2pi)
 sólido = { x : GRF(x) <= phi0 },   phi0 = sqrt(2) * erfinv(2*rho - 1)
 ```
 
-- La **densidad se impone** con `phi0`, no se busca: BV/TV objetivo queda exacto para un campo N(0,1).
-- La **anisotropía** viene de restringir las `n_i` a la unión de conos de semiángulos (theta1, theta2, theta3) alrededor de los ejes. Un cono estrecho en un eje produce láminas apiladas a lo largo de ese eje, de modo que ese eje es el **blando**.
-- `beta` fija la escala (Tb.Th y Tb.Sp a la vez, no por separado). `N` fija la suavidad estadística. La semilla fija la realización.
-- Clases: lamelar (un cono), columnar (dos conos), cúbica (tres conos iguales), isótropa (90, 90, 90).
+Las `n_i` se restringen a la unión de tres conos de semiángulos (theta1, theta2, theta3) alrededor de los ejes; un cono estrecho en un eje produce láminas apiladas a lo largo de él y ese eje es el blando. `beta` fija la escala, `N` la suavidad estadística, la semilla la realización. Clases: lamelar, columnar, cúbica, isótropa. Este es el marco de Kumar et al. (2020) y lo reutilizan Zheng, Deng, Golnary, Raßloff, Otto y Röding.
 
-Módulos del repositorio: `spinpy/grf.py` (generador y umbral), `morphometry.py`, `elastic.py` (homogeneización periódica), `resistencia.py` (Pistoia), `curvatura.py`, `dual_lattice.py`, `fit.py`, `estadistica.py`. Réplicas en `Test/replicar_*.py`.
+## Reglas de coherencia que no se negocian
 
-## Reglas que no se negocian
-
-- **Declarar siempre el muestreo de ondas.** `rechazo` (GIBBON, ecuación 2 del artículo) y `equitativo` (TPMS-Scaffolds-generator) dan anisotropías distintas con conos desiguales (27 % de diferencia en DA con (15, 45, 90) grados). Solo coinciden con conos iguales. Ninguno es "el correcto", pero solo `rechazo` corresponde al artículo.
-- **Declarar semilla, número de ondas y resolución** en cualquier cifra publicada. El generador es estocástico y entre N = 400 y 1000 la desconexión a rho = 0.30 cambia de 2 % a 48 %.
-- **Una realización no es el ensemble.** Las afirmaciones de simetría del artículo valen para la distribución de direcciones. Las pruebas deben formularse sobre promedios o en relativo, no sobre una semilla.
-- **K réplicas de un VOI no son N = K.** Son N = 1 con K réplicas técnicas. Promediar divide la varianza del generador por K y deja intacta la biológica. Reportar N efectivo e ICC y no usar los grados de libertad de las réplicas.
-- **Equivalencia, no ausencia de diferencia.** Para sostener que el sintético sustituye al real, usar TOST con margen declarado antes de ver los datos (razonable: el suelo de ruido del generador).
-- **Tb.Th = 2·BV/BS** (placas, Parfitt), no 4·BV/BS. **DA del tensor MIL**, con suelo de ruido de ~1.07. **Superficie sin las seis tapas del cubo.** Mismo motor de morfometría para VOI y candidato.
-- **Condiciones de contorno:** Kumar y Zheng usan afines (cota superior); spinpy usa periódicas (valor más bajo). Comparar con desigualdades, no cifra a cifra.
-- **No extrapolar.** Los resultados proceden de sesamoideos equinos a 51.489 µm (97³ vóxeles) y de réplicas de artículos concretos. Pistoia (2 % del tejido, 0.7 % de deformación) se calibró en radio distal humano y no son constantes físicas.
-- **Inconsistencia interna del artículo de Zheng:** theta_min es 30° en el texto y 15° en los pies de figura. No son intercambiables para la regla rho >= 0.3 (ver hallazgos).
-- Cuando haya conflicto entre lo publicado y lo medido, se informa ambos y se explica la diferencia; no se ajusta un parámetro no publicado hasta que la figura se parezca.
+- **Convención declarada, siempre**: muestreo de ondas (`rechazo` o `equitativo`), theta_min, beta, N, semilla, resolución, tamaño y periodicidad del dominio, y densidad nominal frente a densidad realizada. La redacción de Deng et al. ("uniformly sampled from within these cones") es ambigua entre ambos muestreos, de modo que citar un autor no sustituye declarar la convención.
+- **Compara solo lo comparable.** Kumar y Deng ajustan el tensor de rigidez (objetivo mecánico); Vafaeefar y spinpy calibran morfometría (BV/TV, Tb.Th, DA). Un spinodoide ajustado a morfometría puede ser más blando que el hueso sin contradecir a quienes ajustan la rigidez directamente.
+- **Una realización no es el ensemble.** Las simetrías y las afirmaciones de ortotropía valen para la distribución de direcciones. Park et al. (2026) muestran que parámetros de cono idénticos dan dispersión de propiedades por la naturaleza estocástica del GRF. Probar sobre promedios o con varias semillas.
+- **K réplicas no son N = K.** Son N = 1 con K réplicas técnicas (pseudorreplicación). Reportar N efectivo e ICC; usar TOST con margen previo para afirmar sustitución.
+- **Condiciones de contorno**: afines dan cota superior (Kumar, Zheng), periódicas dan valores menores, Dirichlet es otra opción (Risthaus y Schneider). Comparar con desigualdades y declarar cuál se usó.
+- **Definiciones de métricas**: Tb.Th = 2·BV/BS (placas), DA del tensor MIL (suelo de ruido ~1.07), superficie sin las seis tapas, mismo motor para VOI y candidato. Cambiar una definición invalida la comparación con cifras previas.
+- **Régimen de validez**: el GRF aproxima solo las etapas iniciales de la descomposición espinodal (Mandolesi et al., 2025); no extrapolar a morfologías tardías ni a otros tejidos sin justificarlo. Los resultados de spinpy proceden de sesamoideos equinos a 51.489 µm.
+- **Citado, deducido o medido**: etiquetar cada parámetro y afirmación así. No ajustar un parámetro no publicado hasta que una figura se parezca.
+- **Discrepancias internas de los autores** (p. ej. theta_min 30° en el texto de Zheng y 15° en pies de figura) se reportan, no se resuelven en silencio.
+- **Hallazgos que fallan se listan primero**; las pruebas se reformulan solo si el error era de la prueba, y se documenta por qué.
 
 ## Escritura
 
-Si se redacta para un manuscrito: estilo académico natural, sin em dash (U+2014), sin muletillas ni tríadas artificiales, distinguiendo asociación, predicción y efecto. Las referencias de `references/bibliografia.md` provienen de las citas del repositorio; **antes de incluirlas en un manuscrito, verifica cada una en PubMed o Consensus** y comprueba que respalda la frase concreta. Los spinodoides son un diseño computacional y de validación, no observacional ni experimental clásico: no asumas STROBE ni CONSORT. Evalúa si corresponde TRIPOD (modelos predictivos, p. ej. sustitutos estructura a propiedad) o una guía de modelado y simulación, y verifica la versión vigente en EQUATOR antes de usarla.
+Estilo académico natural, sin em dash (U+2014), sin muletillas ni tríadas artificiales; distinguir asociación, predicción y efecto. Las referencias de `references/bibliografia.md` indican su estado: **verificada** en una base científica o **tomada del repositorio, pendiente**. Solo las verificadas pueden entrar sin comprobación adicional, y aun así debe confirmarse que respaldan la frase concreta. El trabajo con spinodoides es computacional y de validación: no asumas STROBE ni CONSORT; evalúa TRIPOD para sustitutos predictivos u otra guía apropiada y verifica la versión vigente en EQUATOR.
