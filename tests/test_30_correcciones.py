@@ -18,6 +18,9 @@ LO QUE SE VERIFICA
       declara no disponible, no es un fallo, y `corregido` usa el nucleo con
       traccion.
   (4) VOI demasiado pequeno para el margen: el nucleo devuelve ok = False.
+  (6) Por `fem.analizar` (el camino de la GUI y la CLI), con el motor de la
+      app y con NGSolve: 'lineal_plato' no se cuenta como fallo y el registro
+      queda ok (regresion de la V2.1.0, corregida en la V2.1.1).
   (5) Espinodoide de referencia a 32^3 (hex8): la E corregida queda a menos
       del 3 % de la referencia embebida medida en
       `comparativa_motores/correcciones/resultados/referencia.json`
@@ -143,3 +146,22 @@ def test_espinodoide_frente_a_embebido(registro):
             E_cor, err, "< 3 % (linea base > 40 %)", ok,
             nota=f"linea base {E_base:.1f} MPa ({err_base:.1%})")
     assert ok, (E_cor, E_base)
+
+
+@pytest.mark.parametrize("motor", ["app", "ngsolve"])
+def test_analizar_lineal_plato_no_es_fallo(registro, motor):
+    if motor not in motores.disponibles():
+        pytest.skip(f"{motor} no instalado")
+    BW, _, _ = generar_mascara(resolution=16, wave_number=12 * np.pi,
+                               num_waves=700, thetas=(30, 30, 90), rho=0.30,
+                               seed=1)
+    reg = fem.analizar(BW, np.full(3, 5.0 / 16), fem.protocolo("app"),
+                       malla="hex8", analisis=["lineal", "lineal_plato"],
+                       n=16, motores_fem=[motor], aislado=False,
+                       comparar_app=False)[0]
+    esperado = "traccion_nucleo" if motor == "app" else "plato_nucleo"
+    ok = (reg["ok"] and not reg["fallos"]
+          and reg["corregido"].get("metodo_E") == esperado)
+    _anotar(registro, f"analizar con lineal_plato ({motor}), 1 = ok", 1.0,
+            float(ok), 0.0, "exacto", ok, nota=str(reg["fallos"]))
+    assert ok, reg["fallos"]

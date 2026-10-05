@@ -1168,8 +1168,10 @@ def analizar(BW, spacing, prot, malla="hex8", analisis=("lineal",), eje=2,
     regs = []
     for mot in motores_fem:
         nombre = f"{etiqueta}_{prot.get('clave')}_{malla}_{'XYZ'[eje]}_{mot}"
+        # 'lineal_plato' es lineal: `ensayo` lo declara no disponible si el
+        # motor no resuelve el plato (la app), sin contarlo como fallo.
         reg = ensayo(m, prot, Path(carpeta) / nombre, analisis=[
-            a for a in analisis if a == "lineal"
+            a for a in analisis if a in ("lineal", "lineal_plato")
             or motores.puede(mot, malla, "nl", material,
                              "plato" if a == "nl_plato" else "fuerza")],
             motor=mot, hilos=hilos, cancelar=cancelar, material=material,
