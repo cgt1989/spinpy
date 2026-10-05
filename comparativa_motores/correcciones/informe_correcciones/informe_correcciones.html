@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Correcciones de A1, A2 y A3</title>
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<link rel="stylesheet" href="estilo.css">
+<style>
+.sev.acep { color: var(--leve); background: var(--leve-c); }
+.sev.desc { color: var(--nulo); background: var(--nulo-c); }
+.flujo td { vertical-align: middle; }
+figure img { max-height: 66mm; }
+.caja { padding: 3mm 4.5mm; margin: 2.5mm 0 3mm; font-size: 9pt; }
+figure { margin: 2mm 0 3.5mm; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PORTADA ======================= -->
+<section class="portada">
+  <div class="banda">
+    <svg width="70mm" height="70mm" viewBox="0 0 100 100" aria-hidden="true">
+      <rect x="8" y="8" width="84" height="84" fill="#2a78d6" opacity="0.25"/>
+      <rect x="25" y="25" width="50" height="50" fill="none" stroke="#86b6ef" stroke-width="1.6" stroke-dasharray="4 3"/>
+      <rect x="35" y="35" width="30" height="30" fill="#eb6834" opacity="0.55"/>
+      <rect x="8" y="2" width="84" height="5" fill="#cde2fb"/>
+    </svg>
+    <div class="tipo">Informe técnico de resultados · comparativa_motores/correcciones</div>
+    <h1>Corrección de los artefactos de borde A1, A2 y A3 en un espacio temporal</h1>
+    <div class="sub">Qué correcciones mejoran de verdad la aplicación, medidas frente al mismo hueso embebido en hueso, y cuáles se descartan.</div>
+  </div>
+  <div class="cuerpo">
+    <div>
+      <p>El informe de artefactos identificó tres problemas graves en el ensayo de compresión: el techo cargado con tracción uniforme (A1), las caras laterales cortadas por el recorte del VOI (A2) y la dependencia de la rigidez respecto del tipo de malla (A3). Se acordó corregirlos en un <b>espacio temporal</b>, una rama local que no se sube, y llevar a GitHub solo lo que mejorase la aplicación de forma clara.</p>
+      <p>Para decidirlo sin depender de la opinión, se construyó una referencia sin artefactos de borde (el mismo espinodoide rodeado de 1,25 mm de su propio hueso) y se fijó por escrito, antes de medir, la regla que separa una mejora clara de una leve, nula o perjudicial.</p>
+    </div>
+    <div class="preguntas">
+      <b>Preguntas que responde</b>
+      <ol>
+        <li>¿Cuánto se equivoca hoy la aplicación frente al hueso sin bordes artificiales?</li>
+        <li>¿Qué corrección reduce ese error y cuál no?</li>
+        <li>¿Se resuelve la discrepancia entre ladrillos y malla suave?</li>
+        <li>¿Qué cambió en el código y cómo se comprobó?</li>
+      </ol>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>Versión</b>spinpy V2.1.0 (evaluado sobre V2.0.2 en la rama experimento/a1-a3)<br>NGSolve 6.2.2607</div>
+    <div><b>Fecha</b>5 de octubre de 2026</div>
+    <div><b>Datos y código</b>comparativa_motores/correcciones/<br>PRERREGISTRO.md, correcciones.py, decision.py, validar_app.py</div>
+  </div>
+</section>
+
+<!-- ======================= RESUMEN ======================= -->
+<section class="salto">
+  <div class="seccion-et">El informe en una página</div>
+  <h2>Resumen</h2>
+  <p class="entradilla">Las dos correcciones de borde superan con holgura el criterio fijado de antemano y se integran en la aplicación. Juntas llevan el error de la rigidez aparente del −43 a −55 % al +0,8 a +1,5 %. La malla suave no necesita cambios: con el protocolo corregido, su brecha con los ladrillos baja al 5,6 % a 48³.</p>
+
+  <div class="cifras">
+    <div class="cifra"><div class="v">−47 <span class="u">%</span></div><div class="t">error medio del E aparente que publica hoy la app frente a la referencia embebida (hex8, 32³ a 64³).</div></div>
+    <div class="cifra"><div class="v">+1,3 <span class="u">%</span></div><div class="t">error medio del E corregido (plato rígido y medida en el núcleo), en las mismas mallas.</div></div>
+    <div class="cifra"><div class="v">+33 <span class="u">→</span> +1</div><div class="t">error (%) del p99 de von Mises a 48³ y 64³: línea base frente a plato rígido.</div></div>
+    <div class="cifra"><div class="v">−27 <span class="u">→</span> −6</div><div class="t">diferencia (%) de E entre malla suave y ladrillos a 48³, antes y después de corregir el protocolo.</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Código</th><th>Corrección</th><th>Corrige</th><th>Resultado medido</th><th>Decisión</th></tr></thead>
+    <tbody>
+      <tr><td><span class="codigo">F1</span></td><td>Plato rígido lineal en el techo (análisis <code>lineal_plato</code>)</td><td>A1</td><td>Error de E: −55/−43/−43 % → −12/−8/−10 %; p99: +53/+33/+33 % → +10/+0,5/+1 %</td><td><span class="sev acep">Aceptada</span></td></tr>
+      <tr><td><span class="codigo">F2</span></td><td>E y p99 medidos en el núcleo, a 0,625 mm de las caras</td><td>A2 (y A1)</td><td>Error de E → −7/−6/−10 %; p99 → +9/−2/−2 %</td><td><span class="sev acep">Aceptada</span></td></tr>
+      <tr><td><span class="codigo">F1+F2</span></td><td>Plato rígido y núcleo a la vez (E corregido)</td><td>A1, A2</td><td>Error de E → +0,8/+1,5/+1,5 %</td><td><span class="sev acep">Aceptada</span></td></tr>
+      <tr><td><span class="codigo">A3·P</span></td><td>Mismo protocolo corregido para la malla suave</td><td>A3</td><td>Brecha TET10/hex8 a 48³: −27 % → −5,6 % (umbral 10 %)</td><td><span class="sev acep">Resuelto</span></td></tr>
+      <tr><td><span class="codigo">A3·M</span></td><td>Cambiar el suavizado o el decimado de la malla suave</td><td>A3</td><td>Ningún candidato mejora: uno no genera malla válida y el otro es más blando</td><td><span class="sev desc">Descartada</span></td></tr>
+    </tbody>
+  </table>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3); margin-top:-2mm">Los tres valores de cada celda corresponden a 32³, 48³ y 64³ con hexaedros.</p>
+
+  <div class="caja clave">
+    <div class="tit">Lo esencial</div>
+    <p>La aplicación subestimaba la rigidez del hueso a la mitad y sobrestimaba la tensión citada en un tercio por dos decisiones de modelado del ensayo, no por los motores. Desde esta versión calcula en paralelo un <b>E corregido</b> (plato rígido y medida en el núcleo) y un <b>p99 corregido</b> (plato rígido sobre el VOI completo), y los muestra junto a los valores de siempre. Lo que queda pendiente es otro problema: la tensión local de la malla suave sigue un 25 % por encima de la de los ladrillos (artefacto A4), y el mapa elemento a elemento conserva un error mediano del 28 al 33 % incluso con las correcciones.</p>
+  </div>
+</section>
+
+<!-- ======================= 1. CONCEPTO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 1</div>
+  <h2><span class="num">1</span>Cómo se decide si una corrección mejora la aplicación</h2>
+  <p>Una corrección solo puede juzgarse frente a un valor que no tenga el defecto que se corrige. Los artefactos A1 y A2 nacen de los bordes artificiales del VOI: el techo donde se aplica la carga y las cuatro caras que cortan trabéculas. Si el mismo hueso se ensaya rodeado de más hueso, la región del VOI no tiene ninguno de esos bordes. Esa es la <b>configuración embebida</b>, la estrategia que se ha usado para atenuar la influencia de las condiciones de contorno en volúmenes trabeculares<sup class="ref">1</sup>.</p>
+  <p>El espinodoide se genera como una suma de ondas evaluada en una rejilla. Evaluando el mismo campo en una rejilla mayor (n/4 vóxeles más por cada lado, 1,25 mm) se obtiene un bloque de 7,5 mm cuyo interior es <i>idéntico vóxel a vóxel</i> al VOI de 5 mm, lo que se comprobó en las tres resoluciones. El bloque se ensaya con plato rígido y base deslizante, y todo se mide solo en la región que ocupa el VOI.</p>
+
+  <figure class="cadena">
+    <svg viewBox="0 0 680 230" width="100%" font-family="IBM Plex Sans" font-size="11">
+      <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#77756f"/></marker></defs>
+      <g transform="translate(10,20)">
+        <text x="85" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Ensayo de la app (VOI)</text>
+        <rect x="35" y="22" width="100" height="10" fill="#4a4945" opacity="0.15"/>
+        <g stroke="#eb6834" stroke-width="1.6" fill="#eb6834"><line x1="60" y1="8" x2="60" y2="20"/><line x1="85" y1="8" x2="85" y2="20"/><line x1="110" y1="8" x2="110" y2="20"/></g>
+        <rect x="35" y="34" width="100" height="100" fill="#cde2fb" stroke="#2a78d6"/>
+        <rect x="35" y="34" width="12" height="100" fill="#eb6834" opacity="0.25"/><rect x="123" y="34" width="12" height="100" fill="#eb6834" opacity="0.25"/>
+        <text x="85" y="152" text-anchor="middle" font-size="9.5" fill="#4a4945">techo cargado y caras cortadas</text>
+      </g>
+      <g transform="translate(250,20)">
+        <text x="90" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Referencia embebida</text>
+        <rect x="15" y="10" width="150" height="8" fill="#4a4945"/>
+        <rect x="15" y="20" width="150" height="150" fill="#e6f0fc" stroke="#2a78d6"/>
+        <rect x="40" y="45" width="100" height="100" fill="#cde2fb" stroke="#1d1c1a" stroke-dasharray="4 3"/>
+        <text x="90" y="100" text-anchor="middle" font-size="9.5" fill="#1d1c1a">mismo VOI</text>
+        <text x="90" y="186" text-anchor="middle" font-size="9.5" fill="#4a4945">1,25 mm de hueso alrededor</text>
+      </g>
+      <g transform="translate(480,20)">
+        <text x="90" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Regla de decisión</text>
+        <rect x="10" y="16" width="170" height="40" rx="6" fill="#eeece6"/><text x="95" y="34" text-anchor="middle" font-size="10">reduce el error de E</text><text x="95" y="48" text-anchor="middle" font-size="10">≥ 50 % y ≥ 5 puntos</text>
+        <rect x="10" y="66" width="170" height="40" rx="6" fill="#eeece6"/><text x="95" y="84" text-anchor="middle" font-size="10">no empeora el p99</text><text x="95" y="98" text-anchor="middle" font-size="10">más de 2 puntos</text>
+        <rect x="10" y="116" width="170" height="30" rx="6" fill="#e7f3e7"/><text x="95" y="135" text-anchor="middle" font-size="10" font-weight="600" fill="#2f7d32">en 32³, 48³ y 64³ → se acepta</text>
+        <text x="95" y="166" text-anchor="middle" font-size="9.5" fill="#4a4945">si no: mejora leve, nula o peor → se descarta</text>
+      </g>
+      <g stroke="#77756f" stroke-width="1.4" marker-end="url(#fl)"><line x1="190" y1="95" x2="258" y2="95"/><line x1="430" y1="95" x2="484" y2="95"/></g>
+      <text x="224" y="88" text-anchor="middle" font-size="9" fill="#77756f">se compara</text>
+    </svg>
+    <figcaption><b>Figura 1.</b> El ensayo de la app (izquierda) y la referencia embebida (centro) contienen el mismo hueso en la región del VOI; solo la referencia carece de techo cargado y de caras cortadas. La regla de decisión (derecha) se escribió en <code>PRERREGISTRO.md</code> antes de medir.</figcaption>
+  </figure>
+
+  <div class="caja leer"><div class="tit">Por qué un prerregistro</div>
+    <p>Con cuatro métodos, tres resoluciones y dos magnitudes, siempre es posible encontrar una combinación que parezca mejorar. Fijar antes de medir qué se mide, frente a qué y con qué umbral evita elegir el criterio a la vista de los resultados. El prerregistro se enmendó una vez, también antes de cualquier medida: el extensómetro por nodos en un plano se sustituyó por uno de franjas, porque el primero no existe en las mallas de tetraedros.</p>
+  </div>
+</section>
+
+<!-- ======================= 2. MÉTODO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 2</div>
+  <h2><span class="num">2</span>Método</h2>
+  <h3>Ensayos</h3>
+  <p>Se usó el espinodoide de referencia de la comparativa de motores (densidad relativa 0,30, número de onda 12π, 700 ondas, semilla 1, VOI de 5 mm) con E = 20 GPa y ν = 0,3, resuelto con NGSolve. La Tabla 1 resume los ensayos. Como control, los valores TET10 de la línea base reprodujeron los de la comparativa de motores (E aparente 156,7 y 219,0 MPa), y la referencia resultó estable: con tracción en lugar de plato sobre el bloque, su E en la región del VOI cambió un −1,7 % (522,3 frente a 531,5 MPa a 48³).</p>
+  <table>
+    <thead><tr><th>Ensayo</th><th class="n">n</th><th>Carga</th><th class="n">GDL</th><th class="n">t (s)</th><th>Uso</th></tr></thead>
+    <tbody>
+      <tr><td>Bloque embebido hex8 (7,5 mm)</td><td class="n">48 / 72 / 96</td><td>plato</td><td class="n">213 996 / 589 728 / 1 238 961</td><td class="n">17 / 91 / 243</td><td>referencia de VOI de 32³, 48³ y 64³</td></tr>
+      <tr><td>Bloque embebido hex8</td><td class="n">72</td><td>tracción</td><td class="n">589 728</td><td class="n">≈ 90</td><td>sensibilidad de la referencia</td></tr>
+      <tr><td>VOI hex8</td><td class="n">32 / 48 / 64</td><td>tracción y plato</td><td class="n">62 595 / 173 484 / 365 655</td><td class="n">1 / 4 / 14</td><td>B0, F1, F2 y F1+F2</td></tr>
+      <tr><td>VOI TET10, malla por omisión</td><td class="n">32 / 48</td><td>tracción y plato</td><td class="n">314 880 / 790 599</td><td class="n">16 / 60</td><td>A3 con cada protocolo</td></tr>
+      <tr><td>VOI TET10, sin suavizado ni decimado</td><td class="n">32</td><td>tracción y plato</td><td class="n">542 358</td><td class="n">33 a 35</td><td>candidato de malla para A3</td></tr>
+      <tr><td>VOI TET10, Taubin 5 sin decimado</td><td class="n">32</td><td>·</td><td class="n">·</td><td class="n">·</td><td>candidato: no generó malla válida</td></tr>
+      <tr><td><code>fem.ensayo</code> integrado</td><td class="n">32 a 64</td><td>tracción y plato</td><td class="n">·</td><td class="n">2 a 108</td><td>validación de extremo a extremo</td></tr>
+    </tbody>
+  </table>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3); margin-top: -2mm;"><b>Tabla 1.</b> Ensayos resueltos. Los bloques a 72³ y 96³ se resolvieron con CG y multigrid algebraico a 10⁻¹⁰ por su tamaño; los demás, con Cholesky o BDDC.</p>
+
+  <h3>Cómo se mide en una región</h3>
+  <div class="dos">
+    <div class="caja leer"><div class="tit">E aparente de una región</div>
+      <p>Tensión media de la caja (con sus poros) dividida por la deformación de un <b>extensómetro virtual</b>: diferencia de desplazamiento vertical medio entre dos franjas de 0,25 mm, arriba y abajo de la caja.</p></div>
+    <div class="caja leer"><div class="tit">p99 de una región</div>
+      <p>Percentil 99 de von Mises en la capa superficial de la caja, ponderado por volumen y dividido por su tensión media. Es el estadístico que cita la aplicación.</p></div>
+    <div class="caja leer"><div class="tit">Error frente a la referencia</div>
+      <p>Valor del método entre el de la referencia en la misma región, menos uno: −43 % es el 57 % del valor sin bordes.</p></div>
+    <div class="caja leer"><div class="tit">Campo local</div>
+      <p>Con hexaedros, bloque y VOI comparten vóxeles: error mediano de von Mises elemento a elemento y fracción del 1 % más cargado de la referencia que el método recupera.</p></div>
+  </div>
+</section>
+
+<!-- ======================= 3. PANORAMA ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 3</div>
+  <h2><span class="num">3</span>Panorama de resultados</h2>
+  <p>La Figura 2 muestra los valores absolutos. La línea base (tracción en el techo) queda muy por debajo de la referencia en las tres resoluciones; el plato rígido se acerca, y en el núcleo con plato la curva prácticamente se superpone a la de referencia. Las Figuras 3 y 4 expresan lo mismo como error relativo, para la rigidez y para la tensión citada.</p>
+  <figure>
+    <img src="figs/f_valores_E.svg" alt="E aparente frente a la resolución" style="max-height:56mm">
+    <figcaption><b>Figura 2.</b> E aparente frente a la resolución en la región del VOI completo (a) y en el núcleo (b). Línea discontinua: referencia embebida medida en la misma región. Las dos referencias difieren porque miden regiones distintas del mismo hueso, y ambas disminuyen al refinar por la rigidización de los hexaedros gruesos.</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/f_error_E.svg" alt="Error de E por método" style="max-height:52mm">
+    <figcaption><b>Figura 3.</b> Error del E aparente frente a la referencia embebida, por método y resolución. Banda gris: ±5 %. Solo la combinación de plato y núcleo cae dentro de la banda en las tres resoluciones.</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/f_error_p99.svg" alt="Error del p99 por método" style="max-height:52mm">
+    <figcaption><b>Figura 4.</b> Error del p99 de von Mises frente a la referencia. El plato rígido sobre el VOI completo y el núcleo con tracción quedan cerca de cero a 48³ y 64³; el núcleo con plato lo subestima entre un 7 y un 13 %.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= FICHA F1 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">F1</span> · corrige A1</div><h2>Plato rígido en el techo</h2></div>
+    <div class="derecha"><span class="sev acep">Aceptada</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">p99</span><span class="chip">Pistoia</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>En lugar de repartir la carga como una presión uniforme sobre el hueso del techo, se impone el mismo desplazamiento vertical a todos los nodos del techo, sin fricción. Es lineal y se escala a la tensión del protocolo, de modo que da el E aparente, el p99 y la carga de Pistoia comparables con los de siempre.</p>
+      <h4>Por qué debía funcionar</h4>
+      <p>Con tracción, las trabéculas cortadas en el techo reciben carga sin nada que las sujete y se hunden como voladizos; el informe de artefactos midió que el efecto alcanza 1,25 a 1,5 mm de profundidad. Es la versión computacional del artefacto de extremos descrito en ensayos de compresión de hueso trabecular<sup class="ref">2</sup>. El plato reparte la deformación, no la fuerza.</p>
+      <h4>Qué medimos</h4>
+      <p>El error de E pasó de −55, −43 y −43 % a −12, −8 y −10 % (32³, 48³ y 64³), y el del p99, de +53, +33 y +33 % a +10, +0,5 y +1 %. Las dos condiciones del prerregistro se cumplieron en las tres resoluciones. En el campo local, el error mediano de von Mises bajó de 0,52 a 0,55 hasta 0,45 a 0,47, y la fracción de zonas calientes recuperadas subió de 0,09 a 0,23 hasta 0,40 a 0,43.</p>
+      <p>Con plato, el E del VOI completo sigue entre un 8 y un 12 % por debajo de la referencia: el plato corrige el techo, pero no las caras laterales (A2), cuyas trabéculas cortadas siguen descargadas.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Error de E (32³ / 48³ / 64³)</h5>
+        <div class="kv"><span>Línea base</span><span>−55 / −43 / −43 %</span><span>Plato</span><span>−12 / −8 / −10 %</span></div></div>
+      <div class="bloque"><h5>Error del p99</h5>
+        <div class="kv"><span>Línea base</span><span>+53 / +33 / +33 %</span><span>Plato</span><span>+10 / +0,5 / +1 %</span></div></div>
+      <div class="bloque"><h5>Coste</h5>
+        <div class="kv"><span>Resoluciones lineales</span><span>2 en vez de 1</span><span>hex8 64³ (las dos)</span><span>27 s</span><span>TET10 48³ (las dos)</span><span>108 s</span></div></div>
+    </div>
+  </div>
+  <div class="caja alerta"><div class="tit">Consecuencia no validada</div>
+    <p>El criterio de Pistoia con plato da una tensión de fallo mayor que con tracción (4,71 frente a 3,82 MPa a 48³, +23 %). Es coherente con un techo menos deformado, pero la carga de fallo no se midió en la referencia embebida, así que este cambio no está validado y la aplicación lo muestra solo como dato del análisis con plato.</p>
+  </div>
+</section>
+
+<!-- ======================= FICHA F2 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">F2</span> · corrige A2</div><h2>Medida en el núcleo del VOI</h2></div>
+    <div class="derecha"><span class="sev acep">Aceptada</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">p99</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>Se resuelve el VOI completo, como siempre, pero el E aparente y el p99 se miden solo en la caja interior situada a 0,625 mm o más de las seis caras (un núcleo de 3,75 mm en un VOI de 5 mm). La deformación se toma con el extensómetro virtual de franjas, como haría un extensómetro en un ensayo físico para evitar los extremos.</p>
+      <h4>Por qué debía funcionar</h4>
+      <p>Las trabéculas cortadas por las caras laterales quedan descargadas hasta unos 0,6 mm de la cara, del orden de lo descrito en especímenes reales, donde la franja periférica descargada midió entre 0,19 y 0,58 mm<sup class="ref">3</sup>. Fuera de esa franja, el hueso trabaja como lo haría dentro del hueso.</p>
+      <h4>Qué medimos</h4>
+      <p>Con tracción, el error de E en el núcleo fue de −7, −6 y −10 %, frente a −55, −43 y −43 % de la línea base, y el del p99, de +9, −2 y −2 %. Se cumplieron las dos condiciones en las tres resoluciones. El núcleo también atenúa A1, porque su franja superior queda por debajo de la zona más alterada del techo, aunque no del todo (el efecto llega a 1,25 mm).</p>
+      <p>La corrección no cuesta tiempo de cálculo: es un posproceso del ensayo lineal que ya existía. Por eso se aplica siempre, también con el motor de la aplicación, que no resuelve el plato.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 150">
+          <rect x="30" y="15" width="130" height="130" fill="#cde2fb" stroke="#2a78d6"/>
+          <rect x="47" y="32" width="96" height="96" fill="#eb6834" opacity="0.18" stroke="#1d1c1a" stroke-dasharray="4 3"/>
+          <rect x="47" y="32" width="96" height="7" fill="#1d1c1a" opacity="0.35"/>
+          <rect x="47" y="121" width="96" height="7" fill="#1d1c1a" opacity="0.35"/>
+          <text x="95" y="84" text-anchor="middle" font-family="IBM Plex Sans" font-size="9" fill="#1d1c1a">núcleo</text>
+          <text x="170" y="38" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">franja</text>
+          <text x="170" y="128" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">franja</text>
+          <text x="38" y="12" font-family="IBM Plex Sans" font-size="8" fill="#4a4945">0,625 mm</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">El núcleo y las dos franjas del extensómetro virtual, de 0,25 mm cada una.</p>
+      </div>
+      <div class="bloque"><h5>Error en el núcleo (tracción)</h5>
+        <div class="kv"><span>E, 32³ / 48³ / 64³</span><span>−7 / −6 / −10 %</span><span>p99</span><span>+9 / −2 / −2 %</span><span>Coste de cálculo</span><span>ninguno</span></div></div>
+    </div>
+  </div>
+  <h3>F1 + F2: el E corregido que publica la aplicación</h3>
+  <p>Combinadas, las dos correcciones dejan el error de E en +0,8, +1,5 y +1,5 %, dentro de la incertidumbre de la propia referencia (±1,7 %). La combinación se acepta por la regla del prerregistro, pero no es la mejor opción para el p99, que con plato <i>y</i> núcleo queda entre un 7 y un 13 % por debajo de la referencia. La aplicación usa por eso cada corrección donde funciona mejor: <b>E corregido</b> con plato y núcleo, y <b>p99 corregido</b> con plato sobre el VOI completo. Si el motor no resuelve el plato, ambos salen del núcleo con tracción.</p>
+  <figure>
+    <img src="figs/f_campo.svg" alt="Campo local frente a la referencia">
+    <figcaption><b>Figura 5.</b> Comparación elemento a elemento con la referencia (hexaedros, superficie de la región). (a) Error mediano de von Mises; (b) fracción del 1 % de elementos más cargados de la referencia que el método también sitúa en su 1 % superior. Las correcciones mejoran el mapa, pero incluso la mejor deja un error mediano del 28 al 33 %.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= FICHA A3 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">A3</span> · tipo de malla</div><h2>Ladrillos frente a malla suave</h2></div>
+    <div class="derecha"><span class="sev acep">Resuelto con el protocolo</span><div style="margin-top:1.5mm"><span class="sev desc">Cambio de malla descartado</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué era</h4>
+      <p>Sobre la misma máscara y con el ensayo de siempre, la malla suave de tetraedros cuadráticos (TET10) daba un E aparente un 39 % menor que la de ladrillos a 32³ y un 27 % menor a 48³. El informe de artefactos ya señalaba que la brecha se reducía con plato, lo que apuntaba a una interacción con el techo cargado.</p>
+      <h4>Qué se probó</h4>
+      <p>Dos vías, según el prerregistro. La primera, aplicar a la malla suave el mismo protocolo corregido. La segunda, cambiar cómo se construye la superficie: el suavizado de Taubin (20 iteraciones por omisión) y el decimado del 50 % pueden estrechar los puntales delgados. Se eligió entre tres mallas a 32³ y se validó a 48³.</p>
+      <h4>Qué medimos</h4>
+      <p>Con plato y núcleo, la brecha TET10/hex8 bajó al −17,6 % a 32³ y al <b>−5,6 % a 48³</b>, por debajo del umbral del 10 % fijado de antemano (Figura 6); el E de la malla suave a 48³ quedó a −4,2 % de la referencia embebida. La malla suave a 32³ sigue sin ser fiable, lo que confirma el aviso que la aplicación ya muestra por debajo de 48³.</p>
+      <p>Ninguna malla alternativa mejoró a la de omisión. Taubin con 5 iteraciones y sin decimado no generó una malla válida (un tetraedro de volumen no positivo al ajustar los nodos a las caras del cubo). Sin suavizado ni decimado, la malla fue más blanda: E en el núcleo con plato 541,0 frente a 563,9 MPa, con un 72 % más de grados de libertad. El cambio de malla se descarta.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Brecha TET10/hex8 en E</h5>
+        <div class="kv"><span>Línea base, 32³ / 48³</span><span>−39 / −27 %</span><span>Plato, VOI</span><span>−27 / −10 %</span><span>Tracción, núcleo</span><span>−33 / −15 %</span><span>Plato y núcleo</span><span>−18 / −6 %</span></div></div>
+      <div class="bloque"><h5>Candidatos de malla, 32³</h5>
+        <div class="kv"><span>Por omisión</span><span>563,9 MPa</span><span>Sin suavizado</span><span>541,0 MPa</span><span>Taubin 5</span><span>sin malla</span></div>
+        <p style="margin:2mm 0 0;font-size:7.4pt;color:#4a4945">E en el núcleo con plato; referencia hex8 embebida: 678,6 MPa.</p></div>
+      <div class="bloque" style="background:var(--naranja-c)"><h5 style="color:#a8441c">Lo que A3 no resuelve</h5>
+        <p style="margin:0">La rigidez converge, pero el p99 de la malla suave sigue un 25 % por encima del de los ladrillos a 48³, también con plato: es el artefacto A4, que otros autores han observado en hueso humano<sup class="ref">4</sup>.</p></div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_a3.svg" alt="Brecha TET10 frente a hex8">
+    <figcaption><b>Figura 6.</b> E de la malla suave frente al de los ladrillos con el mismo protocolo y la misma definición, a 32³ y 48³. Línea discontinua: umbral del 10 % declarado antes de medir.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= FICHA INTEGRACIÓN ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">INT</span> · código</div><h2>Integración en la aplicación y comprobación</h2></div>
+    <div class="derecha"><span class="sev acep">Pruebas superadas</span></div>
+  </div>
+  <h4>Qué cambia</h4>
+  <table>
+    <thead><tr><th>Archivo</th><th>Cambio</th></tr></thead>
+    <tbody>
+      <tr><td><code>spinpy/fem.py</code></td><td>Nueva función <code>magnitudes_nucleo</code> (E y p99 del núcleo, con recorte exacto de los tetraedros que corta la caja); nuevo análisis <code>lineal_plato</code>; registro <code>corregido</code> con los valores recomendados y su método; columnas nuevas en las tablas. El análisis no lineal con plato reutiliza el lineal con plato en lugar de repetirlo.</td></tr>
+      <tr><td><code>dialogo_febio.py</code>, <code>visor.py</code></td><td>Casilla «Lineal con plato rígido y medida en el núcleo», marcada por omisión; columnas «E<sub>app</sub> corregido» y «p99 corregido» en la tabla de resultados; el ensayo rápido del visor también la calcula.</td></tr>
+      <tr><td><code>spinpy/informe.py</code></td><td>El informe de publicación añade el E corregido, con su método, junto al de siempre.</td></tr>
+      <tr><td><code>spinpy/tiempos.py</code>, <code>spinpy/idioma_textos.py</code></td><td>Estimación de tiempo con la resolución adicional; tres cadenas nuevas traducidas al inglés.</td></tr>
+      <tr><td><code>tests/test_30_correcciones.py</code></td><td>Bloque 30 de verificación (8 pruebas), y la cuenta de bloques en los README.</td></tr>
+    </tbody>
+  </table>
+  <h4>Dos fallos encontrados al integrar</h4>
+  <p>Las pruebas del bloque 30 detectaron dos errores en la primera versión integrada, que el experimento no mostraba porque en él el margen era un número entero de vóxeles. Con un margen que no es múltiplo del vóxel, la caja del núcleo y los elementos seleccionados no coincidían y la tensión media salía inflada (×1,49 en un bloque de prueba); se corrigió ajustando la caja a la rejilla. Con tetraedros, seleccionar por centroide subestimaba la tensión media un 2,3 % en un bloque pequeño; se sustituyó por el volumen exacto de cada tetraedro recortado por la caja.</p>
+  <h4>Validación de extremo a extremo</h4>
+  <p>Repetido con el código integrado (<code>fem.ensayo</code>, el mismo camino que usan la interfaz y la línea de órdenes), el E corregido reprodujo exactamente los valores del experimento con hexaedros y difirió menos de un 0,2 % con tetraedros (Figura 7). La suite de verificación pasa: 231 pruebas correctas, 19 omitidas (motores no instalados) y 3 fallos esperados que ya estaban marcados como tales, ninguno nuevo. El bloque 24 (figura del método) no puede ejecutarse en este contenedor porque el renderizado de VTK falla sin OpenGL, y falla igual con el código original. El diccionario de traducción está completo (885 de 885 cadenas).</p>
+  <figure>
+    <img src="figs/f_validacion.svg" alt="Validación con el código integrado">
+    <figcaption><b>Figura 7.</b> Error del E aparente frente a la referencia embebida con el código integrado: el que la aplicación publicaba hasta ahora (tracción, VOI completo) y el E corregido (plato rígido y núcleo). En TET10 la referencia es el bloque embebido de hexaedros a la misma resolución, de modo que el error incluye también la diferencia entre tipos de malla.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= SÍNTESIS ======================= -->
+<section>
+  <div class="seccion-et" style="margin-top:6mm">Sección 5</div>
+  <h2><span class="num">5</span>Síntesis: qué queda resuelto y qué no</h2>
+  <div class="dos">
+    <div class="caja clave"><div class="tit">Robusto</div>
+      <ul>
+        <li>El E aparente corregido, a ±1,5 % de la referencia con hexaedros de 32³ a 64³ y a −4,2 % con TET10 a 48³.</li>
+        <li>El p99 corregido con plato, a +0,5 y +1 % de la referencia a 48³ y 64³.</li>
+        <li>La equivalencia entre ladrillos y malla suave en rigidez, con el protocolo corregido y a 48³ o más.</li>
+      </ul></div>
+    <div class="caja alerta"><div class="tit">No resuelto</div>
+      <ul>
+        <li>El p99 a 32³ (+10 %) y el p99 de la malla suave (+25 % frente a los ladrillos).</li>
+        <li>El mapa local: error mediano del 28 al 33 % elemento a elemento incluso con las correcciones.</li>
+        <li>La carga de fallo de Pistoia con plato: cambia un +23 %, pero no se validó.</li>
+      </ul></div>
+  </div>
+  <h2 style="margin-top:6mm"><span class="num">6</span>Trabajo pendiente</h2>
+  <table class="ruta">
+    <thead><tr><th>#</th><th>Acción</th><th>Por qué</th><th>Esfuerzo</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Repetir la validación en VOIs reales (H4, porcinos), con su propio bloque embebido cuando la imagen lo permita</td><td>Un solo espinodoide sintético</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>2</td><td>Validar la carga de fallo de Pistoia con plato frente a la referencia embebida</td><td>Cambia un 23 % sin validación</td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>3</td><td>Estudiar la tensión local de la malla suave (A4): evaluación en puntos de Gauss, filtrado de frontera</td><td>p99 TET10 +25 %</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>4</td><td>Ajustar el margen del núcleo al espesor y separación trabecular del VOI</td><td>0,625 mm se fijó para esta estructura</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>5</td><td>Revisar el fallo de mallado con Taubin 5 sin decimado</td><td>Tetraedro de volumen no positivo</td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+    </tbody>
+  </table>
+  <h2 style="margin-top:6mm"><span class="num">7</span>Limitaciones</h2>
+  <ul>
+    <li>Se estudió un único espinodoide sintético de 5 mm. La anchura de la franja descargada depende de la separación trabecular y del tamaño del espécimen<sup class="ref">3</sup>, por lo que el margen óptimo puede ser otro en hueso real.</li>
+    <li>La referencia embebida es una aproximación al hueso <i>in situ</i>: también tiene bordes, a 1,25 mm del VOI, y su sensibilidad a la carga del bloque fue del 1,7 %. Con hexaedros conserva además el error de discretización de la malla, que no se corrige aquí.</li>
+    <li>En la malla suave la referencia es de hexaedros, de modo que su error mezcla el de los bordes con el del tipo de malla.</li>
+    <li>Solo se evaluó el régimen lineal y la compresión en z. No se comprobó la dirección transversal ni el análisis no lineal con las correcciones.</li>
+    <li>No hubo validación experimental; la referencia es numérica.</li>
+  </ul>
+</section>
+
+<!-- ======================= APOYO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Apoyo</div>
+  <h2>Glosario</h2>
+  <dl class="glosario">
+    <dt>Espacio temporal</dt><dd>Rama local de git (<code>experimento/a1-a3</code>) en un directorio de trabajo separado. Nada de ella se sube sin pasar el criterio.</dd>
+    <dt>Prerregistro</dt><dd>Documento con la referencia, las métricas y los umbrales de aceptación, escrito antes de medir (<code>PRERREGISTRO.md</code>).</dd>
+    <dt>Referencia embebida</dt><dd>El mismo hueso ensayado dentro de un bloque mayor de su propio hueso y medido solo en la región del VOI.</dd>
+    <dt>Línea base (B0)</dt><dd>El ensayo que publicaba la aplicación: tracción uniforme en el techo, VOI completo.</dd>
+    <dt>Núcleo</dt><dd>Caja interior del VOI a 0,625 mm o más de sus seis caras.</dd>
+    <dt>Extensómetro virtual</dt><dd>Deformación entre dos franjas de 0,25 mm del núcleo, a partir del desplazamiento medio de sus elementos.</dd>
+    <dt>E corregido</dt><dd>E aparente con plato rígido y medido en el núcleo.</dd>
+    <dt>p99 corregido</dt><dd>p99 de von Mises con plato rígido sobre el VOI completo.</dd>
+    <dt>hex8 / TET10</dt><dd>Malla de ladrillos (un hexaedro por vóxel) y malla suave de tetraedros cuadráticos.</dd>
+  </dl>
+  <h2 style="margin-top:8mm">Reproducir</h2>
+  <p>Desde <code>comparativa_motores/correcciones/</code>, en un equipo de 4 núcleos y 15 GB:</p>
+  <p><code>python correcciones.py referencia hex8 tet10</code> (del orden de media hora; el bloque de 96³ es el más pesado)<br>
+  <code>python correcciones.py tet10_48 omision</code><br>
+  <code>python decision.py</code> (aplica la regla del prerregistro)<br>
+  <code>python validar_app.py</code> (código integrado, unos 3 min)<br>
+  <code>python figuras_correcciones.py</code><br>
+  <code>python -m pytest tests/test_30_correcciones.py</code></p>
+</section>
+
+<section class="salto">
+  <h2>Referencias</h2>
+  <ol class="refs">
+    <li>Wili P, Maquer G, Panyasantisuk J, Zysset PK. Estimation of the effective yield properties of human trabecular bone using nonlinear micro-finite element analyses. Biomech Model Mechanobiol. 2017;16(6):1925-36. doi:10.1007/s10237-017-0928-0</li>
+    <li>Keaveny TM, Pinilla TP, Crawford RP, Kopperdahl DL, Lou A. Systematic and random errors in compression testing of trabecular bone. J Orthop Res. 1997;15(1):101-10. doi:10.1002/jor.1100150115</li>
+    <li>Un K, Bevill G, Keaveny TM. The effects of side-artifacts on the elastic modulus of trabecular bone. J Biomech. 2006;39(11):1955-63. doi:10.1016/j.jbiomech.2006.05.012</li>
+    <li>Zojaji M, Klei MV, Ploeg HL. Heterogeneous material mapping of micro-finite element models of human trabecular bone cores. Med Eng Phys. 2026;147(5). doi:10.1088/1873-4030/ae5c09. PMID: 41946369</li>
+    <li>Erdemir A, Guess TM, Halloran J, Tadepalli SC, Morrison TM. Considerations for reporting finite element analysis studies in biomechanics. J Biomech. 2012;45(4):625-33. doi:10.1016/j.jbiomech.2011.11.038</li>
+  </ol>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3);">Referencias verificadas en PubMed. Documentos internos: <code>comparativa_motores/INFORME_ARTEFACTOS.pdf</code> (diagnóstico de artefactos) y <code>comparativa_motores/INFORME.md</code> (comparativa de motores).</p>
+</section>
+
+<section class="salto">
+  <div class="seccion-et">Anexo</div>
+  <h2>Lista de chequeo de reporte</h2>
+  <p><b>Diseño del trabajo.</b> Estudio computacional de verificación con comparación frente a una referencia numérica y criterio de decisión prerregistrado; sin sujetos ni datos experimentales, de modo que PRISMA, CONSORT y STROBE no son aplicables. Se usa la guía específica de Erdemir et al. (2012) para estudios de elementos finitos en biomecánica<sup class="ref">5</sup>, la misma que emplean los informes anteriores de spinpy; no consta una versión posterior que la sustituya.</p>
+  <table class="lista-chequeo">
+    <thead><tr><th>Ítem</th><th>Contenido</th><th>Estado</th><th>Modificación necesaria</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Identificación del modelo</td></tr>
+      <tr><td>1</td><td>Tipo de modelo, propósito y magnitudes de interés</td><td><span class="sev l">Cumple</span></td><td>Portada y secciones 1 y 2.</td></tr>
+      <tr><td>2</td><td>Versión del software y del código</td><td><span class="sev l">Cumple</span></td><td>Portada.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura del modelo</td></tr>
+      <tr><td>3</td><td>Geometría y su origen</td><td><span class="sev m">Parcial</span></td><td>Espinodoide sintético descrito por sus parámetros; en VOIs reales, añadir segmentación y orientación.</td></tr>
+      <tr><td>4</td><td>Malla: tipo, tamaño, número de elementos</td><td><span class="sev l">Cumple</span></td><td>Tabla 1.</td></tr>
+      <tr><td>5</td><td>Propiedades del material</td><td><span class="sev m">Parcial</span></td><td>E = 20 GPa, ν = 0,3 (protocolo de la app); falta justificar el módulo de tejido con bibliografía.</td></tr>
+      <tr><td>6</td><td>Condiciones de contorno y cargas</td><td><span class="sev l">Cumple</span></td><td>Secciones 1 y 2, fichas F1 y F2.</td></tr>
+      <tr><td>7</td><td>Interacciones y contacto</td><td><span class="sev n">No aplica</span></td><td>Sin contacto.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura de la simulación</td></tr>
+      <tr><td>8</td><td>Resolvedor y tolerancias</td><td><span class="sev l">Cumple</span></td><td>Tabla 1.</td></tr>
+      <tr><td>9</td><td>Postproceso y definiciones</td><td><span class="sev l">Cumple</span></td><td>Sección 2 y glosario.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Verificación</td></tr>
+      <tr><td>10</td><td>Verificación del código</td><td><span class="sev l">Cumple</span></td><td>Bloque 30 (soluciones exactas) y validación de extremo a extremo.</td></tr>
+      <tr><td>11</td><td>Verificación del cálculo (convergencia)</td><td><span class="sev m">Parcial</span></td><td>Tres resoluciones hex8 y dos TET10; la referencia no ha convergido en la malla (E −13 % de 32³ a 64³).</td></tr>
+      <tr><td>12</td><td>Sensibilidad</td><td><span class="sev l">Cumple</span></td><td>Carga del bloque de referencia; protocolo; tipo de malla.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Validación</td></tr>
+      <tr><td>13</td><td>Comparación con datos experimentales</td><td><span class="sev g">No cumple</span></td><td>Referencia numérica; declarado en Limitaciones.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Disponibilidad</td></tr>
+      <tr><td>14</td><td>Modelo, datos y código</td><td><span class="sev l">Cumple</span></td><td>Scripts, prerregistro y resultados en <code>comparativa_motores/correcciones/</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+</body>
+</html>

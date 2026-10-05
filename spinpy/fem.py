@@ -541,10 +541,10 @@ PROTOCOLOS_FEM = {
 CLAVES_PROTOCOLO = ("E_s", "nu", "sigma_app", "carga_N", "apoyo", "amplitud",
                     "escala_vacio")
 
-#: Analisis de un protocolo de compresion. 'nl_plato' y 'nl_pistoia'
-#: necesitan el lineal (la deformacion equivalente y la carga de Pistoia
-#: salen de el): si no se pidio, se corre igual y se declara.
-ANALISIS = ("lineal", "nl_fuerza", "nl_plato", "nl_pistoia")
+#: Analisis de un protocolo de compresion. 'lineal_plato', 'nl_plato' y
+#: 'nl_pistoia' necesitan el lineal (la deformacion equivalente y la carga de
+#: Pistoia salen de el): si no se pidio, se corre igual y se declara.
+ANALISIS = ("lineal", "lineal_plato", "nl_fuerza", "nl_plato", "nl_pistoia")
 
 
 
@@ -626,6 +626,152 @@ def _fuerza(malla, sigma):
 PROTOCOLOS_FEBIO = PROTOCOLOS_FEM
 
 
+# ---------------------------------------------------------------------------
+# Correcciones de los artefactos de borde (comparativa_motores/correcciones)
+# ---------------------------------------------------------------------------
+
+#: Margen del NUCLEO respecto de las seis caras del VOI (mm). Las trabeculas
+#: cortadas por las caras laterales quedan descargadas hasta ~0,6 mm de la
+#: cara y la traccion del techo altera ~1,25 mm por debajo; midiendo E y el
+#: p99 en el nucleo, frente a la configuracion embebida (el mismo hueso
+#: rodeado de hueso), el error de E bajo del -43/-55 % al -5/-10 % con
+#: traccion y al +1/+2 % con plato rigido (hex8, 32^3 a 64^3).
+NUCLEO_MARGEN_MM = 0.625
+#: Espesor de cada franja del extensometro virtual del nucleo (mm).
+FRANJA_EXTENSOMETRO_MM = 0.25
+
+
+def _centroides_uz(nodos, elems, u):
+    """Centroide de cada elemento y u_z en el. TET10: las funciones de forma
+    cuadraticas valen -1/8 en las esquinas y 1/4 en las aristas."""
+    nodos, elems = np.asarray(nodos, float), np.asarray(elems, np.int64)
+    if elems.shape[1] == 8:
+        return nodos[elems].mean(1), u[elems, 2].mean(1)
+    uz = (-0.125 * u[elems[:, :4], 2].sum(1)
+          + 0.25 * u[elems[:, 4:], 2].sum(1))
+    return nodos[elems[:, :4]].mean(1), uz
+
+
+def _volumen_recortado(P, lo, hi):
+    """Volumen exacto del tetraedro de esquinas P (4, 3) dentro de la caja.
+
+    Se recorta por los seis semiespacios: el poliedro convexo recortado es la
+    envolvente de los vertices que quedan dentro y de los cortes de cada
+    segmento entre dos vertices con el plano (para un convexo, esos puntos
+    estan en el recortado y contienen a sus vertices).
+    """
+    from scipy.spatial import ConvexHull, QhullError
+    V = np.asarray(P, float)
+    for e in range(3):
+        for lim, signo in ((lo[e], 1.0), (hi[e], -1.0)):
+            d = signo * (V[:, e] - lim)
+            dentro = d >= 0
+            if dentro.all():
+                continue
+            if not dentro.any():
+                return 0.0
+            a, b = np.nonzero(dentro)[0], np.nonzero(~dentro)[0]
+            t = d[a][:, None] / (d[a][:, None] - d[b][None, :])
+            cortes = (V[a][:, None, :] + t[..., None]
+                      * (V[b][None, :, :] - V[a][:, None, :])).reshape(-1, 3)
+            V = np.vstack([V[dentro], cortes])
+    try:
+        return float(ConvexHull(V).volume)
+    except (QhullError, ValueError):
+        return 0.0                       # degenerado: volumen nulo
+
+
+def _fraccion_en_caja(nodos, elems, lo, hi, dentro):
+    """Fraccion del volumen de cada elemento dentro de la caja [lo, hi].
+
+    hex8 con la caja ajustada a la rejilla: 0 o 1 (decide el centroide).
+    TET10 (aristas rectas): 1 o 0 si sus cuatro esquinas estan dentro, o
+    fuera por un mismo plano; en los que la caja corta, el volumen recortado
+    exacto (`_volumen_recortado`) entre el del tetraedro.
+    """
+    frac = dentro.astype(float)
+    if elems.shape[1] == 8:
+        return frac
+    P = nodos[elems[:, :4]]                                   # (M, 4, 3)
+    den = np.all((P >= lo) & (P <= hi), axis=(1, 2))
+    fuera = np.zeros(len(P), bool)
+    for e in range(3):
+        fuera |= np.all(P[:, :, e] <= lo[e], axis=1)
+        fuera |= np.all(P[:, :, e] >= hi[e], axis=1)
+    frac[den], frac[fuera] = 1.0, 0.0
+    vol = np.abs(np.einsum("ij,ij->i", P[:, 1] - P[:, 0],
+                           np.cross(P[:, 2] - P[:, 0], P[:, 3] - P[:, 0]))) / 6
+    for m in np.nonzero(~den & ~fuera)[0]:
+        frac[m] = min(1.0, _volumen_recortado(P[m], lo, hi) / vol[m])
+    return frac
+
+
+def magnitudes_nucleo(malla, u, sigma, sigma_ref=None,
+                      margen=NUCLEO_MARGEN_MM, franja=FRANJA_EXTENSOMETRO_MM):
+    """E aparente y p99 de von Mises en el NUCLEO del VOI.
+
+    El nucleo es la caja a `margen` mm o mas de las seis caras del cubo. Se
+    mide dentro del ensayo del VOI completo (no se recorta nada):
+      sigma_n  = -sum(sigma_zz,e V_e) / V_caja, elementos con centroide en
+                 la caja (la tension media de la caja, poros incluidos);
+      eps_n    = extensometro virtual: diferencia de u_z medio (ponderado por
+                 volumen, en el centroide) entre la franja superior y la
+                 inferior de la caja, de `franja` mm cada una, dividida por
+                 la distancia entre sus z medios;
+      E_app    = sigma_n / eps_n;
+      p99      = p99 de von Mises en la capa superficial de la caja,
+                 ponderado por volumen. Con `sigma_ref` (Pa, la tension
+                 aparente del protocolo) se expresa a esa tension aplicada AL
+                 NUCLEO: p99 * sigma_ref / sigma_n, la misma normalizacion
+                 con la que se valido.
+    `sigma` en Pa (la de `tension_elemental`). Si el VOI es demasiado
+    pequeno para el margen, devuelve {"ok": False}.
+    """
+    from .resistencia import percentil_ponderado
+    nodos, elems = malla["nodos"], np.asarray(malla["elems"], np.int64)
+    sp = np.asarray(malla["spacing"], float)
+    forma = np.asarray(malla["forma"], float)
+    # La caja se ajusta a la rejilla de voxeles de la mascara: con hex8 los
+    # elementos con centroide dentro la cubren EXACTAMENTE (sin el ajuste, un
+    # margen que no es multiplo del voxel sesga la tension media por el
+    # cociente entre volumenes); con TET10 la seleccion por centroide es
+    # insesgada en promedio.
+    k = np.maximum(np.rint(margen / sp), 1.0)
+    lo = (-0.5 * sp if malla["tipo"] == "tet10" else np.zeros(3)) + k * sp
+    hi = lo + (forma - 2 * k) * sp
+    margen = float((k * sp).min())
+    if np.any(hi - lo < 4 * franja):
+        return {"ok": False, "msg": "VOI demasiado pequeno para el nucleo",
+                "margen_mm": margen}
+    c, uz = _centroides_uz(nodos, elems, u)
+    w = np.asarray(malla["vol_elem"], float)
+    dentro = np.all((c >= lo) & (c <= hi), axis=1)
+    V = float(np.prod(hi - lo))
+    frac = _fraccion_en_caja(nodos, elems, lo, hi, dentro)
+    s_n = float(-(sigma[:, 2] * w * frac).sum() / V)
+    z = c[:, 2]
+    arr = dentro & (z >= hi[2] - franja)
+    aba = dentro & (z <= lo[2] + franja)
+    if not arr.any() or not aba.any() or s_n <= 0:
+        return {"ok": False, "msg": "sin hueso en las franjas del nucleo",
+                "margen_mm": margen}
+    dz = np.average(z[arr], weights=w[arr]) - np.average(z[aba], weights=w[aba])
+    du = np.average(uz[arr], weights=w[arr]) - np.average(uz[aba],
+                                                          weights=w[aba])
+    eps = abs(du / dz)
+    sup = dentro & np.asarray(malla["superficie"], bool)
+    vm = von_mises(sigma)
+    out = {"ok": True, "E_app": s_n / eps, "eps_app": eps, "sigma_Pa": s_n,
+           "margen_mm": margen, "franja_mm": franja,
+           "frac_volumen": float(w[dentro].sum() / w.sum()),
+           "n_superficie": int(sup.sum())}
+    if sup.any():
+        p99 = float(percentil_ponderado(vm[sup], w[sup], 99))
+        out["vm_p99_superficie"] = (p99 if sigma_ref is None
+                                    else p99 * float(sigma_ref) / s_n)
+    return out
+
+
 
 def estadisticos(malla, sigma, prot, sigma_ref, F_total_Pa_mm2):
     """p99 de superficie y Pistoia de un campo de tensiones, ponderados por volumen.
@@ -704,6 +850,37 @@ def _problema(malla, prot, analisis, control, cargas, material, solver,
         solver=solver, BW=BW)
 
 
+def _corregido(reg):
+    """Valores CORREGIDOS de los artefactos de borde, con su metodo.
+
+    Validados frente a la configuracion embebida en
+    `comparativa_motores/correcciones/` (hex8, 32^3 a 64^3):
+      E_app   nucleo con plato rigido (error +0,8 a +1,5 %); sin el plato,
+              nucleo con traccion (-5,5 a -10 %).
+      p99     VOI completo con plato (+0,5 a +9,5 %); sin el plato, nucleo
+              con traccion (-1,9 a +8,7 %).
+    La linea base (traccion, VOI completo) daba -43 a -55 % en E_app y
+    +33 a +53 % en el p99.
+    """
+    lin = reg.get("lineal") or {}
+    lp = reg.get("lineal_plato") or {}
+    nl, npl = lin.get("nucleo") or {}, lp.get("nucleo") or {}
+    out = {}
+    if npl.get("ok"):
+        out["E_app"], out["metodo_E"] = npl["E_app"], "plato_nucleo"
+    elif nl.get("ok"):
+        out["E_app"], out["metodo_E"] = nl["E_app"], "traccion_nucleo"
+    p99 = (lp.get("pistoia") or {}).get("vm_p99_superficie")
+    if p99 is not None:
+        out["vm_p99_superficie"], out["metodo_p99"] = p99, "plato_voi"
+    elif nl.get("vm_p99_superficie") is not None:
+        out["vm_p99_superficie"] = nl["vm_p99_superficie"]
+        out["metodo_p99"] = "traccion_nucleo"
+    if lin.get("E_app") and "E_app" in out:
+        out["cociente_E_lineal"] = out["E_app"] / lin["E_app"]
+    return out
+
+
 def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
            hilos=None, cancelar=None, material="svk", pasos=1, progreso=None,
            solver="auto", aislado=True, BW=None, prefijo="ensayo", **_viejos):
@@ -715,7 +892,12 @@ def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
 
       lineal      el problema lineal a la carga del protocolo: E_app, fuerza
                   (comprobacion de equilibrio), p99 de von Mises en la capa
-                  superficial y Pistoia.
+                  superficial y Pistoia; ademas E_app y p99 en el NUCLEO
+                  (`magnitudes_nucleo`), lejos de las caras cortadas.
+      lineal_plato el mismo lineal con plato rigido sin friccion en el techo
+                  (corrige el artefacto del techo cargado): E_app, p99 y
+                  Pistoia a la tension del protocolo, y su nucleo. Con el
+                  calcula el registro `corregido` (ver `_corregido`).
       nl_fuerza   no lineal a la carga del protocolo, traccion muerta, en
                   `pasos` incrementos.
       nl_plato    plato rigido sin friccion: lineal del plato y no lineal a la
@@ -732,7 +914,7 @@ def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
     if not analisis:
         raise ValueError("No se pidio ningun analisis.")
     necesita_lineal = "lineal" in analisis or any(
-        a in analisis for a in ("nl_plato", "nl_pistoia"))
+        a in analisis for a in ("lineal_plato", "nl_plato", "nl_pistoia"))
     sref = _sigma_ref(prot, malla["A_bruta"])
     F_ref_N = sref * malla["A_bruta"] * 1e-6
     H = malla["H"]
@@ -749,7 +931,10 @@ def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
            "corridas": [], "fallos": [], "analisis_pedidos": list(analisis),
            "carpeta": str(carpeta) if carpeta else None}
     n_tot = (1 if necesita_lineal else 0) + analisis.count("nl_fuerza") \
-        + 2 * analisis.count("nl_plato") + analisis.count("nl_pistoia")
+        + int(("lineal_plato" in analisis or "nl_plato" in analisis)
+              and motores.puede(motor, malla["tipo"], "lineal",
+                                control="plato")) \
+        + analisis.count("nl_plato") + analisis.count("nl_pistoia")
     hechas = [0]
 
     def run(nombre, an, control, cargas):
@@ -799,8 +984,40 @@ def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
             p = estadisticos(malla, s, prot, sref, sref * malla["A_bruta"])
             lin["pistoia"] = {k: v for k, v in p.items()
                               if isinstance(v, (int, float, bool, str))}
+            lin["nucleo"] = magnitudes_nucleo(malla, u, s, sigma_ref=sref)
             reg["_campos_lineal"] = {"u": u, "sigma": s}
         reg["lineal"] = lin
+
+    plato_lin = None
+    puede_plato = motores.puede(motor, malla["tipo"], "lineal",
+                                control="plato")
+    if lin and "lineal_plato" in analisis and not puede_plato:
+        reg["lineal_plato"] = {"no_disponible": True, "msg": (
+            f"{motores.ETIQUETAS[motor]} no resuelve el plato rigido; el "
+            "valor corregido usa el nucleo con traccion")}
+    if lin and puede_plato and ("lineal_plato" in analisis
+                                or "nl_plato" in analisis):
+        eps_p = sref / lin["E_app"]
+        plato_lin = run("plato_lineal", "lineal", "plato", [eps_p])
+        if plato_lin is not None and "lineal_plato" in analisis:
+            u = plato_lin["u"]
+            F = float(plato_lin["F_reac"][-1])
+            s_p = F * 1e6 / malla["A_bruta"]
+            # Lineal: el campo a la tension del protocolo es el del plato
+            # escalado por sref / s_p.
+            s = tension_elemental(malla["nodos"], malla["elems"], u,
+                                  prot["E_s"], prot["nu"]) * (sref / s_p)
+            p = estadisticos(malla, s, prot, sref, sref * malla["A_bruta"])
+            reg["lineal_plato"] = {
+                "E_app": s_p / eps_p, "eps_plato": eps_p, "F_N": F,
+                "cociente_plato_fuerza": (s_p / eps_p) / lin["E_app"],
+                "pistoia": {k: v for k, v in p.items()
+                            if isinstance(v, (int, float, bool, str))},
+                "nucleo": magnitudes_nucleo(malla, u * (sref / s_p), s,
+                                            sigma_ref=sref)}
+            reg["_campos_lineal_plato"] = {"u": u * (sref / s_p), "sigma": s}
+    if lin:
+        reg["corregido"] = _corregido(reg)
 
     def escalones(total):
         return [total * (k + 1) / max(1, int(pasos)) for k in
@@ -820,7 +1037,7 @@ def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
     if "nl_plato" in analisis and lin:
         eps_p = sref / lin["E_app"]
         d = {"eps_plato": eps_p}
-        out = run("plato_lineal", "lineal", "plato", [eps_p])
+        out = plato_lin
         if out is not None:
             d["E_app_lineal"] = out["F_reac"][-1] * 1e6 \
                 / malla["A_bruta"] / eps_p
@@ -1077,6 +1294,9 @@ def tabla_motores(registros, referencia=None):
                     if cu is not None and cr is not None:
                         f["du_rel"] = float(np.abs(cu["u"] - cr["u"]).max()
                                             / np.abs(cr["u"]).max())
+            cor = r.get("corregido") or {}
+            if "E_app" in cor:
+                f["E_app_corregido_MPa"] = cor["E_app"] / 1e6
             for kk in ("nl_fuerza", "nl_plato", "nl_pistoia"):
                 d = r.get(kk) or {}
                 if "dE_rel" in d:
@@ -1139,6 +1359,15 @@ def fila_tabla(reg):
             f[f"dE_{k}"] = d["dE_rel"]
     if (reg.get("nl_plato") or {}).get("cociente_plato_fuerza_lineal"):
         f["plato_fuerza_lineal"] = reg["nl_plato"]["cociente_plato_fuerza_lineal"]
+    if (reg.get("lineal_plato") or {}).get("cociente_plato_fuerza"):
+        f["plato_fuerza_lineal"] = reg["lineal_plato"]["cociente_plato_fuerza"]
+    cor = reg.get("corregido") or {}
+    if "E_app" in cor:
+        f["E_app_corregido_MPa"] = cor["E_app"] / 1e6
+        f["metodo_E_corregido"] = cor.get("metodo_E")
+    if "vm_p99_superficie" in cor:
+        f["vm_p99_corregido_MPa"] = cor["vm_p99_superficie"] / 1e6
+        f["metodo_p99_corregido"] = cor.get("metodo_p99")
     return f
 
 
