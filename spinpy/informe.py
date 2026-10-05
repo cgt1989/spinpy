@@ -1076,6 +1076,13 @@ def _items_febio_uno(doc, r, items, DESCARTE_MAX_PCT, PERDIDA_VOLUMEN_MAX_PCT):
     items.append(_item(bloque, "febio_E_app", est,
                        {"E_app [MPa]": None if E is None else E / 1e6},
                        mot, d, eje))
+    cor = r.get("corregido") or {}
+    if cor.get("E_app") is not None:
+        items.append(_item(bloque + " · " + {
+            "plato_nucleo": "corregido (plato, núcleo)",
+            "traccion_nucleo": "corregido (núcleo)"}.get(
+                cor.get("metodo_E"), "corregido"), "febio_E_app", est,
+            {"E_app [MPa]": cor["E_app"] / 1e6}, mot, d, eje))
     p = lin.get("pistoia") or {}
     if p.get("ok"):
         s = _f(p, "sigma_fallo")

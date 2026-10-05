@@ -307,10 +307,12 @@ def corridas_ensayo(analisis):
     corre igual si no se pidio); el plato hace ademas su propio lineal.
     """
     a = set(analisis)
-    lineal = bool(a & {"lineal", "nl_plato", "nl_pistoia"})
+    lineal = bool(a & {"lineal", "lineal_plato", "nl_plato", "nl_pistoia"})
     n, it = 0, 0
     if lineal:
         n, it = 2, 2 * ITER_FEBIO["lineal"]
+    if "lineal_plato" in a and "nl_plato" not in a:
+        n, it = n + 1, it + ITER_FEBIO["lineal"]
     if "nl_fuerza" in a:
         n, it = n + 1, it + ITER_FEBIO["nl_fuerza"]
     if "nl_plato" in a:

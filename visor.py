@@ -5974,8 +5974,8 @@ class Visor(QtWidgets.QMainWindow):
         «Comparar motores…», con el motor, la malla y el analisis del panel.
         Una familia por llamada (la engancha `_en_cada_familia`)."""
         an = self.analisis_fe()
-        analisis = ["lineal"] if an == "lineal" else ["lineal", "nl_fuerza",
-                                                       "nl_plato"]
+        analisis = (["lineal", "lineal_plato"] if an == "lineal"
+                    else ["lineal", "lineal_plato", "nl_fuerza", "nl_plato"])
         material = "svk" if an == "lineal" else an
         ts = []
         if self.VOI is not None and not getattr(self, "_voi_fe_hecho", False):

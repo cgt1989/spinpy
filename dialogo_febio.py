@@ -44,6 +44,8 @@ AJUSTES = ("spinpy", "visor")
 def textos_analisis():
     return [("lineal", _("Lineal (extrapolado a carga nula; comparable 1:1 "
                          "con la app)")),
+            ("lineal_plato", _("Lineal con plato rígido y medida en el "
+                               "núcleo (corrige los artefactos de borde)")),
             ("nl_fuerza", _("No lineal, fuerza impuesta a la carga del "
                             "protocolo")),
             ("nl_plato", _("No lineal, plato rígido")),
@@ -321,12 +323,16 @@ class _BaseFEBio(QtWidgets.QDialog):
         self.chk_an = {}
         for k, t in textos_analisis():
             c = QtWidgets.QCheckBox(t)
-            c.setChecked(k in ("lineal", "nl_fuerza", "nl_plato"))
+            c.setChecked(k in ("lineal", "lineal_plato", "nl_fuerza",
+                               "nl_plato"))
             self.chk_an[k] = c
             gl.addWidget(c)
         nota = QtWidgets.QLabel(_(
             "El plato rígido y la carga de Pistoia necesitan el lineal: si no "
-            "se marca, se corre igual."))
+            "se marca, se corre igual.") + " " + _(
+            "E y p99 corregidos: plato rígido y núcleo a 0,625 mm de las "
+            "caras; validados frente al mismo hueso embebido "
+            "(comparativa_motores/correcciones)."))
         nota.setWordWrap(True)
         nota.setStyleSheet("color:#666; font-size:10px;")
         gl.addWidget(nota)
@@ -1075,7 +1081,9 @@ def tabla_html(registros):
          + _("motor") + " [MPa]</th><th>" + _("Δ implementación") + "</th>"
          "<th>p99 " + _("superficie") + " [MPa]</th><th>σ<sub>fallo</sub> "
          "[MPa]</th><th>" + _("NL fuerza") + "</th><th>" + _("NL plato")
-         + "</th><th>" + _("NL Pistoia") + "</th><th>BV/TV "
+         + "</th><th>" + _("NL Pistoia") + "</th><th>E<sub>app</sub> "
+         + _("corregido") + " [MPa]</th><th>p99 " + _("corregido")
+         + " [MPa]</th><th>BV/TV "
          + _("malla") + "</th><th>" + _("Δ volumen") + "</th></tr>"]
     for r in registros:
         if r.get("tipo") == "homogeneizacion":
@@ -1084,7 +1092,7 @@ def tabla_html(registros):
                    else _("cotas KUBC/SUBC"))
             t.append(f"<tr><td>{html.escape(str(r.get('estructura')))}</td>"
                      f"<td>{html.escape(str(r.get('nombre')))}</td>"
-                     f"<td>{r.get('malla')}</td><td colspan=12>{txt}"
+                     f"<td>{r.get('malla')}</td><td colspan=14>{txt}"
                      + (f"; C<sub>33</sub> = {np.asarray(C)[2][2] / 1e6:.4g} "
                         "MPa" if C is not None else "")
                      + (f"; Δ app {r['dC_app_rel']:.1e}"
@@ -1106,6 +1114,8 @@ def tabla_html(registros):
             f"<td>{c(f.get('dE_nl_fuerza'), pct=True)}</td>"
             f"<td>{c(f.get('dE_nl_plato'), pct=True)}</td>"
             f"<td>{c(f.get('dE_nl_pistoia'), pct=True)}</td>"
+            f"<td>{c(f.get('E_app_corregido_MPa'))}</td>"
+            f"<td>{c(f.get('vm_p99_corregido_MPa'))}</td>"
             f"<td>{c(f.get('BVTV_malla'), '{:.4f}')}</td>"
             f"<td>{c(None if f.get('perdida_volumen_pct') is None else -f['perdida_volumen_pct'] / 100, pct=True)}</td></tr>")
     t.append("</table>")

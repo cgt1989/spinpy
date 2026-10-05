@@ -1,0 +1,805 @@
+{
+ "hex8_n32_fuerza_deslizante": {
+  "tipo": "hex8",
+  "n": 32,
+  "control": "fuerza",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "sparsecholesky (NGSolve)",
+  "residuo_rel": 1.669538595140309e-12,
+  "n_gdl": 62595,
+  "n_elems": 9735,
+  "t_malla_s": 0.0122743339999829,
+  "t_sol_s": 1.069701445000021,
+  "F_N": 25.0000000000002,
+  "sigma_app_MPa": 1.000000000000008,
+  "E_app_area_MPa": 257.9873538323913,
+  "E_app_nodal_MPa": 261.14558043916895,
+  "V_mm3": 37.136077880859375,
+  "vertices_singulares": 176,
+  "aristas_singulares": 141,
+  "p99_sup": 49.68957116484069,
+  "max_sup": 188.2449095597538,
+  "max_global": 188.2449095597538,
+  "p50_sup": 6.832817940376017,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.20034864898518243,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 53.685141312789675,
+    "dp99_pct": 8.0410638576333,
+    "max_en_clase": 48.918908947044116
+   },
+   "techo": {
+    "frac_vol_sup": 0.05727804756568298,
+    "frac_cola": 0.3375,
+    "enriquecimiento": 5.892309782608696,
+    "p99_sin": 45.149092880891374,
+    "dp99_pct": -9.137688608514427,
+    "max_en_clase": 166.63423049441585
+   },
+   "base": {
+    "frac_vol_sup": 0.055161250155646865,
+    "frac_cola": 0.025,
+    "enriquecimiento": 0.4532167042889391,
+    "p99_sin": 50.32003936693839,
+    "dp99_pct": 1.2688139328193682,
+    "max_en_clase": 58.5680626396661
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0008716224629560453,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 49.70497505453447,
+    "dp99_pct": 0.031000246797630027,
+    "max_en_clase": 12.343529355039488
+   },
+   "union_singular": {
+    "frac_vol_sup": 0.04146432573776616,
+    "frac_cola": 0.1,
+    "enriquecimiento": 2.4117117117117117,
+    "p99_sin": 48.90853149057483,
+    "dp99_pct": -1.5718382267273623,
+    "max_en_clase": 110.90718701056164
+   },
+   "arista_entrante": {
+    "frac_vol_sup": 0.9302702029635164,
+    "frac_cola": 0.9625,
+    "enriquecimiento": 1.0346456297684379,
+    "p99_sin": 38.4899822117974,
+    "dp99_pct": -22.539113722454285,
+    "max_en_clase": 188.2449095597538
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.037977835885941974,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_solo": 29.759272643004348
+   }
+  },
+  "zz_global": 0.45378810884069937,
+  "zz_rel_mediana_sup": 0.39517040153356575,
+  "zz_rel_mediana_cola": 0.4752068219623802
+ },
+ "hex8_n48_fuerza_deslizante": {
+  "tipo": "hex8",
+  "n": 48,
+  "control": "fuerza",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "sparsecholesky (NGSolve)",
+  "residuo_rel": 3.915283686360696e-12,
+  "n_gdl": 173484,
+  "n_elems": 33219,
+  "t_malla_s": 0.024543476000019382,
+  "t_sol_s": 4.543634736000001,
+  "F_N": 25.000000000000583,
+  "sigma_app_MPa": 1.0000000000000233,
+  "E_app_area_MPa": 301.06738618724734,
+  "E_app_nodal_MPa": 298.8881638052464,
+  "V_mm3": 37.54679361979167,
+  "vertices_singulares": 122,
+  "aristas_singulares": 97,
+  "p99_sup": 53.528570127529875,
+  "max_sup": 197.85703911103707,
+  "max_global": 197.85703911103707,
+  "p50_sup": 7.332578423584232,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.21188157959768691,
+    "frac_cola": 0.0594059405940594,
+    "enriquecimiento": 0.28037331374844976,
+    "p99_sin": 57.51468879430857,
+    "dp99_pct": 7.446712395421562,
+    "max_en_clase": 125.06476304453331
+   },
+   "techo": {
+    "frac_vol_sup": 0.05797459595709977,
+    "frac_cola": 0.33663366336633654,
+    "enriquecimiento": 5.80657196154398,
+    "p99_sin": 48.154486760846495,
+    "dp99_pct": -10.039654251701135,
+    "max_en_clase": 197.85703911103707
+   },
+   "base": {
+    "frac_vol_sup": 0.055898779222062954,
+    "frac_cola": 0.0594059405940594,
+    "enriquecimiento": 1.0627412873913389,
+    "p99_sin": 53.45224825291704,
+    "dp99_pct": -0.14258156799444865,
+    "max_en_clase": 93.98351212414818
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0006919389116789403,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 53.536347043170075,
+    "dp99_pct": 0.014528532373780934,
+    "max_en_clase": 30.159811068904048
+   },
+   "union_singular": {
+    "frac_vol_sup": 0.011120446794840111,
+    "frac_cola": 0.11881188118811879,
+    "enriquecimiento": 10.684092409240924,
+    "p99_sin": 51.25677563334487,
+    "dp99_pct": -4.244078421621456,
+    "max_en_clase": 140.1947825162175
+   },
+   "arista_entrante": {
+    "frac_vol_sup": 0.9165225127267335,
+    "frac_cola": 0.9356435643564355,
+    "enriquecimiento": 1.0208626098804876,
+    "p99_sin": 45.72563012502069,
+    "dp99_pct": -14.577150078769074,
+    "max_en_clase": 197.85703911103707
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.050560964760539714,
+    "frac_cola": 0.0198019801980198,
+    "enriquecimiento": 0.3916456161745206,
+    "p99_solo": 40.781582075081175
+   }
+  },
+  "zz_global": 0.3406262208311178,
+  "zz_rel_mediana_sup": 0.29045473514108977,
+  "zz_rel_mediana_cola": 0.39241654749163457
+ },
+ "hex8_n64_fuerza_deslizante": {
+  "tipo": "hex8",
+  "n": 64,
+  "control": "fuerza",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "sparsecholesky (NGSolve)",
+  "residuo_rel": 9.014552299259386e-12,
+  "n_gdl": 365655,
+  "n_elems": 78874,
+  "t_malla_s": 0.06329125000002023,
+  "t_sol_s": 15.992541517999996,
+  "F_N": 25.000000000000743,
+  "sigma_app_MPa": 1.0000000000000298,
+  "E_app_area_MPa": 282.32222936997044,
+  "E_app_nodal_MPa": 280.473842632386,
+  "V_mm3": 37.61005401611328,
+  "vertices_singulares": 62,
+  "aristas_singulares": 59,
+  "p99_sup": 60.86657549160763,
+  "max_sup": 207.97278042697027,
+  "max_global": 207.97278042697027,
+  "p50_sup": 7.639805409969815,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.21622124222942457,
+    "frac_cola": 0.11436170212765957,
+    "enriquecimiento": 0.52891057764951,
+    "p99_sin": 63.706171669540915,
+    "dp99_pct": 4.665280007949213,
+    "max_en_clase": 137.41213707737515
+   },
+   "techo": {
+    "frac_vol_sup": 0.05942829817756761,
+    "frac_cola": 0.3670212765957447,
+    "enriquecimiento": 6.175867185345115,
+    "p99_sin": 54.37769562394852,
+    "dp99_pct": -10.660826266714817,
+    "max_en_clase": 202.77443076060118
+   },
+   "base": {
+    "frac_vol_sup": 0.05647946442803252,
+    "frac_cola": 0.05319148936170213,
+    "enriquecimiento": 0.9417845919817457,
+    "p99_sin": 60.891291860534906,
+    "dp99_pct": 0.040607457751073994,
+    "max_en_clase": 102.91152894026179
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0007969820944689443,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 60.87323109433839,
+    "dp99_pct": 0.010934741567103501,
+    "max_en_clase": 44.16406625595885
+   },
+   "union_singular": {
+    "frac_vol_sup": 0.003187928377875777,
+    "frac_cola": 0.0398936170212766,
+    "enriquecimiento": 12.513962765957448,
+    "p99_sin": 59.975823094507426,
+    "dp99_pct": -1.4634508182952088,
+    "max_en_clase": 207.97278042697027
+   },
+   "arista_entrante": {
+    "frac_vol_sup": 0.9049997343393018,
+    "frac_cola": 0.9148936170212766,
+    "enriquecimiento": 1.0109324702611078,
+    "p99_sin": 58.4565115756301,
+    "dp99_pct": -3.959585201749727,
+    "max_en_clase": 207.97278042697027
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.06107539450613676,
+    "frac_cola": 0.007978723404255319,
+    "enriquecimiento": 0.13063727985340526,
+    "p99_solo": 47.89030187966605
+   }
+  },
+  "zz_global": 0.27665834617618956,
+  "zz_rel_mediana_sup": 0.23808535517248272,
+  "zz_rel_mediana_cola": 0.32221455408724475
+ },
+ "hex8_n48_plato_deslizante": {
+  "tipo": "hex8",
+  "n": 48,
+  "control": "plato",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "sparsecholesky (NGSolve)",
+  "residuo_rel": 1.519439757398468e-12,
+  "n_gdl": 173484,
+  "n_elems": 33219,
+  "t_malla_s": 0.024543476000019382,
+  "t_sol_s": 3.196210545999975,
+  "F_N": 12.22451110017373,
+  "sigma_app_MPa": 0.48898044400694923,
+  "E_app_area_MPa": 488.9804440069492,
+  "E_app_nodal_MPa": 488.9804440069493,
+  "V_mm3": 37.54679361979167,
+  "vertices_singulares": 122,
+  "aristas_singulares": 97,
+  "p99_sup": 40.42618198758949,
+  "max_sup": 114.15083060312499,
+  "max_global": 114.15083060312499,
+  "p50_sup": 6.303849770461083,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.21188157959768691,
+    "frac_cola": 0.08415841584158415,
+    "enriquecimiento": 0.3971955278103038,
+    "p99_sin": 41.338743508904756,
+    "dp99_pct": 2.2573527264964532,
+    "max_en_clase": 99.38080674749727
+   },
+   "techo": {
+    "frac_vol_sup": 0.05797459595709977,
+    "frac_cola": 0.024752475247524747,
+    "enriquecimiento": 0.4269538207017633,
+    "p99_sin": 40.63225234250296,
+    "dp99_pct": 0.5097447861307725,
+    "max_en_clase": 50.34967401550218
+   },
+   "base": {
+    "frac_vol_sup": 0.055898779222062954,
+    "frac_cola": 0.10396039603960396,
+    "enriquecimiento": 1.859797252934843,
+    "p99_sin": 40.178816396153074,
+    "dp99_pct": -0.6118945180436541,
+    "max_en_clase": 93.53091665957831
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0006919389116789403,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 40.42679928215812,
+    "dp99_pct": 0.0015269672729134598,
+    "max_en_clase": 22.94298500054072
+   },
+   "union_singular": {
+    "frac_vol_sup": 0.011120446794840111,
+    "frac_cola": 0.17821782178217813,
+    "enriquecimiento": 16.02613861386138,
+    "p99_sin": 38.858294825828224,
+    "dp99_pct": -3.8783953484466838,
+    "max_en_clase": 114.15083060312499
+   },
+   "arista_entrante": {
+    "frac_vol_sup": 0.9165225127267335,
+    "frac_cola": 0.9504950495049505,
+    "enriquecimiento": 1.037066778291289,
+    "p99_sin": 37.40857363243167,
+    "dp99_pct": -7.4644901071394765,
+    "max_en_clase": 114.15083060312499
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.050560964760539714,
+    "frac_cola": 0.03465346534653464,
+    "enriquecimiento": 0.685379828305411,
+    "p99_solo": 39.53839110520668
+   }
+  },
+  "zz_global": 0.30832392473565373,
+  "zz_rel_mediana_sup": 0.29213554129213587,
+  "zz_rel_mediana_cola": 0.3403434155561338
+ },
+ "hex8_n48_fuerza_empotrado": {
+  "tipo": "hex8",
+  "n": 48,
+  "control": "fuerza",
+  "apoyo": "empotrado",
+  "motor": "ngsolve",
+  "solver": "sparsecholesky (NGSolve)",
+  "residuo_rel": 3.3055752473793636e-12,
+  "n_gdl": 173484,
+  "n_elems": 33219,
+  "t_malla_s": 0.024543476000019382,
+  "t_sol_s": 3.4385051209999915,
+  "F_N": 25.000000000000163,
+  "sigma_app_MPa": 1.0000000000000064,
+  "E_app_area_MPa": 313.1046711225527,
+  "E_app_nodal_MPa": 310.61494869357335,
+  "V_mm3": 37.54679361979167,
+  "vertices_singulares": 122,
+  "aristas_singulares": 97,
+  "p99_sup": 51.76362284459707,
+  "max_sup": 198.10499800908954,
+  "max_global": 198.10499800908954,
+  "p50_sup": 7.036731668842835,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.21188157959768691,
+    "frac_cola": 0.06435643564356436,
+    "enriquecimiento": 0.3037377565608206,
+    "p99_sin": 55.942894714764954,
+    "dp99_pct": 8.073762307392474,
+    "max_en_clase": 122.54052252560085
+   },
+   "techo": {
+    "frac_vol_sup": 0.05797459595709977,
+    "frac_cola": 0.3613861386138613,
+    "enriquecimiento": 6.233525782245744,
+    "p99_sin": 47.364662933663425,
+    "dp99_pct": -8.498168538434903,
+    "max_en_clase": 198.10499800908954
+   },
+   "base": {
+    "frac_vol_sup": 0.055898779222062954,
+    "frac_cola": 0.0198019801980198,
+    "enriquecimiento": 0.3542470957971129,
+    "p99_sin": 52.66027988438865,
+    "dp99_pct": 1.7322146142735972,
+    "max_en_clase": 61.88993888277921
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0,
+    "frac_cola": 0.0,
+    "enriquecimiento": NaN,
+    "p99_sin": 51.76362284459707,
+    "dp99_pct": 0.0,
+    "max_en_clase": NaN
+   },
+   "union_singular": {
+    "frac_vol_sup": 0.011120446794840111,
+    "frac_cola": 0.11386138613861387,
+    "enriquecimiento": 10.23892189218922,
+    "p99_sin": 50.48136354346704,
+    "dp99_pct": -2.4771436593215013,
+    "max_en_clase": 137.50328326479658
+   },
+   "arista_entrante": {
+    "frac_vol_sup": 0.9165225127267335,
+    "frac_cola": 0.9306930693069306,
+    "enriquecimiento": 1.0154612204102205,
+    "p99_sin": 47.773068067310476,
+    "dp99_pct": -7.709187568395093,
+    "max_en_clase": 198.10499800908954
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.050560964760539714,
+    "frac_cola": 0.0198019801980198,
+    "enriquecimiento": 0.3916456161745206,
+    "p99_solo": 41.31486245607264
+   }
+  },
+  "zz_global": 0.3399096205496079,
+  "zz_rel_mediana_sup": 0.29042856345566276,
+  "zz_rel_mediana_cola": 0.3931996212320973
+ },
+ "tet10_n32_fuerza_deslizante": {
+  "tipo": "tet10",
+  "n": 32,
+  "control": "fuerza",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "CG + BDDC (NGSolve)",
+  "residuo_rel": 6.675224353282575e-12,
+  "n_gdl": 314880,
+  "n_elems": 54741,
+  "t_malla_s": 2.1332249490000095,
+  "t_sol_s": 16.747108679000064,
+  "F_N": 24.99999999999918,
+  "sigma_app_MPa": 0.9999999999999671,
+  "E_app_area_MPa": 156.6825338555766,
+  "E_app_nodal_MPa": 150.30377982086432,
+  "V_mm3": 37.09294445926352,
+  "perdida_volumen_pct": 0.11614964222725632,
+  "descartado_pct": 0.0,
+  "rectificacion_max_mm": 0.00014632121974664236,
+  "p99_sup": 85.76726725156607,
+  "max_sup": 492.6743801137028,
+  "max_global": 492.6743801137028,
+  "p50_sup": 9.056772369467067,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.1634676151407908,
+    "frac_cola": 0.024906302541221264,
+    "enriquecimiento": 0.15236230442201076,
+    "p99_sin": 90.61011662883365,
+    "dp99_pct": 5.646500736770488,
+    "max_en_clase": 142.57206212691653
+   },
+   "techo": {
+    "frac_vol_sup": 0.04678033821437435,
+    "frac_cola": 0.17828711391338542,
+    "enriquecimiento": 3.811154872296382,
+    "p99_sin": 80.35901597292623,
+    "dp99_pct": -6.3057288076776015,
+    "max_en_clase": 305.70148957199
+   },
+   "base": {
+    "frac_vol_sup": 0.043789653918374104,
+    "frac_cola": 0.010264747938077096,
+    "enriquecimiento": 0.23441034627062937,
+    "p99_sin": 86.71175718395848,
+    "dp99_pct": 1.101224234674647,
+    "max_en_clase": 133.05005878056951
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0005791877659784371,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 85.8046653505862,
+    "dp99_pct": 0.04360416300830394,
+    "max_en_clase": 20.081223706514105
+   },
+   "mala_calidad": {
+    "frac_vol_sup": 0.004847779085035329,
+    "frac_cola": 0.004830824408615142,
+    "enriquecimiento": 0.9965025888921951,
+    "p99_sin": 85.7686020077398,
+    "dp99_pct": 0.0015562535877755579,
+    "max_en_clase": 231.1656540269074
+   },
+   "diminuto": {
+    "frac_vol_sup": 0.0,
+    "frac_cola": 0.0,
+    "enriquecimiento": NaN,
+    "p99_sin": 85.76726725156607,
+    "dp99_pct": 0.0,
+    "max_en_clase": NaN
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.7575030453069784,
+    "frac_cola": 0.7874334741301172,
+    "enriquecimiento": 1.039511958412008,
+    "p99_solo": 86.69486498986977
+   }
+  },
+  "zz_global": 0.4593139638555308,
+  "zz_rel_mediana_sup": 0.39734740949293923,
+  "zz_rel_mediana_cola": 0.49913446884534846
+ },
+ "tet10_n48_fuerza_deslizante": {
+  "tipo": "tet10",
+  "n": 48,
+  "control": "fuerza",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "CG + BDDC (NGSolve)",
+  "residuo_rel": 9.312674595300389e-12,
+  "n_gdl": 790599,
+  "n_elems": 143208,
+  "t_malla_s": 6.195243866000055,
+  "t_sol_s": 59.93115688599994,
+  "F_N": 24.999999999981426,
+  "sigma_app_MPa": 0.999999999999257,
+  "E_app_area_MPa": 219.0243926402588,
+  "E_app_nodal_MPa": 212.36488404169614,
+  "V_mm3": 37.53381619606593,
+  "perdida_volumen_pct": 0.03456333410825607,
+  "descartado_pct": 0.0,
+  "rectificacion_max_mm": 8.089315566121164e-05,
+  "p99_sup": 79.02857399097586,
+  "max_sup": 387.369512206114,
+  "max_global": 387.369512206114,
+  "p50_sup": 8.737335092103457,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.17960275863758982,
+    "frac_cola": 0.03735790468781381,
+    "enriquecimiento": 0.20800295591893553,
+    "p99_sin": 84.2508084840715,
+    "dp99_pct": 6.608033309182515,
+    "max_en_clase": 140.75272980838625
+   },
+   "techo": {
+    "frac_vol_sup": 0.04832760830761298,
+    "frac_cola": 0.28439627006645946,
+    "enriquecimiento": 5.884757802542836,
+    "p99_sin": 72.49042740882479,
+    "dp99_pct": -8.273142550816681,
+    "max_en_clase": 293.69322293045167
+   },
+   "base": {
+    "frac_vol_sup": 0.04962031829248049,
+    "frac_cola": 0.013393350184895323,
+    "enriquecimiento": 0.2699166520043255,
+    "p99_sin": 80.03786680479709,
+    "dp99_pct": 1.2771239095576759,
+    "max_en_clase": 175.5960116809954
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0008895292834414977,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 79.04265024470236,
+    "dp99_pct": 0.017811600305606134,
+    "max_en_clase": 37.718048439962075
+   },
+   "mala_calidad": {
+    "frac_vol_sup": 0.005655264468388733,
+    "frac_cola": 0.00260355509628513,
+    "enriquecimiento": 0.46037724863942936,
+    "p99_sin": 79.09512434890347,
+    "dp99_pct": 0.0842105007933025,
+    "max_en_clase": 293.69322293045167
+   },
+   "diminuto": {
+    "frac_vol_sup": 1.0192450842947824e-08,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 79.02857415226505,
+    "dp99_pct": 2.040897228994254e-07,
+    "max_en_clase": 0.08249604587373752
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.735829415516961,
+    "frac_cola": 0.6697368572888207,
+    "enriquecimiento": 0.9101795105843837,
+    "p99_solo": 77.25696382837667
+   }
+  },
+  "zz_global": 0.3546767138195381,
+  "zz_rel_mediana_sup": 0.2981962418657772,
+  "zz_rel_mediana_cola": 0.39334222967216836
+ },
+ "tet10_n48_plato_deslizante": {
+  "tipo": "tet10",
+  "n": 48,
+  "control": "plato",
+  "apoyo": "deslizante",
+  "motor": "ngsolve",
+  "solver": "CG + BDDC (NGSolve)",
+  "residuo_rel": 3.1530619464277618e-12,
+  "n_gdl": 790599,
+  "n_elems": 143208,
+  "t_malla_s": 6.195243866000055,
+  "t_sol_s": 54.61492164699996,
+  "F_N": 11.014750927962197,
+  "sigma_app_MPa": 0.4405900371184879,
+  "E_app_area_MPa": 440.5900371184879,
+  "E_app_nodal_MPa": 440.5992464497786,
+  "V_mm3": 37.53381619606593,
+  "perdida_volumen_pct": 0.03456333410825607,
+  "descartado_pct": 0.0,
+  "rectificacion_max_mm": 8.089315566121164e-05,
+  "p99_sup": 50.35235132659512,
+  "max_sup": 195.55273608135775,
+  "max_global": 195.55273608135775,
+  "p50_sup": 7.1574863214350195,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.17960275863758982,
+    "frac_cola": 0.07006678936461022,
+    "enriquecimiento": 0.39012089734097016,
+    "p99_sin": 51.84755928151867,
+    "dp99_pct": 2.9694898361852795,
+    "max_en_clase": 142.5356979980921
+   },
+   "techo": {
+    "frac_vol_sup": 0.04832760830761298,
+    "frac_cola": 0.0026463919613925334,
+    "enriquecimiento": 0.05475942332067882,
+    "p99_sin": 50.94818430190342,
+    "dp99_pct": 1.1833270137547425,
+    "max_en_clase": 78.56690955628402
+   },
+   "base": {
+    "frac_vol_sup": 0.04962031829248049,
+    "frac_cola": 0.10103438494235036,
+    "enriquecimiento": 2.0361494730206355,
+    "p99_sin": 49.69490999959259,
+    "dp99_pct": -1.3056814819594753,
+    "max_en_clase": 180.11796694889568
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0008895292834414977,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 50.36578221256787,
+    "dp99_pct": 0.026673800962417893,
+    "max_en_clase": 20.22975568174097
+   },
+   "mala_calidad": {
+    "frac_vol_sup": 0.005655264468388733,
+    "frac_cola": 0.001747613277652851,
+    "enriquecimiento": 0.309024146867312,
+    "p99_sin": 50.40974484380803,
+    "dp99_pct": 0.11398378765004047,
+    "max_en_clase": 113.32720239547652
+   },
+   "diminuto": {
+    "frac_vol_sup": 1.0192450842947824e-08,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 50.352351480489666,
+    "dp99_pct": 3.056352726460432e-07,
+    "max_en_clase": 0.06662716895556398
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.735829415516961,
+    "frac_cola": 0.8472790727394591,
+    "enriquecimiento": 1.1514612692456696,
+    "p99_solo": 51.957289186504
+   }
+  },
+  "zz_global": 0.30754132955850494,
+  "zz_rel_mediana_sup": 0.2992355766290923,
+  "zz_rel_mediana_cola": 0.3768275796451851
+ },
+ "tet10_n32_fuerza_deslizante_skfem": {
+  "tipo": "tet10",
+  "n": 32,
+  "control": "fuerza",
+  "apoyo": "deslizante",
+  "motor": "skfem",
+  "solver": "CG + AMG agregacion suavizada (pyamg, modos rigidos)",
+  "residuo_rel": 1.0025678865101645e-10,
+  "n_gdl": 314880,
+  "n_elems": 54741,
+  "t_malla_s": 2.1332249490000095,
+  "t_sol_s": 174.6083360660001,
+  "F_N": 24.999999999997446,
+  "sigma_app_MPa": 0.9999999999998979,
+  "E_app_area_MPa": 157.03926177131555,
+  "E_app_nodal_MPa": 150.68114499097925,
+  "V_mm3": 37.09294445926352,
+  "perdida_volumen_pct": 0.11614964222725632,
+  "descartado_pct": 0.0,
+  "rectificacion_max_mm": 0.00014632121974664236,
+  "p99_sup": 85.8906685716387,
+  "max_sup": 492.71376019450656,
+  "max_global": 492.71376019450656,
+  "p50_sup": 9.013203217232977,
+  "clases": {
+   "borde_lateral": {
+    "frac_vol_sup": 0.1634676151407908,
+    "frac_cola": 0.024865601524092642,
+    "enriquecimiento": 0.15211331922030236,
+    "p99_sin": 90.59389545196905,
+    "dp99_pct": 5.475829864343806,
+    "max_en_clase": 142.46122308461298
+   },
+   "techo": {
+    "frac_vol_sup": 0.04678033821437435,
+    "frac_cola": 0.17799576328576047,
+    "enriquecimiento": 3.8049268149811524,
+    "p99_sin": 80.42123651409128,
+    "dp99_pct": -6.3679002020871955,
+    "max_en_clase": 305.6483341866907
+   },
+   "base": {
+    "frac_vol_sup": 0.043789653918374104,
+    "frac_cola": 0.01024797364245625,
+    "enriquecimiento": 0.2340272810001864,
+    "p99_sin": 86.82195199220219,
+    "dp99_pct": 1.084266121163946,
+    "max_en_clase": 130.96108168938187
+   },
+   "ancla": {
+    "frac_vol_sup": 0.0005791877659784371,
+    "frac_cola": 0.0,
+    "enriquecimiento": 0.0,
+    "p99_sin": 85.90659882929616,
+    "dp99_pct": 0.018547134307356217,
+    "max_en_clase": 20.019162721680843
+   },
+   "mala_calidad": {
+    "frac_vol_sup": 0.004847779085035329,
+    "frac_cola": 0.0048229300426539555,
+    "enriquecimiento": 0.9948741388694712,
+    "p99_sin": 85.89123713021051,
+    "dp99_pct": 0.0006619561603971036,
+    "max_en_clase": 231.17633665827705
+   },
+   "diminuto": {
+    "frac_vol_sup": 0.0,
+    "frac_cola": 0.0,
+    "enriquecimiento": NaN,
+    "p99_sin": 85.8906685716387,
+    "dp99_pct": 0.0,
+    "max_en_clase": NaN
+   },
+   "ninguna": {
+    "frac_vol_sup": 0.7575030453069784,
+    "frac_cola": 0.7877808429856941,
+    "enriquecimiento": 1.039970529315094,
+    "p99_solo": 86.77857916296932
+   }
+  },
+  "zz_global": 0.45922768688194143,
+  "zz_rel_mediana_sup": 0.3972801494260394,
+  "zz_rel_mediana_cola": 0.4986219143808297,
+  "error_iterativo": {
+   "du_rel": 0.00890067632124387,
+   "vm_err_max": 38208.7472975334,
+   "vm_err_p99": 0.30361553841165634,
+   "vm_err_mediana": 0.004935678986210373,
+   "frac_malo_en_top01": 0.018518518518518517,
+   "frac_malo_total": 0.03215140388374345,
+   "dp99_pct": 0.1438792723926774,
+   "dE_area_pct": 0.22767561065089037
+  }
+ },
+ "persistencia": {
+  "hex8_n32_fuerza_deslizante|hex8_n64_fuerza_deslizante": {
+   "spearman": 0.7721176545301701,
+   "cola_cerca": 0.925,
+   "dist_vecino_mediana_mm": 0.06765823467065928
+  },
+  "hex8_n48_fuerza_deslizante|hex8_n64_fuerza_deslizante": {
+   "spearman": 0.8626334093952864,
+   "cola_cerca": 0.9653465346534653,
+   "dist_vecino_mediana_mm": 0.04318521862441942
+  },
+  "tet10_n32_fuerza_deslizante|tet10_n48_fuerza_deslizante": {
+   "spearman": 0.7518555020330231,
+   "cola_cerca": 0.8369230769230769,
+   "dist_vecino_mediana_mm": 0.04522731626284125
+  },
+  "hex8_n48_fuerza_deslizante|tet10_n48_fuerza_deslizante": {
+   "spearman": 0.8080979136504391,
+   "cola_cerca": 0.8267326732673267,
+   "dist_vecino_mediana_mm": 0.04421091106805114
+  },
+  "hex8_n64_fuerza_deslizante|tet10_n48_fuerza_deslizante": {
+   "spearman": 0.8167311698498828,
+   "cola_cerca": 0.8164893617021277,
+   "dist_vecino_mediana_mm": 0.042157876542643
+  },
+  "hex8_n48_fuerza_deslizante|hex8_n48_plato_deslizante": {
+   "spearman": 0.8411036834786421,
+   "cola_cerca": 0.4504950495049505,
+   "dist_vecino_mediana_mm": 0.0
+  },
+  "tet10_n48_fuerza_deslizante|tet10_n48_plato_deslizante": {
+   "spearman": 0.8284712918467001,
+   "cola_cerca": 0.452755905511811,
+   "dist_vecino_mediana_mm": 0.0
+  },
+  "hex8_n48_fuerza_deslizante|hex8_n48_fuerza_empotrado": {
+   "spearman": 0.965379507887769,
+   "cola_cerca": 0.9603960396039604,
+   "dist_vecino_mediana_mm": 0.0
+  }
+ }
+}
