@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 28 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-28%20bloques-5b6b7f">
+  <img alt="Verificación: 29 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-29%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -114,7 +114,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 | **Mide** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, tensor MIL y DA, Conn.D, SMI, espesor local, tamaño de poro, **Ellipsoid Factor** y curvaturas principales de la interfaz. |
 | **Ajusta** | Los parámetros que mejor reproducen un VOI real: búsqueda escalonada, réplicas con semillas nuevas, suelo de ruido autoconsistente y desempate mecánico opcional. |
 | **Homogeneiza** | El tensor elástico por celda unidad periódica sobre la rejilla de vóxeles, con multigrid algebraico y comprobación del residuo. |
-| **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. |
+| **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. E y p99 **corregidos de los artefactos de borde** (plato rígido y medida en el núcleo del VOI), validados frente al mismo hueso embebido en hueso. |
 | **Simula** | Pérdida ósea *in silico* (adelgazamiento, trabéculas finas, desuso, recuperación) y fallo progresivo sobre el gemelo digital del VOI. |
 | **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad, lista de chequeo de reporte (Bouxsein et al. 2010 para micro-TC, Erdemir et al. 2012 para elementos finitos) y huella SHA-256 para reproducir cada máscara. |
 | **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL, y el ensayo de compresión completo a FEBio 4 (`.feb`). |
@@ -286,7 +286,7 @@ python Test/replicar_kumar2020.py --rapido   # ~1,5 min
 python -m pytest tests/ -q
 ```
 
-28 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+29 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la

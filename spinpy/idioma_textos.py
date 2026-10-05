@@ -1637,6 +1637,12 @@ EN = {
         'Nonlinear, force imposed at the protocol load',
     'No lineal, plato rígido':
         'Nonlinear, rigid platen',
+    'Lineal con plato rígido y medida en el núcleo (corrige los artefactos de borde)':
+        'Linear with rigid platen and core measurement (corrects boundary artefacts)',
+    'corregido':
+        'corrected',
+    'E y p99 corregidos: plato rígido y núcleo a 0,625 mm de las caras; validados frente al mismo hueso embebido (comparativa_motores/correcciones).':
+        'Corrected E and p99: rigid platen and core 0.625 mm from the faces; validated against the same bone embedded in bone (comparativa_motores/correcciones).',
     'Núcleos − 1 por omisión, para que la ventana siga respondiendo.':
         'Cores − 1 by default, so the window stays responsive.',
     'Parámetros del protocolo':
