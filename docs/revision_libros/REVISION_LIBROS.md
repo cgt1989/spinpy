@@ -8,7 +8,7 @@
 
 ## Resumen
 
-Se revisaron 20 de los 23 textos de la biblioteca, buscando dos cosas: soluciones para los problemas que la aplicación declara abiertos y mejoras para métodos que ya implementa. Cada propuesta se contrastó con el código de la V2.1.1 antes de incluirla, y se indica el archivo y la línea afectados. Los tres textos en formato DjVu (Bathe 1996, Bathe y Wilson 1976, Reddy 2002) no pudieron leerse en el entorno de trabajo y quedan pendientes (sección 6).
+Se revisaron los 23 textos de la biblioteca, buscando dos cosas: soluciones para los problemas que la aplicación declara abiertos y mejoras para métodos que ya implementa. Cada propuesta se contrastó con el código de la V2.1.1 antes de incluirla, y se indica el archivo y la línea afectados. Los tres textos en formato DjVu (Bathe 1996, Bathe y Wilson 1976, Reddy 2002) se revisaron en una segunda fase (sección 6). Siete propuestas (R1 a R7) se implementaron y probaron; los resultados están en `comparativa_motores/libros/informe_libros/INFORME_LIBROS.pdf`.
 
 Los libros con más aplicación directa son Zienkiewicz, Taylor y Zhu (2005), Nocedal y Wright (2006), Brenner y Scott (2008) y Šolín, Segeth y Doležel (2004). Tartar (2009), Atkinson y Han (2009), Modersitzki (2004) y los dos textos de cálculo de variaciones aportan justificación teórica para decisiones ya tomadas o para cambios concretos. El resto tiene poca relación con lo que hace spinpy (sección 5).
 
@@ -33,7 +33,7 @@ Cinco hallazgos se pueden aplicar con poco esfuerzo y merecen ir primero:
 3. Búsqueda dirigida en el texto completo, por términos asociados a cada problema (por ejemplo *arc length*, *superconvergent patch recovery*, *condition number*, *stopping criteria*, *Signorini*, *polyconvex*, *boundary layer*), y lectura de las páginas encontradas.
 4. Contraste de cada propuesta con el código. Solo se incluye una propuesta si el código actual no la implementa ya; las que ya están cubiertas se señalan como tales (sección 4).
 
-**Limitaciones.** La búsqueda por términos puede pasar por alto secciones pertinentes que usen otra terminología. No se leyeron los textos completos, sino sus índices y los pasajes localizados. Los tres DjVu no se revisaron. Ninguna propuesta se ha implementado ni medido todavía: el efecto que se espera de cada una es una hipótesis que hay que verificar con la misma disciplina de los informes anteriores (criterio fijado antes de medir).
+**Limitaciones.** La búsqueda por términos puede pasar por alto secciones pertinentes que usen otra terminología. No se leyeron los textos completos, sino sus índices y los pasajes localizados. El texto de Reddy (2002) no tenía capa de texto y se leyó por reconocimiento óptico de caracteres, con errores tipográficos que pueden ocultar algún término. Las propuestas R8 a R17 no se han implementado ni medido: su efecto es una hipótesis.
 
 ---
 
@@ -55,7 +55,7 @@ Esfuerzo: **bajo**, un cambio local con prueba en la suite; **medio**, un módul
 | R10 | Plato con contacto unilateral sin fricción | análisis `lineal_plato` | plato pegado al techo | Atkinson y Han §11.5.2; Nocedal y Wright cap. 16-17 | medio | media |
 | R11 | Calidad de la malla TET10 y escalado diagonal | `solido.malla_tet10`; motores | astillas y mal condicionamiento | Brenner y Scott §9.6-9.7; Zienkiewicz et al. §8.2.4 | medio | media |
 | R12 | Optimización sin derivadas para funciones con ruido en el ajuste | `fit.py`; `fit_dual.py` | optimizadores solo en MATLAB | Nocedal y Wright cap. 9 | medio | media |
-| R13 | Seguimiento de trayectoria (longitud de arco) | motores no lineales | carga de fallo con fuerza impuesta | Nocedal y Wright §11.3; Bathe (pendiente) | alto | baja |
+| R13 | Seguimiento de trayectoria (longitud de arco) | motores no lineales | carga de fallo con fuerza impuesta | Nocedal y Wright §11.3; Bathe §8.4.3 | alto | baja |
 | R14 | Estimación de error orientada al E aparente | `resistencia.estudio_convergencia` | convergencia verificada solo en el cubo | Zienkiewicz et al. §13.9; Šolín et al. §6.3 | alto | baja |
 | R15 | Detección de mecanismos por autovalores bajos de K | `fem.mallar` | bisagras (A5) y fragmentos casi sueltos | Quarteroni et al. §5.11; Sun y Zhou cap. 9 | medio | baja |
 | R16 | Formulación solo sólido en la homogeneización | `elastic.homogeneizar` | contraste 10⁻⁶ entre hueso y vacío | Tartar cap. 16; Brenner y Scott §5.2 | medio | baja |
@@ -183,7 +183,7 @@ Esfuerzo: **bajo**, un cambio local con prueba en la suite; **medio**, un módul
 
 ### R13 a R17. Líneas de largo plazo
 
-- **R13. Seguimiento de trayectoria.** Nocedal y Wright (§11.3, pp. 296-300) describen la continuación con longitud de arco como parámetro: carga y desplazamiento avanzan juntos, y la trayectoria puede seguirse más allá de un punto límite. Sería la forma correcta de obtener la carga máxima con fuerza impuesta. El tratamiento estructural clásico está en Bathe (1996, cap. 8), que no se pudo leer. Conviene hacerlo después de R2 y R3.
+- **R13. Seguimiento de trayectoria.** Nocedal y Wright (§11.3, pp. 296-300) describen la continuación con longitud de arco como parámetro: carga y desplazamiento avanzan juntos, y la trayectoria puede seguirse más allá de un punto límite. Sería la forma correcta de obtener la carga máxima con fuerza impuesta. El tratamiento estructural clásico es el de Bathe (1996, §8.4.3, pp. 761-764): multiplicador de carga, restricción de longitud de arco esférica o de trabajo externo constante, y un algoritmo que «debe detener la iteración cuando la divergencia es inminente y reiniciarse con nuevos parámetros». Conviene hacerlo después de R2 y R3.
 - **R14. Error orientado al E aparente.** El E aparente es una funcional de la solución (la reacción en el techo). Zienkiewicz et al. (§13.9, p. 490) y Šolín et al. (§6.3, p. 324) muestran cómo estimar su error con un problema adjunto resuelto en la misma malla. Eso permitiría declarar el error del E aparente en el espécimen sin repetir el ensayo en cuatro mallas, que es lo que hoy pide la lista de chequeo de Erdemir et al. (2012).
 - **R15. Mecanismos por autovalores.** Los autovalores más bajos de la matriz de rigidez, calculados con Lanczos (Quarteroni et al. §5.11; Sun y Zhou 2017, cap. 9), localizan las partes que casi pueden moverse como sólido rígido: bisagras por arista o vértice (artefacto A5) y trabéculas casi sueltas. Hoy el filtro de conectividad por caras (`resistencia._solo_portante`) solo elimina las piezas que no unen base y techo.
 - **R16. Homogeneización solo sólido.** Tartar (2009, cap. 16, pp. 177-178) formula la homogeneización con agujeros y condición de Neumann, y su análisis exige una constante de extensión acotada y un dominio conexo. Cerca del umbral de conectividad esa constante no puede mantenerse acotada. Eso sugiere que la falta de convergencia por debajo de ρ ≈ 0,25 es en parte intrínseca, como ya declara la aplicación. Eliminar el vacío (en lugar de darle rigidez 10⁻⁶) quitaría el contraste artificial, pero exige tratar las islas como hace `_solo_portante` y fijar las traslaciones (Brenner y Scott §5.2, problema de Neumann puro).
@@ -227,13 +227,28 @@ La revisión confirma varias decisiones de diseño que no conviene tocar:
 | Langtangen 2016; Langtangen y Linge 2017 | baja | diferencias finitas; sus prácticas de verificación ya están en la suite |
 | Langtangen y Logg 2016 (tutorial de FEniCS) | baja | escrito para la versión antigua de FEniCS; FEniCSx es un motor opcional |
 | Introducción al Método de Elementos Finitos (apuntes, cap. 1 de A. Brewer) | baja | texto introductorio; útil para formación, no para cambios en el código |
-| Bathe 1996; Bathe y Wilson 1976; Reddy 2002 | sin evaluar | DjVu no legibles en el entorno (sección 6) |
+| Bathe 1996 | alta | R2 (§8.4.1-8.4.2: control de paso y búsqueda lineal), R13 (§8.4.3), criterio de energía (§8.4.4), R6 (§4.4.1, modos incompatibles en cubos), R3 (§6.6.1) |
+| Reddy 2002 | baja | bloqueo por cortante en vigas y placas (§9.4), apoyo conceptual a R6 |
+| Bathe y Wilson 1976 | baja | antecedente de Bathe 1996; no añade nada que este no cubra |
 
 ---
 
-## 6. Pendiente
+## 6. Textos en DjVu (segunda fase)
 
-**Textos en DjVu.** El entorno no tiene herramientas para leer DjVu. El más relevante es Bathe (1996): su capítulo 8 trata la solución de ecuaciones no lineales en mecánica estructural, con control de carga, desplazamiento y longitud de arco, y completaría R2 y R13. Hay dos opciones: convertir los tres archivos a PDF con capa de texto y subirlos al mismo repositorio, o autorizar la instalación de `djvulibre-bin` en el entorno.
+Se instalaron `djvulibre` y `tesseract` en el entorno. Bathe (1996) y Bathe y Wilson (1976) tienen capa de texto; Reddy (2002) se leyó por reconocimiento óptico.
+
+**Bathe (1996)** es el texto con más aplicación directa de los tres:
+
+- **§8.4.1 y §8.4.2 (pp. 755-761).** Con la tangente exacta, «el procedimiento principal para alcanzar la convergencia es reducir el incremento de carga» (p. 758), y la búsqueda lineal «puede evitar la divergencia», que es la razón principal de su eficacia (p. 761). Es el fundamento de R2.
+- **§8.4.3 (pp. 761-764).** Métodos de restricción carga-desplazamiento (longitud de arco) para atravesar puntos límite: fundamento de R13.
+- **§8.4.4 (pp. 764-765).** Criterios de convergencia por desplazamiento, por fuerza y por energía. El de energía combina los dos primeros; el motor NGSolve usa hoy solo el de fuerza.
+- **§4.4.1 y ejemplo 4.28 (pp. 262-268).** Modos incompatibles: en un elemento cuadrado la integral de la matriz B de los modos es nula y la prueba de la parcela se cumple sin corrección. En la malla de vóxeles todos los elementos son cubos, así que R6 no necesita la corrección de los elementos distorsionados. Al ser no conforme, la energía deja de ser una cota y la convergencia puede no ser monótona.
+- **§6.6.1 (pp. 583-589).** El material de St. Venant-Kirchhoff es natural con grandes desplazamientos y rotaciones pero deformaciones pequeñas; con deformaciones grandes la respuesta cambia por completo. Apoya R3.
+- **§10.2 (p. 849).** Propiedad de la secuencia de Sturm: el número de elementos negativos de D en la factorización LDLᵀ es el número de autovalores por debajo del desplazamiento. Permite detectar la pérdida de estabilidad en el Newton (R2) y apoya R15.
+
+**Reddy (2002)** trata principios energéticos y métodos variacionales. Su §9.4 explica el bloqueo por cortante de los elementos de viga de Timoshenko y lo corrige con integración reducida, la misma raíz que la rigidez excesiva del hexaedro trilineal en flexión (R6).
+
+**Bathe y Wilson (1976)** es el antecedente de Bathe (1996) y no aporta nada que este no cubra.
 
 **Lo que ningún texto resuelve.** La segmentación por umbral global sigue siendo la mayor fuente de incertidumbre, y ninguno de los libros trata la segmentación de micro-TC (Modersitzki trata registro, no segmentación). La carga de fallo de Pistoia con plato sigue sin referencia para validarla, y la validación del modelo frente a un ensayo físico no puede sustituirse con métodos numéricos.
 
@@ -261,3 +276,6 @@ La revisión confirma varias decisiones de diseño que no conviene tocar:
 18. Langtangen HP, Linge S. Finite difference computing with PDEs: a modern software approach. Cham: Springer; 2017.
 19. Langtangen HP, Logg A. Solving PDEs in Python: the FEniCS tutorial I. Cham: Springer; 2016.
 20. Erdemir A, Guess TM, Halloran J, Tadepalli SC, Morrison TM. Considerations for reporting finite element analysis studies in biomechanics. J Biomech. 2012;45(4):625-33. doi:10.1016/j.jbiomech.2011.11.038
+21. Bathe KJ. Finite element procedures. Englewood Cliffs: Prentice Hall; 1996.
+22. Reddy JN. Energy principles and variational methods in applied mechanics. 2nd ed. New York: Wiley; 2002.
+23. Bathe KJ, Wilson EL. Numerical methods in finite element analysis. Englewood Cliffs: Prentice-Hall; 1976.
