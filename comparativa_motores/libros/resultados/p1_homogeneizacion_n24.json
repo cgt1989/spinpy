@@ -1,0 +1,24 @@
+{
+ "0.15": {
+  "rho_real": 0.1560329861111111,
+  "lu": {
+   "C11": 1.3723798963314837e-05,
+   "t_s": 179.72593803899963
+  },
+  "escalar": {
+   "ok": false,
+   "residuo": 0.00018434420680197766,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 347.25936972599993,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 1.8e-04). El tensor no es fiable; prueba una resolucion menor."
+  }
+ }
+}
