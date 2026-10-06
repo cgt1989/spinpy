@@ -1,0 +1,5 @@
+Fuentes del informe de artefactos (solo para imprimir el PDF y las figuras).
+Source Serif 4, IBM Plex Sans e IBM Plex Mono, descargadas de Google Fonts
+(subconjuntos latin y latin-ext). Licencia: SIL Open Font License 1.1.
+PlexSans-Regular.ttf y PlexSans-SemiBold.ttf son instancias estaticas de la
+fuente variable, generadas con fontTools para matplotlib.

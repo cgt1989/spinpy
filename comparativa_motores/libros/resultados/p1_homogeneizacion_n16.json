@@ -1,0 +1,272 @@
+{
+ "0.15": {
+  "rho_real": 0.16552734375,
+  "lu": {
+   "C11": 0.00013484942194937446,
+   "t_s": 11.831331430000091
+  },
+  "escalar": {
+   "ok": false,
+   "residuo": 9.86481767535325e-05,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 215.06232359699993,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 9.9e-05). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "traslaciones": {
+   "ok": false,
+   "residuo": 3.938620017835323e-05,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 152.5186548539998,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 3.9e-05). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "rigidos": {
+   "ok": false,
+   "residuo": 3.0305067901998933e-05,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 148.218514616,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 3.0e-05). El tensor no es fiable; prueba una resolucion menor."
+  }
+ },
+ "0.2": {
+  "rho_real": 0.211669921875,
+  "lu": {
+   "C11": 0.006208281681315924,
+   "t_s": 10.681865782999921
+  },
+  "escalar": {
+   "ok": false,
+   "residuo": 8.557124679921255e-06,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 134.89412512399986,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 8.6e-06). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 5.778168598385618e-07,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 22.219693203000134,
+   "C11": 0.006208281769736748,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.212 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 1.470279338182527e-08
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 1.3878346973235108e-07,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 22.411041450000084,
+   "C11": 0.006208281695227136,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.212 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 2.240750711143503e-09
+  }
+ },
+ "0.25": {
+  "rho_real": 0.2529296875,
+  "lu": {
+   "C11": 0.019707945764914428,
+   "t_s": 11.70817364200002
+  },
+  "escalar": {
+   "ok": false,
+   "residuo": 1.3693660244711743e-05,
+   "iteraciones": [
+    387,
+    500,
+    347,
+    392,
+    500,
+    500
+   ],
+   "t_s": 16.196626509999987,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 1.4e-05). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 9.972961440806248e-09,
+   "iteraciones": [
+    307,
+    307,
+    346,
+    362,
+    350,
+    364
+   ],
+   "t_s": 13.717847170999903,
+   "C11": 0.01970794576502826,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.253 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 9.252238169212271e-12
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 9.999457863465713e-09,
+   "iteraciones": [
+    307,
+    308,
+    308,
+    311,
+    369,
+    313
+   ],
+   "t_s": 15.106419732000177,
+   "C11": 0.019707945764919386,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.253 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 5.196550783353619e-12
+  }
+ },
+ "0.3": {
+  "rho_real": 0.304931640625,
+  "lu": {
+   "C11": 0.052955650253060316,
+   "t_s": 10.065354667000065
+  },
+  "escalar": {
+   "ok": true,
+   "residuo": 9.101433474813319e-09,
+   "iteraciones": [
+    161,
+    160,
+    161,
+    160,
+    164,
+    163
+   ],
+   "t_s": 6.621975643000042,
+   "C11": 0.052955650253060545,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.305 (AMG (agregacion suavizada, escalar) + CG).",
+   "dif_rel_lu": 9.248751661249995e-15
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 9.5849174520743e-09,
+   "iteraciones": [
+    96,
+    98,
+    99,
+    101,
+    101,
+    100
+   ],
+   "t_s": 4.626799361999929,
+   "C11": 0.05295565025306059,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.305 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 5.24929148341216e-15
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 9.261389999364055e-09,
+   "iteraciones": [
+    88,
+    89,
+    89,
+    92,
+    91,
+    91
+   ],
+   "t_s": 6.434481226000116,
+   "C11": 0.05295565025306062,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.305 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 5.999190266756753e-15
+  }
+ },
+ "0.4": {
+  "rho_real": 0.39892578125,
+  "lu": {
+   "C11": 0.1486873376014909,
+   "t_s": 11.825853399000152
+  },
+  "escalar": {
+   "ok": true,
+   "residuo": 9.68706626831188e-09,
+   "iteraciones": [
+    68,
+    69,
+    68,
+    70,
+    69,
+    70
+   ],
+   "t_s": 18.949585532999663,
+   "C11": 0.14868733760149103,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.399 (AMG (agregacion suavizada, escalar) + CG).",
+   "dif_rel_lu": 9.140396391449628e-16
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 8.750239422377513e-09,
+   "iteraciones": [
+    29,
+    29,
+    29,
+    30,
+    30,
+    30
+   ],
+   "t_s": 10.814427931999944,
+   "C11": 0.14868733760149092,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.399 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 1.279655494802948e-15
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 9.68400764178132e-09,
+   "iteraciones": [
+    26,
+    26,
+    27,
+    27,
+    27,
+    27
+   ],
+   "t_s": 13.032634752999911,
+   "C11": 0.14868733760149094,
+   "msg": "Homogeneizacion completada. 4096 elementos, 12288 GDL, fraccion solida 0.399 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 9.140396391449628e-16
+  }
+ }
+}

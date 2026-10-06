@@ -1,0 +1,44 @@
+[
+ {
+  "b": 0.6,
+  "cociente_s2_s1": 0.5997836409479212,
+  "grados_por_pct_eje1": 0.8948835900361248,
+  "giro_medido_max": 0.370309318605617,
+  "aviso_eje1": false
+ },
+ {
+  "b": 0.8,
+  "cociente_s2_s1": 0.7995137448993223,
+  "grados_por_pct_eje1": 1.5881183377898433,
+  "giro_medido_max": 0.3759589360877884,
+  "aviso_eje1": false
+ },
+ {
+  "b": 0.9,
+  "cociente_s2_s1": 0.8999206142893298,
+  "grados_por_pct_eje1": 3.013301213768154,
+  "giro_medido_max": 0.6382004083468571,
+  "aviso_eje1": false
+ },
+ {
+  "b": 0.95,
+  "cociente_s2_s1": 0.9495298153840036,
+  "grados_por_pct_eje1": 5.8231483935543595,
+  "giro_medido_max": 1.4893573996805691,
+  "aviso_eje1": true
+ },
+ {
+  "b": 0.97,
+  "cociente_s2_s1": 0.9708565098561215,
+  "grados_por_pct_eje1": 9.975302299389218,
+  "giro_medido_max": 2.4469939705238835,
+  "aviso_eje1": true
+ },
+ {
+  "b": 0.99,
+  "cociente_s2_s1": 0.988476950412116,
+  "grados_por_pct_eje1": 25.005448033715478,
+  "giro_medido_max": 9.7322245238811,
+  "aviso_eje1": true
+ }
+]

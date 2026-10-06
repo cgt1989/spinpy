@@ -1,0 +1,37 @@
+{
+ "24_orden1_m1": {
+  "E_app_MPa": 535.4615111808116,
+  "n_gdl": 30672,
+  "t_s": 0.6310856760001116,
+  "rss_MB": 293.7890625,
+  "solver": "sparsecholesky (NGSolve)"
+ },
+ "24_orden1_m2": {
+  "E_app_MPa": 402.0347477317288,
+  "n_gdl": 164946,
+  "t_s": 3.9539533090000987,
+  "rss_MB": 600.28515625,
+  "solver": "sparsecholesky (NGSolve)"
+ },
+ "24_orden1_m3": {
+  "E_app_MPa": 357.71488839325656,
+  "n_gdl": 474414,
+  "t_s": 17.178376426999876,
+  "rss_MB": 1717.90234375,
+  "solver": "sparsecholesky (NGSolve)"
+ },
+ "24_orden2_m1": {
+  "E_app_MPa": 359.35594676427917,
+  "n_gdl": 164946,
+  "t_s": 3.9453206029998,
+  "rss_MB": 714.27734375,
+  "solver": "sparsecholesky (NGSolve)"
+ },
+ "24_orden2_m2": {
+  "E_app_MPa": 312.0744657268902,
+  "n_gdl": 1031130,
+  "t_s": 57.25812460599991,
+  "rss_MB": 5334.546875,
+  "solver": "sparsecholesky (NGSolve)"
+ }
+}
