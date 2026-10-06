@@ -263,9 +263,23 @@ def preparar_tet10(nodos, elems, forma, spacing):
         elems = elems[~en_mismo_plano]
         nodos, elems = _compactar(nodos, elems)
     vol = _volumen_tet(nodos, elems)
+    # ASTILLAS INVERTIDAS. Un tetraedro casi plano junto a una cara del cubo
+    # (tres esquinas en el plano y la cuarta a ~1e-3 h) puede INVERTIRSE al
+    # devolver los nodos a su plano, en vez de aplanarse (medido en un VOI
+    # equino real a 40^3: |V| = 5e-10 de la mediana). Como las astillas
+    # planas, no aporta volumen ni rigidez: se quita y se declara. Un
+    # tetraedro invertido que NO sea degenerado sigue siendo un error.
+    n_invertidas = 0
     if (vol <= 0).any():
-        raise RuntimeError(f"{int((vol <= 0).sum())} tetraedros con "
-                           "volumen no positivo.")
+        degenerado = np.abs(vol) < 1e-6 * float(np.median(np.abs(vol)))
+        if np.any((vol <= 0) & ~degenerado):
+            raise RuntimeError(f"{int(((vol <= 0) & ~degenerado).sum())} "
+                               "tetraedros con volumen no positivo.")
+        quitar = vol <= 0
+        n_invertidas = int(quitar.sum())
+        elems = elems[~quitar]
+        nodos, elems = _compactar(nodos, elems)
+        vol = _volumen_tet(nodos, elems)
     V_total = float(vol.sum())
     port, n_comp = _componentes_portantes(nodos, elems, z0, z1, tol)
     elems, vol = elems[port], vol[port]
@@ -295,6 +309,7 @@ def preparar_tet10(nodos, elems, forma, spacing):
            "BVTV_malla": V / V_caja,
            "vol_elem_min_mm3": float(vol.min()),
            "astillas_planas_quitadas": n_astillas,
+           "astillas_invertidas_quitadas": n_invertidas,
            "vol_elem_mediana_mm3": float(np.median(vol))}
     return nodos, elems, vol, caras, sup, z0, z1, inf
 

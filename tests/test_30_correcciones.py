@@ -23,6 +23,10 @@ LO QUE SE VERIFICA
       queda ok (regresion de la V2.1.0, corregida en la V2.1.1).
   (7) VOI demasiado pequeno para el nucleo, con plato: el E corregido es el
       del plato sobre el VOI completo ('plato_voi'), no falta (V2.1.1).
+  (8) Malla suave con una astilla invertida degenerada (|V| ~1e-9 de la
+      mediana): `fem.preparar_tet10` la quita y la declara; un tetraedro
+      invertido de tamano normal sigue rechazando la malla (V2.1.1; el caso
+      aparecio en un VOI equino real a 40^3).
   (5) Espinodoide de referencia a 32^3 (hex8): la E corregida queda a menos
       del 3 % de la referencia embebida medida en
       `comparativa_motores/correcciones/resultados/referencia.json`
@@ -183,3 +187,52 @@ def test_corregido_sin_nucleo_usa_plato(registro):
             prot["E_s"] / 1e6, cor.get("E_app", np.nan) / 1e6, err, "< 1e-8",
             ok)
     assert ok, cor
+
+
+def _con_tetraedro_extra(escala):
+    """Malla TET10 cruda de un macizo y un tetraedro INVERTIDO de volumen
+    `escala` veces el de un elemento tipico, apoyado en una cara existente."""
+    from spinpy.solido import malla_tet10
+    forma, sp = (4, 4, 6), np.full(3, 0.1)
+    nodos, elems, _s, _it = malla_tet10(np.ones(forma, bool), sp,
+                                        ejes_planos=(0, 1, 2))
+    nodos = np.asarray(nodos, float)
+    elems = np.asarray(elems, np.int64)
+    lo, hi = -0.5 * sp, (np.array(forma) - 0.5) * sp
+
+    def en_cara(P):
+        return any(np.all(np.abs(P[:, e] - v) < 1e-6) for e in range(3)
+                   for v in (lo[e], hi[e]))
+    # una cara INTERIOR (que no este sobre un plano del cubo): sobre una cara
+    # del cubo la astilla se aplanaria al ajustar los nodos y saldria por la
+    # regla de las astillas planas, no por la de las invertidas
+    e0 = next(e for e in elems if not en_cara(nodos[e[:3]]))
+    a, b, c, d = nodos[e0[:4]]
+    n = np.cross(b - a, c - a)
+    n /= np.linalg.norm(n)
+    lado = np.linalg.norm(b - a)
+    # cuarta esquina al lado de d respecto de la cara abc: orientacion
+    # opuesta a la del elemento original, es decir, volumen negativo
+    signo = np.sign(np.dot(d - a, n))
+    p = (a + b + c) / 3 - signo * n * escala * lado
+    nuevos = [p] + [0.5 * (u + v) for u, v in ((a, b), (b, c), (a, c),
+                                                 (a, p), (b, p), (c, p))]
+    i0 = len(nodos)
+    nodos = np.vstack([nodos, nuevos])
+    extra = np.array([[e0[0], e0[1], e0[2], i0, i0 + 1, i0 + 2, i0 + 3,
+                       i0 + 4, i0 + 5, i0 + 6]])
+    return nodos, np.vstack([elems, extra]), forma, sp
+
+
+def test_astilla_invertida_degenerada(registro):
+    nodos, elems, forma, sp = _con_tetraedro_extra(1e-9)
+    out = fem.preparar_tet10(nodos, elems, forma, sp)
+    quitadas = out[-1]["astillas_invertidas_quitadas"]
+    nodos, elems, forma, sp = _con_tetraedro_extra(0.5)
+    with pytest.raises(RuntimeError):
+        fem.preparar_tet10(nodos, elems, forma, sp)
+    ok = quitadas == 1
+    _anotar(registro, "astilla invertida degenerada quitada", 1.0,
+            float(quitadas), 0.0, "exacto", ok,
+            nota="un invertido no degenerado sigue rechazando la malla")
+    assert ok
