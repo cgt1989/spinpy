@@ -353,8 +353,11 @@ class _BaseFEBio(QtWidgets.QDialog):
         g = QtWidgets.QGroupBox(_("Material y solver"))
         gl = QtWidgets.QFormLayout(g)
         self.cmb_mat = QtWidgets.QComboBox()
-        self.cmb_mat.addItem(_("St. Venant-Kirchhoff (validado)"), "svk")
+        # Neo-Hookeano primero (por omision): el SVK no es estable en
+        # compresion grande (Kamensky 2022, sec. 4.3.4; Bathe 1996, sec.
+        # 6.6.1); con deformaciones pequenas los dos coinciden.
         self.cmb_mat.addItem(_("Neo-Hookeano"), "neohookeano")
+        self.cmb_mat.addItem(_("St. Venant-Kirchhoff (validado)"), "svk")
         gl.addRow(_("Material no lineal:"), self.cmb_mat)
         self.spin_hilos = QtWidgets.QSpinBox()
         n = os.cpu_count() or 2
@@ -846,7 +849,7 @@ class DialogoFEMAuto(_BaseFEBio):
                 "dec": self.spin_dec.value(),
                 "corr": self.chk_corr.isChecked(),
                 "conv": self.chk_conv.isChecked(),
-                "mat": self.cmb_mat.currentIndex(),
+                "material": self.cmb_mat.currentData(),
                 "motores": self.motores_sel(),
                 "solver": self.cmb_solver.currentIndex(),
                 "pasos": self.spin_pasos.value(),
@@ -885,7 +888,12 @@ class DialogoFEMAuto(_BaseFEBio):
             self.spin_dec.setValue(float(e["dec"]))
             self.chk_corr.setChecked(bool(e["corr"]))
             self.chk_conv.setChecked(bool(e["conv"]))
-            self.cmb_mat.setCurrentIndex(int(e["mat"]))
+            # Se guarda la clave y no el indice: el orden de la lista cambio
+            # en la V2.2 y un indice antiguo apuntaria al otro material.
+            # Las sesiones con la clave "mat" antigua se ignoran.
+            j = self.cmb_mat.findData(e.get("material"))
+            if j >= 0:
+                self.cmb_mat.setCurrentIndex(j)
             for k, c in self.chk_mot.items():
                 if c.isEnabled() and "motores" in e:
                     c.setChecked(k in e["motores"])
