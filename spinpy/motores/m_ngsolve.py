@@ -49,7 +49,11 @@ def _malla(p):
     from netgen.meshing import Mesh as NGMesh
     nodos, elems = p["nodos"], p["elems"]
     if elems.shape[1] == 8:
-        esq, e3, orden, nv = np.arange(nodos.shape[0]), elems, 1, 4
+        # orden_hex=2: hexaedros cuadraticos jerarquicos sobre la MISMA malla
+        # de voxeles (Solin, Segeth y Dolezel 2004, sec. 2.2.4): elementos de
+        # orden alto sin superficie suavizada ni tetgen. Experimental (V2.2).
+        orden = int(p["meta"].get("orden_hex", 1))
+        esq, e3, nv = np.arange(nodos.shape[0]), elems, 4
     else:
         esq = np.unique(elems[:, :4])
         e3, orden, nv = np.searchsorted(esq, elems[:, :4]), 2, 3
@@ -67,7 +71,8 @@ def _malla(p):
 
 
 def _dx(ng, orden):
-    # hex8: Gauss 2x2x2, como la app y FEBio. P2: la regla por omision.
+    # hex8: Gauss 2x2x2, como la app y FEBio. Orden 2 (P2 o Q2): la regla por
+    # omision de NGSolve.
     if orden == 1:
         return ng.dx(intrules={ng.HEX: ng.IntegrationRule(ng.HEX, 3)})
     return ng.dx
