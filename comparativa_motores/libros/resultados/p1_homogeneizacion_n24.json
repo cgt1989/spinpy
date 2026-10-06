@@ -50,5 +50,221 @@
    "C11": null,
    "msg": "El solver iterativo no convergio (residuo relativo peor = 3.9e-05). El tensor no es fiable; prueba una resolucion menor."
   }
+ },
+ "0.2": {
+  "rho_real": 0.20580150462962962,
+  "lu": {
+   "C11": 0.0017335454085475007,
+   "t_s": 201.13013126500027
+  },
+  "escalar": {
+   "ok": false,
+   "residuo": 1.3914445878610447e-05,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 557.1806184020006,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 1.4e-05). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "traslaciones": {
+   "ok": false,
+   "residuo": 5.636914578982777e-06,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 307.55908542699945,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 5.6e-06). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "rigidos": {
+   "ok": false,
+   "residuo": 3.3922089074826446e-06,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 267.94857972299997,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 3.4e-06). El tensor no es fiable; prueba una resolucion menor."
+  }
+ },
+ "0.25": {
+  "rho_real": 0.2566550925925926,
+  "lu": {
+   "C11": 0.014447520207257116,
+   "t_s": 206.39804425500006
+  },
+  "escalar": {
+   "ok": false,
+   "residuo": 3.6178521941201306e-06,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 194.21501659499972,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 3.6e-06). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 1.254365484709085e-07,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 216.9805407570002,
+   "C11": 0.014447520207417065,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.257 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 1.090501515059155e-11
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 9.589293275329606e-09,
+   "iteraciones": [
+    427,
+    426,
+    426,
+    482,
+    481,
+    481
+   ],
+   "t_s": 246.09484488399994,
+   "C11": 0.01444752020738567,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.257 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 9.700311620116457e-12
+  }
+ },
+ "0.3": {
+  "rho_real": 0.3053385416666667,
+  "lu": {
+   "C11": 0.04116405122668,
+   "t_s": 220.25887082200006
+  },
+  "escalar": {
+   "ok": true,
+   "residuo": 9.93979369369289e-09,
+   "iteraciones": [
+    243,
+    333,
+    241,
+    333,
+    336,
+    336
+   ],
+   "t_s": 123.73828350099939,
+   "C11": 0.04116405136359929,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.305 (AMG (agregacion suavizada, escalar) + CG).",
+   "dif_rel_lu": 3.326185939598347e-09
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 9.353975480861652e-09,
+   "iteraciones": [
+    162,
+    163,
+    163,
+    134,
+    166,
+    165
+   ],
+   "t_s": 73.37020708399905,
+   "C11": 0.04116405122668037,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.305 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 5.45313716949971e-14
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 9.305932316687455e-09,
+   "iteraciones": [
+    137,
+    136,
+    137,
+    139,
+    139,
+    140
+   ],
+   "t_s": 77.51553469400096,
+   "C11": 0.041164051226680216,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.305 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 6.4055397972485e-15
+  }
+ },
+ "0.4": {
+  "rho_real": 0.40140335648148145,
+  "lu": {
+   "C11": 0.11274252486224931,
+   "t_s": 171.39464606100046
+  },
+  "escalar": {
+   "ok": true,
+   "residuo": 9.170867711840233e-09,
+   "iteraciones": [
+    116,
+    116,
+    115,
+    118,
+    119,
+    120
+   ],
+   "t_s": 16.35420094100118,
+   "C11": 0.11274252486224953,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.401 (AMG (agregacion suavizada, escalar) + CG).",
+   "dif_rel_lu": 2.510538538384393e-15
+  },
+  "traslaciones": {
+   "ok": true,
+   "residuo": 9.560715461299724e-09,
+   "iteraciones": [
+    37,
+    36,
+    36,
+    38,
+    38,
+    39
+   ],
+   "t_s": 7.254606434999005,
+   "C11": 0.11274252486224944,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.401 (AMG (agregacion suavizada, traslaciones) + CG).",
+   "dif_rel_lu": 2.0323407215492704e-15
+  },
+  "rigidos": {
+   "ok": true,
+   "residuo": 8.254323037163792e-09,
+   "iteraciones": [
+    33,
+    33,
+    33,
+    34,
+    34,
+    34
+   ],
+   "t_s": 9.711497293999855,
+   "C11": 0.11274252486224945,
+   "msg": "Homogeneizacion completada. 13824 elementos, 41472 GDL, fraccion solida 0.401 (AMG (agregacion suavizada, rigidos) + CG).",
+   "dif_rel_lu": 1.1954945420878062e-15
+  }
  }
 }

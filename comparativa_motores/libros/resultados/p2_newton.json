@@ -581,5 +581,100 @@
   "ok": false,
   "msg": "Newton no convergio en la carga 61.1774 (ultima carga alcanzada 0)",
   "t_s": 100.86797447199933
+ },
+ "esp_tet10_24_svk_10MPa_glob": {
+  "ok": false,
+  "msg": "Newton no convergio en la carga 61.1774 (ultima carga alcanzada 30.7679)",
+  "t_s": 2377.2283748949994
+ },
+ "esp_tet10_24_neohookeano_2MPa_v211": {
+  "ok": true,
+  "F_N": [
+   49.999999999998856
+  ],
+  "uz_techo_mm": -0.23686336537772168,
+  "iter": [
+   15
+  ],
+  "newton": {
+   "incrementos": 1,
+   "con_busqueda": 0,
+   "cortes_carga": 0,
+   "pasos_recortados": 0,
+   "tangente_no_definida": 0,
+   "globalizado": false
+  },
+  "t_s": 50.481734265999876,
+  "A_bruta": 25.0
+ },
+ "esp_tet10_24_neohookeano_2MPa_glob": {
+  "ok": true,
+  "F_N": [
+   49.99999999999717
+  ],
+  "uz_techo_mm": -0.23686336537772187,
+  "iter": [
+   15
+  ],
+  "newton": {
+   "incrementos": 1,
+   "con_busqueda": 0,
+   "cortes_carga": 0,
+   "pasos_recortados": 0,
+   "tangente_no_definida": 0,
+   "globalizado": true
+  },
+  "t_s": 51.51923087399973,
+  "A_bruta": 25.0
+ },
+ "esp_tet10_24_neohookeano_5MPa_v211": {
+  "ok": false,
+  "msg": "Newton no convergio en la carga 30.5887 (ultima carga alcanzada 0)",
+  "t_s": 7.084851030000209
+ },
+ "esp_tet10_24_neohookeano_5MPa_glob": {
+  "ok": true,
+  "F_N": [
+   124.9999999999744
+  ],
+  "uz_techo_mm": -0.6111973489373224,
+  "iter": [
+   172
+  ],
+  "newton": {
+   "incrementos": 6,
+   "con_busqueda": 5,
+   "cortes_carga": 2,
+   "pasos_recortados": 43,
+   "tangente_no_definida": 0,
+   "globalizado": true
+  },
+  "t_s": 573.8439048129994,
+  "A_bruta": 25.0
+ },
+ "esp_tet10_24_neohookeano_10MPa_v211": {
+  "ok": false,
+  "msg": "Newton no convergio en la carga 61.1774 (ultima carga alcanzada 0)",
+  "t_s": 6.715042312000151
+ },
+ "esp_tet10_24_neohookeano_10MPa_glob": {
+  "ok": true,
+  "F_N": [
+   249.99999999999693
+  ],
+  "uz_techo_mm": -1.4613343536300811,
+  "iter": [
+   256
+  ],
+  "newton": {
+   "incrementos": 11,
+   "con_busqueda": 7,
+   "cortes_carga": 3,
+   "pasos_recortados": 59,
+   "tangente_no_definida": 0,
+   "globalizado": true
+  },
+  "t_s": 860.097914774,
+  "A_bruta": 25.0
  }
 }
