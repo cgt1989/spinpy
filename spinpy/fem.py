@@ -856,7 +856,8 @@ def _corregido(reg):
     Validados frente a la configuracion embebida en
     `comparativa_motores/correcciones/` (hex8, 32^3 a 64^3):
       E_app   nucleo con plato rigido (error +0,8 a +1,5 %); sin el plato,
-              nucleo con traccion (-5,5 a -10 %).
+              nucleo con traccion (-5,5 a -10 %); si el VOI no admite nucleo
+              (lado < 2,25 mm), plato sobre el VOI completo (-5 a -10 %).
       p99     VOI completo con plato (+0,5 a +9,5 %); sin el plato, nucleo
               con traccion (-1,9 a +8,7 %).
     La linea base (traccion, VOI completo) daba -43 a -55 % en E_app y
@@ -870,6 +871,12 @@ def _corregido(reg):
         out["E_app"], out["metodo_E"] = npl["E_app"], "plato_nucleo"
     elif nl.get("ok"):
         out["E_app"], out["metodo_E"] = nl["E_app"], "traccion_nucleo"
+    elif lp.get("E_app") is not None:
+        # VOI demasiado pequeno para el nucleo (lado < 2 margen + 4 franja,
+        # 2,25 mm): el plato sobre el VOI completo. Validado en VOIs reales
+        # (comparativa_motores/vois_reales/): -5 a -7 % en VOIs porcinos de
+        # 2 mm, frente a -25 % sin corregir.
+        out["E_app"], out["metodo_E"] = lp["E_app"], "plato_voi"
     p99 = (lp.get("pistoia") or {}).get("vm_p99_superficie")
     if p99 is not None:
         out["vm_p99_superficie"], out["metodo_p99"] = p99, "plato_voi"

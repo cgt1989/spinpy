@@ -21,6 +21,8 @@ LO QUE SE VERIFICA
   (6) Por `fem.analizar` (el camino de la GUI y la CLI), con el motor de la
       app y con NGSolve: 'lineal_plato' no se cuenta como fallo y el registro
       queda ok (regresion de la V2.1.0, corregida en la V2.1.1).
+  (7) VOI demasiado pequeno para el nucleo, con plato: el E corregido es el
+      del plato sobre el VOI completo ('plato_voi'), no falta (V2.1.1).
   (5) Espinodoide de referencia a 32^3 (hex8): la E corregida queda a menos
       del 3 % de la referencia embebida medida en
       `comparativa_motores/correcciones/resultados/referencia.json`
@@ -165,3 +167,19 @@ def test_analizar_lineal_plato_no_es_fallo(registro, motor):
     _anotar(registro, f"analizar con lineal_plato ({motor}), 1 = ok", 1.0,
             float(ok), 0.0, "exacto", ok, nota=str(reg["fallos"]))
     assert ok, reg["fallos"]
+
+
+@pytest.mark.skipif(not NG, reason="NGSolve no instalado")
+def test_corregido_sin_nucleo_usa_plato(registro):
+    malla = fem.mallar(np.ones((8, 8, 8), bool), np.full(3, 0.2), "hex8")
+    prot = fem.protocolo("app")
+    reg = fem.ensayo(malla, prot, analisis=["lineal", "lineal_plato"],
+                     motor="ngsolve", aislado=False, solver="directo")
+    cor = reg["corregido"]
+    err = abs(cor.get("E_app", 0.0) / prot["E_s"] - 1)
+    ok = (not reg["lineal"]["nucleo"]["ok"] and cor.get("metodo_E") ==
+          "plato_voi" and err < 1e-8)
+    _anotar(registro, "E corregido sin nucleo (plato sobre el VOI)",
+            prot["E_s"] / 1e6, cor.get("E_app", np.nan) / 1e6, err, "< 1e-8",
+            ok)
+    assert ok, cor
