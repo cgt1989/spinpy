@@ -8,7 +8,7 @@
 
 ## Resumen
 
-Se revisaron los 23 textos de la biblioteca, buscando dos cosas: soluciones para los problemas que la aplicación declara abiertos y mejoras para métodos que ya implementa. Cada propuesta se contrastó con el código de la V2.1.1 antes de incluirla, y se indica el archivo y la línea afectados. Los tres textos en formato DjVu (Bathe 1996, Bathe y Wilson 1976, Reddy 2002) se revisaron en una segunda fase (sección 6). Siete propuestas (R1 a R7) se implementaron y probaron; los guiones y los resultados están en `comparativa_motores/libros/`, y el informe, con extractos de los libros, se conserva solo en local.
+Se revisaron los 23 textos de la biblioteca, buscando dos cosas: soluciones para los problemas que la aplicación declara abiertos y mejoras para métodos que ya implementa. Cada propuesta se contrastó con el código de la V2.1.1 antes de incluirla, y se indica el archivo y la línea afectados. Los tres textos en formato DjVu (Bathe 1996, Bathe y Wilson 1976, Reddy 2002) se revisaron en una segunda fase (sección 6). Siete propuestas (R1 a R7) se implementaron y probaron; los guiones, los resultados y el informe están en `comparativa_motores/libros/`.
 
 Los libros con más aplicación directa son Zienkiewicz, Taylor y Zhu (2005), Nocedal y Wright (2006), Brenner y Scott (2008) y Šolín, Segeth y Doležel (2004). Tartar (2009), Atkinson y Han (2009), Modersitzki (2004) y los dos textos de cálculo de variaciones aportan justificación teórica para decisiones ya tomadas o para cambios concretos. El resto tiene poca relación con lo que hace spinpy (sección 5).
 

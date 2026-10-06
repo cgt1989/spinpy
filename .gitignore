@@ -62,9 +62,3 @@ paper/
 # `python comparativa_motores/artefactos.py`). El resumen SI se versiona:
 # resultados/artefactos.json y artefactos_extra.json.
 comparativa_motores/resultados/artefactos_campos/
-
-# Informe local de la revision de la biblioteca: lleva extractos textuales de
-# libros con derechos de autor y no se publica (solo guiones, datos y figuras).
-comparativa_motores/libros/informe_libros/*.html
-comparativa_motores/libros/informe_libros/*.pdf
-comparativa_motores/libros/informe_libros/fuentes_libros.json
