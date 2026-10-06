@@ -1,0 +1,65 @@
+{
+ "C1": {
+  "frac_portante": {
+   "traccion": 0.9999890682903899,
+   "plato": 0.9999890682903899,
+   "referencia": 1.0
+  },
+  "traccion": {
+   "lateral_exterior": 0.8329765714452583,
+   "lateral_rms": 0.20827198416853654,
+   "vm_techo": 1.7693610421397654,
+   "vm_base": 0.9159631729885781,
+   "vm_centro": 1.0446005372918274
+  },
+  "plato": {
+   "lateral_exterior": 0.8064045306078658,
+   "lateral_rms": 0.10537093873096408,
+   "vm_techo": 0.9332766699532796,
+   "vm_base": 0.9196219569827949,
+   "vm_centro": 1.0237416358828124
+  }
+ },
+ "C2": {
+  "frac_portante": {
+   "traccion": 1.0,
+   "plato": 1.0,
+   "referencia": 1.0
+  },
+  "traccion": {
+   "lateral_exterior": 0.7973403754063288,
+   "lateral_rms": 0.1502321258959239,
+   "vm_techo": 1.402740975720085,
+   "vm_base": 1.0316011514076038,
+   "vm_centro": 1.0372800791017267
+  },
+  "plato": {
+   "lateral_exterior": 0.8502693346210198,
+   "lateral_rms": 0.08120293192819678,
+   "vm_techo": 0.9010875331334646,
+   "vm_base": 1.0273283917281804,
+   "vm_centro": 1.0116204725982318
+  }
+ },
+ "Prox. c\u00fabico": {
+  "frac_portante": {
+   "traccion": 0.9995113644776782,
+   "plato": 0.9995113644776782,
+   "referencia": 0.9999111571777597
+  },
+  "traccion": {
+   "lateral_exterior": 0.9266107350827982,
+   "lateral_rms": 0.07614247182259709,
+   "vm_techo": 1.1322647747699806,
+   "vm_base": 0.9177961227244396,
+   "vm_centro": 1.0964305169684043
+  },
+  "plato": {
+   "lateral_exterior": 0.6880354523076258,
+   "lateral_rms": 0.15076133680987922,
+   "vm_techo": 0.8823736216124174,
+   "vm_base": 0.9224894570370821,
+   "vm_centro": 1.0356650469632016
+  }
+ }
+}

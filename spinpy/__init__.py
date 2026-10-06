@@ -30,7 +30,7 @@ Lo que NO cubre (sigue solo en MATLAB): los otros cuatro optimizadores
 # Una sola fuente de la version dentro del paquete; `tests/test_16` comprueba
 # que coincide con `pyproject.toml`. Viaja en el bloque de procedencia de cada
 # resultado (`spinpy.procedencia`).
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 # En Windows, antes que nada: el runtime de C++ mas reciente, para que PyQt5
 # no fije el suyo (viejo) y netgen/NGSolve no revienten. Ver `_msvc.py`.

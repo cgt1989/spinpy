@@ -47,7 +47,7 @@ def _filas(ax):
 
 
 def fig_validacion_E():
-    fig, ax = plt.subplots(figsize=(6.6, 2.9))
+    fig, ax = plt.subplots(figsize=(6.6, 3.2))
     y = _filas(ax)
     for yi, v in zip(y, VOIS):
         d = val[v]
@@ -71,7 +71,7 @@ def fig_validacion_E():
                label="F1 + F2: plato y núcleo (app)"),
         Line2D([], [], ls="", marker="o", mfc="white", mec=AQUA, mew=1.6,
                label="plato y núcleo de 0,25 mm (exploratorio)")],
-        loc="lower left", fontsize=7.2, ncol=2, bbox_to_anchor=(0, -0.62))
+        loc="lower left", fontsize=7.2, ncol=2, bbox_to_anchor=(0, 1.01))
     ax.set_xlabel("error de E aparente frente al mismo hueso embebido (%)")
     ax.set_xlim(-40, 10)
     fig.tight_layout()
@@ -103,7 +103,7 @@ def fig_practico():
     fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.9), sharey=True)
     x = np.arange(len(VOIS))
     for ax, malla, tit in ((axs[0], "hex8", "(a) Ladrillos, 40³"),
-                           (axs[1], "tet10", "(b) Malla suave, 48³")):
+                           (axs[1], "tet10", "(b) Malla suave, 40³")):
         hoy = [pra.get(f"{v}|{malla}", {}).get("E_app", np.nan) for v in VOIS]
         cor = [pra.get(f"{v}|{malla}", {}).get("E_corregido", np.nan)
                for v in VOIS]
@@ -113,6 +113,10 @@ def fig_practico():
         ax.set_xticklabels(VOIS, rotation=25, ha="right", fontsize=7.5)
         ax._cat_x = True
         ax.set_title(tit)
+        for xi, v in zip(x, VOIS):
+            if "error" in pra.get(f"{v}|{malla}", {}):
+                ax.text(xi, 150, "sin malla", rotation=90, ha="center",
+                        va="bottom", fontsize=7, color=TINTA2)
     axs[0].set_ylabel("E aparente (MPa)")
     axs[0].legend(loc="upper left", fontsize=7.5)
     fig.tight_layout()
@@ -126,6 +130,8 @@ def fig_a3():
         h = pra.get(f"{v}|hex8", {})
         t = pra.get(f"{v}|tet10", {})
         if not h or not t or "E_app" not in t:
+            ax.text(-1, yi, "malla suave no generada (tetgen)", va="center",
+                    ha="right", fontsize=7.5, color=TINTA2)
             continue
         b = err(t["E_app"], h["E_app"])
         c = err(t["E_corregido"], h["E_corregido"])
@@ -139,14 +145,14 @@ def fig_a3():
                     ha="left" if val_ >= 0 else "right", fontsize=7,
                     color=TINTA2)
     ax.axvline(0, color=TINTA2, lw=0.9)
-    for xv in (-10, 10):
-        ax.axvline(xv, color=GRIS, lw=0.8, ls="--")
+    ax.axvline(-10, color=GRIS, lw=0.8, ls="--")
     ax.set_yticks(y)
     ax.set_yticklabels(VOIS)
     ax._cat_y = True
     ax.grid(axis="y", visible=False)
-    ax.set_xlabel("E de la malla suave (48³) frente a ladrillos (40³) (%)")
-    ax.legend(loc="lower right", fontsize=7.5)
+    ax.set_xlabel("E de la malla suave frente a la de ladrillos, ambas a 40³ (%)")
+    ax.set_xlim(-55, 4)
+    ax.legend(loc="lower left", fontsize=7.5)
     fig.tight_layout()
     guardar(fig, FIGS, "f_a3")
 
@@ -161,8 +167,8 @@ def fig_resolucion():
     ax.bar(x + 0.19, r96, width=0.36, color=AZUL,
            label="96³ (validación embebida)")
     ax.axhline(4, color=TINTA, lw=1.1, ls="--")
-    ax.text(len(VOIS) - 0.45, 4.15, "4 elementos por espesor", fontsize=7.5,
-            color=TINTA2, ha="right")
+    ax.text(2.5, 4.15, "4 elementos por espesor", fontsize=7.5,
+            color=TINTA2, ha="center")
     ax.set_xticks(x)
     ax.set_xticklabels(VOIS)
     ax._cat_x = True
@@ -170,6 +176,30 @@ def fig_resolucion():
     ax.legend(loc="upper left", fontsize=7.5)
     fig.tight_layout()
     guardar(fig, FIGS, "f_resolucion")
+
+
+def fig_perfil_bvtv():
+    """BV/TV por capa horizontal frente a la altura relativa."""
+    fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.7), sharey=True)
+    grupos = (("porcino", "(a) Porcinos, 3 mm"), ("equino", "(b) Equinos, 5 mm"))
+    for ax, (esp, tit) in zip(axs, grupos):
+        nombres = [v for v in VOIS if val[v]["especie"] == esp]
+        for v, col in zip(nombres, (AZUL, NARANJA, AQUA)):
+            p = np.asarray(mor[v]["perfil_z"])
+            z = (np.arange(len(p)) + 0.5) / len(p)
+            ax.plot(p, z, color=col, lw=1.4, label=v)
+        ax.axhspan(16 / 96, 80 / 96, color="#f0efec", lw=0, zorder=0)
+        ax.axhline(16 / 96, color=GRIS, lw=0.7, ls="--")
+        ax.axhline(80 / 96, color=GRIS, lw=0.7, ls="--")
+        ax.set_title(tit)
+        ax.set_xlabel("BV/TV de la capa")
+        ax.set_xlim(0, 1.02)
+        ax.legend(loc="lower right", fontsize=7.3)
+    axs[0].set_ylabel("altura relativa z / H")
+    axs[0].text(0.02, 0.5, "cubo de\nensayo", fontsize=7, color=TINTA2,
+                va="center")
+    fig.tight_layout()
+    guardar(fig, FIGS, "f_perfil_bvtv")
 
 
 def fig_esquema_real(carpeta):
@@ -212,6 +242,7 @@ if __name__ == "__main__":
     fig_practico()
     fig_a3()
     fig_resolucion()
+    fig_perfil_bvtv()
     if len(sys.argv) > 1:
         fig_esquema_real(sys.argv[1])
     print("figuras en", FIGS)

@@ -1,8 +1,8 @@
 """
-estudio.py: Las correcciones de borde de la V2.1.0 sobre VOIs reales.
+estudio.py: Las correcciones de borde (V2.1.0 y V2.1.1) sobre VOIs reales.
 
     cd comparativa_motores/vois_reales
-    python estudio.py CARPETA_DE_VOIS [validacion] [practico] [morfometria]
+    python estudio.py CARPETA_DE_VOIS [validacion] [practico] [morfometria] [campos]
 
 Los VOIs no viajan con el repositorio; su huella SHA-256 queda en el JSON.
 Dos estudios por VOI:
@@ -17,10 +17,18 @@ diseno que se valido en el espinodoide (comparativa_motores/correcciones/),
 ahora con hueso de micro-CT. Sensibilidad: el bloque tambien con traccion.
 
 PRACTICO. El VOI completo por `fem.analizar` (el camino de la GUI), con
-ladrillos a 40^3 y malla suave a 48^3 (las resoluciones por omision) y
-NGSolve: lo que el usuario ve antes y despues de las correcciones.
+ladrillos a 40^3 (la resolucion por omision) y malla suave a 40^3, y
+NGSolve, en procesos hijo como la GUI: lo que el usuario ve antes y despues
+de las correcciones. La malla suave a 48^3 (su omision) no cabe en 15 GB
+con estos VOIs: `fem.tamano_previsto` da 7,8 a 10 GB para el directo y el
+primer intento (C1, BDDC) agoto la memoria.
 
-Escribe resultados/validacion.json, practico.json y morfometria.json.
+CAMPOS. Tension vertical y de von Mises del bloque (con plato) y del cubo
+aislado (traccion y plato) en la rejilla del cubo de ensayo: un corte
+vertical y dos perfiles (por distancia a la cara lateral y por altura).
+
+Escribe resultados/validacion.json, practico.json, morfometria.json,
+campos.json y campos.npz (cortes).
 """
 
 from __future__ import annotations
@@ -45,6 +53,8 @@ N_BLOQUE, N_INTERIOR = 96, 64
 #: Margen alternativo del nucleo (mm) para VOIs pequenos, EXPLORATORIO: no es
 #: el de la app (0,625 mm) ni esta validado.
 MARGEN_EXPLORATORIO = 0.25
+#: Resolucion del estudio practico (ladrillos y malla suave).
+N_PRACTICO = 40
 
 VOIS = [("VOI_C1.mat", "C1", "porcino"),
         ("VOI_C2.mat", "C2", "porcino"),
@@ -185,8 +195,9 @@ def practico(carpeta):
             try:
                 r = fem.analizar(BW, sp, prot, malla=malla,
                                  analisis=["lineal", "lineal_plato"],
-                                 motores_fem=["ngsolve"], aislado=False,
-                                 comparar_app=(malla == "hex8"))[0]
+                                 motores_fem=["ngsolve"], aislado=True,
+                                 comparar_app=(malla == "hex8"), n=N_PRACTICO,
+                                 hilos=4)[0]
             except Exception as e:                      # noqa: BLE001
                 out[k] = {"error": f"{type(e).__name__}: {e}"}
                 guardar("practico", out)
@@ -220,18 +231,103 @@ def practico(carpeta):
     return out
 
 
+# ---------------------------------------------------------------------------
+# Campos: donde actuan los artefactos y las correcciones
+# ---------------------------------------------------------------------------
+
+def _rejilla(malla, sp, n, desplaz, campo):
+    """Campo por elemento hex8 -> rejilla n^3 del cubo de ensayo (NaN = poro).
+
+    `desplaz`: voxeles entre el origen de la malla y el del cubo (16 en el
+    bloque, 0 en el cubo aislado)."""
+    c = malla["nodos"][malla["elems"]].mean(axis=1)
+    ijk = np.floor(c / np.asarray(sp)).astype(int) - desplaz
+    dentro = np.all((ijk >= 0) & (ijk < n), axis=1)
+    G = np.full((n, n, n), np.nan)
+    i, j, k = ijk[dentro].T
+    G[i, j, k] = campo[dentro]
+    return G
+
+
+def _perfiles(Szz, Svm, h):
+    """Perfiles normalizados por la tension media del cubo (poros incluidos).
+
+    lateral: tension vertical media en capas a distancia d de la cara
+    lateral mas proxima (poros cuentan 0); vertical: von Mises medio en el
+    hueso de cada capa horizontal."""
+    n = Szz.shape[0]
+    S0 = np.nan_to_num(Szz)
+    sm = S0.mean()
+    c = np.arange(n) + 0.5
+    dx = np.minimum(c, n - c)
+    d = np.minimum(dx[:, None, None], dx[None, :, None]) * np.ones((1, 1, n))
+    bordes = np.arange(0, n // 2 + 1, 2)
+    lat = [float(S0[(d >= a) & (d < b)].mean() / sm)
+           for a, b in zip(bordes[:-1], bordes[1:])]
+    vert = [float(np.nanmean(Svm[:, :, k]) / sm) for k in range(n)]
+    return {"d_mm": list((bordes[:-1] + 1) * h), "lateral": lat,
+            "z_mm": list(c * h), "vertical": vert, "sigma_media": float(sm)}
+
+
+def campos(carpeta):
+    """Bloque con plato y cubo aislado con traccion y con plato: tension
+    vertical y de von Mises en la rejilla del cubo de ensayo."""
+    out = cargar("campos")
+    f_npz = RES / "campos.npz"
+    cortes = dict(np.load(f_npz)) if f_npz.exists() else {}
+    for archivo, nombre, especie in VOIS:
+        if nombre in out:
+            continue
+        BW0, sp0 = leer_voi(Path(carpeta) / archivo)
+        B, sp = remuestrear_bw(BW0, sp0, N_BLOQUE)
+        h = float(sp[0])
+        m = (N_BLOQUE - N_INTERIOR) // 2
+        Bi = B[m:m + N_INTERIOR, m:m + N_INTERIOR, m:m + N_INTERIOR]
+        d = {"especie": especie, "h_mm": h, "voxeles_hueso_cubo": int(Bi.sum())}
+        casos = (("referencia", B, m, "plato"), ("traccion", Bi, 0, "fuerza"),
+                 ("plato", Bi, 0, "plato"))
+        for caso, M, desplaz, control in casos:
+            malla = fem.mallar(M, sp, "hex8")
+            u, s, t, _, gdl = resolver_bloque(malla, control)
+            Szz = _rejilla(malla, sp, N_INTERIOR, desplaz, -s[:, 2])
+            Svm = _rejilla(malla, sp, N_INTERIOR, desplaz, fem.von_mises(s))
+            p = _perfiles(Szz, Svm, h)
+            p["frac_portante"] = float(np.isfinite(Szz).sum() / Bi.sum())
+            p["t_s"], p["gdl"] = t, gdl
+            d[caso] = p
+            sm = p["sigma_media"]
+            clave = nombre.replace(" ", "_").replace(".", "")
+            cortes[f"{clave}|{caso}|zz"] = (Szz[:, N_INTERIOR // 2, :]
+                                            / sm).astype(np.float32)
+            cortes[f"{clave}|{caso}|vm"] = (Svm[:, N_INTERIOR // 2, :]
+                                            / sm).astype(np.float32)
+            print(nombre, caso, f"{gdl} GDL {t:.0f}s portante "
+                  f"{p['frac_portante']:.3f}", flush=True)
+        out[nombre] = d
+        guardar("campos", out)
+        np.savez_compressed(f_npz, **cortes)
+    return out
+
+
 def morfometria_vois(carpeta):
     from spinpy.morphometry import morfometria
     out = cargar("morfometria")
     for archivo, nombre, especie in VOIS:
-        if nombre in out:
+        if nombre in out and "perfil_z" in out[nombre]:
             continue
         BW, sp = leer_voi(Path(carpeta) / archivo)
+        if nombre in out:
+            # Perfil de BV/TV por capa horizontal (eje de carga), anadido
+            # despues: no hace falta repetir la morfometria.
+            out[nombre]["perfil_z"] = BW.mean(axis=(0, 1)).tolist()
+            guardar("morfometria", out)
+            continue
         m = morfometria(BW, sp, do_mil=True)
         out[nombre] = {"especie": especie, "forma": list(BW.shape),
                        "h_mm": float(sp[0]),
                        **{k: float(m[k]) for k in ("BVTV", "TbTh", "TbSp",
-                                                   "TbN", "DA") if k in m}}
+                                                   "TbN", "DA") if k in m},
+                       "perfil_z": BW.mean(axis=(0, 1)).tolist()}
         guardar("morfometria", out)
         print(nombre, out[nombre], flush=True)
     return out
@@ -246,3 +342,5 @@ if __name__ == "__main__":
         validacion(carpeta)
     if "practico" in etapas:
         practico(carpeta)
+    if "campos" in etapas:
+        campos(carpeta)
