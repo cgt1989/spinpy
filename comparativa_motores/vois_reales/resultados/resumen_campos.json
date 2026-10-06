@@ -1,0 +1,107 @@
+{
+ "C1": {
+  "frac_portante": {
+   "traccion": 0.9999890682903899,
+   "plato": 0.9999890682903899,
+   "referencia": 1.0
+  },
+  "traccion": {
+   "lateral_exterior": 0.8329765714452583,
+   "lateral_rms": 0.20827198416853654,
+   "vm_techo": 1.7693610421397654,
+   "vm_base": 0.9159631729885781,
+   "vm_centro": 1.0446005372918274
+  },
+  "plato": {
+   "lateral_exterior": 0.8064045306078658,
+   "lateral_rms": 0.10537093873096408,
+   "vm_techo": 0.9332766699532796,
+   "vm_base": 0.9196219569827949,
+   "vm_centro": 1.0237416358828124
+  }
+ },
+ "C2": {
+  "frac_portante": {
+   "traccion": 1.0,
+   "plato": 1.0,
+   "referencia": 1.0
+  },
+  "traccion": {
+   "lateral_exterior": 0.7973403754063288,
+   "lateral_rms": 0.1502321258959239,
+   "vm_techo": 1.402740975720085,
+   "vm_base": 1.0316011514076038,
+   "vm_centro": 1.0372800791017267
+  },
+  "plato": {
+   "lateral_exterior": 0.8502693346210198,
+   "lateral_rms": 0.08120293192819678,
+   "vm_techo": 0.9010875331334646,
+   "vm_base": 1.0273283917281804,
+   "vm_centro": 1.0116204725982318
+  }
+ },
+ "Prox. c\u00fabico": {
+  "frac_portante": {
+   "traccion": 0.9995113644776782,
+   "plato": 0.9995113644776782,
+   "referencia": 0.9999111571777597
+  },
+  "traccion": {
+   "lateral_exterior": 0.9266107350827982,
+   "lateral_rms": 0.07614247182259709,
+   "vm_techo": 1.1322647747699806,
+   "vm_base": 0.9177961227244396,
+   "vm_centro": 1.0964305169684043
+  },
+  "plato": {
+   "lateral_exterior": 0.6880354523076258,
+   "lateral_rms": 0.15076133680987922,
+   "vm_techo": 0.8823736216124174,
+   "vm_base": 0.9224894570370821,
+   "vm_centro": 1.0356650469632016
+  }
+ },
+ "Prox. PCA": {
+  "frac_portante": {
+   "traccion": 0.9975629569455727,
+   "plato": 0.9975629569455727,
+   "referencia": 0.9996455210102652
+  },
+  "traccion": {
+   "lateral_exterior": 0.7682042287378199,
+   "lateral_rms": 0.08968410720054489,
+   "vm_techo": 1.1625054363819876,
+   "vm_base": 0.9827144291158212,
+   "vm_centro": 1.0474599467448253
+  },
+  "plato": {
+   "lateral_exterior": 0.6749472187748069,
+   "lateral_rms": 0.12188068325544972,
+   "vm_techo": 0.8730087515457532,
+   "vm_base": 0.9750460887602143,
+   "vm_centro": 1.0106730702955242
+  }
+ },
+ "Medio PCA": {
+  "frac_portante": {
+   "traccion": 0.9991800618370031,
+   "plato": 0.9991800618370031,
+   "referencia": 0.9999572948873439
+  },
+  "traccion": {
+   "lateral_exterior": 0.6914680953639732,
+   "lateral_rms": 0.16083111079047321,
+   "vm_techo": 1.2979827281747134,
+   "vm_base": 0.9321978373255942,
+   "vm_centro": 1.0416247962468281
+  },
+  "plato": {
+   "lateral_exterior": 0.8446036376067478,
+   "lateral_rms": 0.06129279071279797,
+   "vm_techo": 1.1448918815962104,
+   "vm_base": 0.9269010357328639,
+   "vm_centro": 1.0199608317322149
+  }
+ }
+}

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="versión V2.1.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.1.0-e8a33d">
+  <img alt="versión V2.1.1" src="https://img.shields.io/badge/versi%C3%B3n-V2.1.1-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">

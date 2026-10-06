@@ -263,9 +263,23 @@ def preparar_tet10(nodos, elems, forma, spacing):
         elems = elems[~en_mismo_plano]
         nodos, elems = _compactar(nodos, elems)
     vol = _volumen_tet(nodos, elems)
+    # ASTILLAS INVERTIDAS. Un tetraedro casi plano junto a una cara del cubo
+    # (tres esquinas en el plano y la cuarta a ~1e-3 h) puede INVERTIRSE al
+    # devolver los nodos a su plano, en vez de aplanarse (medido en un VOI
+    # equino real a 40^3: |V| = 5e-10 de la mediana). Como las astillas
+    # planas, no aporta volumen ni rigidez: se quita y se declara. Un
+    # tetraedro invertido que NO sea degenerado sigue siendo un error.
+    n_invertidas = 0
     if (vol <= 0).any():
-        raise RuntimeError(f"{int((vol <= 0).sum())} tetraedros con "
-                           "volumen no positivo.")
+        degenerado = np.abs(vol) < 1e-6 * float(np.median(np.abs(vol)))
+        if np.any((vol <= 0) & ~degenerado):
+            raise RuntimeError(f"{int(((vol <= 0) & ~degenerado).sum())} "
+                               "tetraedros con volumen no positivo.")
+        quitar = vol <= 0
+        n_invertidas = int(quitar.sum())
+        elems = elems[~quitar]
+        nodos, elems = _compactar(nodos, elems)
+        vol = _volumen_tet(nodos, elems)
     V_total = float(vol.sum())
     port, n_comp = _componentes_portantes(nodos, elems, z0, z1, tol)
     elems, vol = elems[port], vol[port]
@@ -295,6 +309,7 @@ def preparar_tet10(nodos, elems, forma, spacing):
            "BVTV_malla": V / V_caja,
            "vol_elem_min_mm3": float(vol.min()),
            "astillas_planas_quitadas": n_astillas,
+           "astillas_invertidas_quitadas": n_invertidas,
            "vol_elem_mediana_mm3": float(np.median(vol))}
     return nodos, elems, vol, caras, sup, z0, z1, inf
 
@@ -856,7 +871,8 @@ def _corregido(reg):
     Validados frente a la configuracion embebida en
     `comparativa_motores/correcciones/` (hex8, 32^3 a 64^3):
       E_app   nucleo con plato rigido (error +0,8 a +1,5 %); sin el plato,
-              nucleo con traccion (-5,5 a -10 %).
+              nucleo con traccion (-5,5 a -10 %); si el VOI no admite nucleo
+              (lado < 2,25 mm), plato sobre el VOI completo (-5 a -10 %).
       p99     VOI completo con plato (+0,5 a +9,5 %); sin el plato, nucleo
               con traccion (-1,9 a +8,7 %).
     La linea base (traccion, VOI completo) daba -43 a -55 % en E_app y
@@ -870,6 +886,12 @@ def _corregido(reg):
         out["E_app"], out["metodo_E"] = npl["E_app"], "plato_nucleo"
     elif nl.get("ok"):
         out["E_app"], out["metodo_E"] = nl["E_app"], "traccion_nucleo"
+    elif lp.get("E_app") is not None:
+        # VOI demasiado pequeno para el nucleo (lado < 2 margen + 4 franja,
+        # 2,25 mm): el plato sobre el VOI completo. Validado en VOIs reales
+        # (comparativa_motores/vois_reales/): -5 a -7 % en VOIs porcinos de
+        # 2 mm, frente a -25 % sin corregir.
+        out["E_app"], out["metodo_E"] = lp["E_app"], "plato_voi"
     p99 = (lp.get("pistoia") or {}).get("vm_p99_superficie")
     if p99 is not None:
         out["vm_p99_superficie"], out["metodo_p99"] = p99, "plato_voi"
@@ -1168,8 +1190,10 @@ def analizar(BW, spacing, prot, malla="hex8", analisis=("lineal",), eje=2,
     regs = []
     for mot in motores_fem:
         nombre = f"{etiqueta}_{prot.get('clave')}_{malla}_{'XYZ'[eje]}_{mot}"
+        # 'lineal_plato' es lineal: `ensayo` lo declara no disponible si el
+        # motor no resuelve el plato (la app), sin contarlo como fallo.
         reg = ensayo(m, prot, Path(carpeta) / nombre, analisis=[
-            a for a in analisis if a == "lineal"
+            a for a in analisis if a in ("lineal", "lineal_plato")
             or motores.puede(mot, malla, "nl", material,
                              "plato" if a == "nl_plato" else "fuerza")],
             motor=mot, hilos=hilos, cancelar=cancelar, material=material,
