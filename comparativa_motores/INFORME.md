@@ -1,6 +1,6 @@
 # Motores de elementos finitos internos para spinpy: comparación de NGSolve, FEniCSx, scikit-fem y SfePy con el resolvedor de la aplicación
 
-Fecha: 2026-10-01 (revisión de la Figura 5: convergencia con refinamiento h y p). spinpy V2.1.0; los motores no cambian desde la V2.0.1 (la V2.1.0 añade las correcciones de borde de `comparativa_motores/correcciones/`). Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `convergencia.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
+Fecha: 2026-10-01 (revisión de la Figura 5: convergencia con refinamiento h y p). spinpy V2.1.1; los motores no cambian desde la V2.0.1 (la V2.1.0 añade las correcciones de borde de `comparativa_motores/correcciones/`). Código: `spinpy/motores/`, `spinpy/fem.py`. Banco de pruebas: `comparativa_motores/` (`correr.py`, `casos.py`, `comun.py`, `convergencia.py`, `figuras.py`). Datos: `comparativa_motores/resultados/*.jsonl`. Tablas completas: `comparativa_motores/tablas.md`. Pruebas repetibles: bloque 29 de la suite (`tests/test_29_motores.py`).
 
 ## Resumen
 
@@ -518,7 +518,7 @@ Teoría de la convergencia y verificación por soluciones conocidas. Babuška y 
 |---|---|---|
 | **Identificación del modelo** | | |
 | Propósito del modelo y de la simulación | Cumple | Sección 1 |
-| Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V2.1.0 |
+| Identificador y versión del modelo y de los programas | Cumple | Sección 1 (tabla de motores y versiones); spinpy V2.1.1 |
 | **Estructura del modelo** | | |
 | Geometría y su origen (imagen, generación) | Cumple | Sección 2.2 (espinodoide con parámetros y semilla; bloque; cavidad; cubo de la solución exacta) |
 | Discretización: tipo de elemento, orden, número de elementos y GDL | Cumple | Secciones 2.2, 3.2, 3.8 y Tablas 1, 2 y 4 |

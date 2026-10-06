@@ -1,0 +1,491 @@
+{
+ "C1": {
+  "especie": "porcino",
+  "archivo": "VOI_C1.mat",
+  "sha256": "b4612e26fa4f986c2de05214c15e97890588cc39bf0749bf53d52c0cb5496f10",
+  "lado_voi_mm": 3.008,
+  "h_mm": 0.03133333333333333,
+  "lado_interior_mm": 2.005333333333333,
+  "margen_embebido_mm": 0.5013333333333333,
+  "BVTV_bloque": 0.3649461534288194,
+  "BVTV_interior": 0.3489570617675781,
+  "referencia": {
+   "plato": {
+    "t_s": 163.29071716099998,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1347414,
+    "interior": {
+     "ok": true,
+     "E": 3754.3311393490103,
+     "p99": 8.824542545947757,
+     "margen_mm": 0.5013333333333333,
+     "frac_volumen": 0.2833184153717979
+    },
+    "nucleo": {
+     "ok": false
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 3761.7002248542617,
+     "p99": 8.177827688551494,
+     "margen_mm": 0.752,
+     "frac_volumen": 0.1182369756904332
+    }
+   },
+   "fuerza": {
+    "t_s": 186.2449578669998,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1347414,
+    "interior": {
+     "ok": true,
+     "E": 3770.4290374513234,
+     "p99": 8.944433279079416,
+     "margen_mm": 0.5013333333333333,
+     "frac_volumen": 0.2833184153717979
+    },
+    "nucleo": {
+     "ok": false
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 3789.7017125717093,
+     "p99": 8.260084638224605,
+     "margen_mm": 0.752,
+     "frac_volumen": 0.1182369756904332
+    }
+   }
+  },
+  "metodos": {
+   "B0": {
+    "E": 2784.141232102784,
+    "p99": 12.357015763947421
+   },
+   "F1": {
+    "E": 3500.61006060545,
+    "p99": 9.658070167310271
+   },
+   "F2": {
+    "no_disponible": "VOI demasiado pequeno para el nucleo"
+   },
+   "F12": {
+    "no_disponible": "VOI demasiado pequeno para el nucleo"
+   },
+   "F2_exp": {
+    "E": 3566.7502165569613,
+    "p99": 9.3761564005965
+   },
+   "F12_exp": {
+    "E": 3646.1158711333323,
+    "p99": 8.465394026500595
+   }
+  },
+  "corregido": {
+   "vm_p99_superficie": 9.658070167310271,
+   "metodo_p99": "plato_voi"
+  },
+  "gdl_interior": 391488,
+  "sigma_fallo_MPa": {
+   "traccion": 15.177339060388565,
+   "plato": 17.888954378669567
+  }
+ },
+ "C2": {
+  "especie": "porcino",
+  "archivo": "VOI_C2.mat",
+  "sha256": "37ab0c9bffe99894e52a59f3660b68218556ae9cc20cde61f1826a42f41c5e3e",
+  "lado_voi_mm": 3.008,
+  "h_mm": 0.03133333333333333,
+  "lado_interior_mm": 2.005333333333333,
+  "margen_embebido_mm": 0.5013333333333333,
+  "BVTV_bloque": 0.38697758427372686,
+  "BVTV_interior": 0.381927490234375,
+  "referencia": {
+   "plato": {
+    "t_s": 153.7419915119999,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1394175,
+    "interior": {
+     "ok": true,
+     "E": 3796.266539569821,
+     "p99": 8.287711312777692,
+     "margen_mm": 0.5013333333333333,
+     "frac_volumen": 0.2924304557615693
+    },
+    "nucleo": {
+     "ok": false
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 3702.88024842408,
+     "p99": 8.09461136408348,
+     "margen_mm": 0.752,
+     "frac_volumen": 0.12264437512413401
+    }
+   },
+   "fuerza": {
+    "t_s": 165.66170587099987,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1394175,
+    "interior": {
+     "ok": true,
+     "E": 3804.645508325379,
+     "p99": 8.586194662509598,
+     "margen_mm": 0.5013333333333333,
+     "frac_volumen": 0.2924304557615693
+    },
+    "nucleo": {
+     "ok": false
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 3752.874443454356,
+     "p99": 8.351090156874209,
+     "margen_mm": 0.752,
+     "frac_volumen": 0.12264437512413401
+    }
+   }
+  },
+  "metodos": {
+   "B0": {
+    "E": 2835.952528248107,
+    "p99": 12.784665699771848
+   },
+   "F1": {
+    "E": 3591.724616393511,
+    "p99": 8.953639098540288
+   },
+   "F2": {
+    "no_disponible": "VOI demasiado pequeno para el nucleo"
+   },
+   "F12": {
+    "no_disponible": "VOI demasiado pequeno para el nucleo"
+   },
+   "F2_exp": {
+    "E": 3710.2156928013974,
+    "p99": 9.578225689532818
+   },
+   "F12_exp": {
+    "E": 3651.106295047035,
+    "p99": 8.239656339023002
+   }
+  },
+  "corregido": {
+   "vm_p99_superficie": 8.953639098540288,
+   "metodo_p99": "plato_voi"
+  },
+  "gdl_interior": 414576,
+  "sigma_fallo_MPa": {
+   "traccion": 15.459812006359678,
+   "plato": 19.108992702605434
+  }
+ },
+ "Prox. c\u00fabico": {
+  "especie": "equino",
+  "archivo": "VOI_proximal_cubico.vtk",
+  "sha256": "1625a7263ee48fcb81be2bca0ddc2e0e51eb5cd95f18c4ecb968252555325311",
+  "lado_voi_mm": 4.994433,
+  "h_mm": 0.05202534375,
+  "lado_interior_mm": 3.329622,
+  "margen_embebido_mm": 0.8324055,
+  "BVTV_bloque": 0.2814647533275463,
+  "BVTV_interior": 0.2576255798339844,
+  "referencia": {
+   "plato": {
+    "t_s": 212.1562574640002,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1102857,
+    "interior": {
+     "ok": true,
+     "E": 2037.6549246103098,
+     "p99": 18.45673000587523,
+     "margen_mm": 0.8324055,
+     "frac_volumen": 0.27151375279941137
+    },
+    "nucleo": {
+     "ok": true,
+     "E": 1560.7603578050964,
+     "p99": 20.558308348922203,
+     "margen_mm": 1.456709625,
+     "frac_volumen": 0.06637771246376346
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 2117.6535422598367,
+     "p99": 18.311801813502175,
+     "margen_mm": 1.09253221875,
+     "frac_volumen": 0.16758673651960293
+    }
+   },
+   "fuerza": {
+    "t_s": 320.74301392000007,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1102857,
+    "interior": {
+     "ok": true,
+     "E": 2011.8939364556697,
+     "p99": 22.44979572858324,
+     "margen_mm": 0.8324055,
+     "frac_volumen": 0.27151375279941137
+    },
+    "nucleo": {
+     "ok": true,
+     "E": 1823.8304367586416,
+     "p99": 22.4016272881885,
+     "margen_mm": 1.456709625,
+     "frac_volumen": 0.06637771246376346
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 2206.813202124989,
+     "p99": 21.430911233288874,
+     "margen_mm": 1.09253221875,
+     "frac_volumen": 0.16758673651960293
+    }
+   }
+  },
+  "metodos": {
+   "B0": {
+    "E": 1330.3985490843972,
+    "p99": 25.710286294107217
+   },
+   "F1": {
+    "E": 1842.7337096933607,
+    "p99": 19.362144374772093
+   },
+   "F2": {
+    "E": 1482.7451782726048,
+    "p99": 27.45238195857315
+   },
+   "F12": {
+    "E": 1567.0442186724538,
+    "p99": 20.79026108299458
+   },
+   "F2_exp": {
+    "E": 1808.5366722036504,
+    "p99": 24.495835123429668
+   },
+   "F12_exp": {
+    "E": 1933.831942237524,
+    "p99": 17.706264587792468
+   }
+  },
+  "corregido": {
+   "E_app": 1567.0442186724538,
+   "metodo_E": "plato_nucleo",
+   "vm_p99_superficie": 19.362144374772093,
+   "metodo_p99": "plato_voi",
+   "cociente_E_lineal": 1.1778757724524882
+  },
+  "gdl_interior": 308013,
+  "sigma_fallo_MPa": {
+   "traccion": 8.102393660442857,
+   "plato": 9.527349974558856
+  }
+ },
+ "Prox. PCA": {
+  "especie": "equino",
+  "archivo": "VOI_proximal_PCAaligned.vtk",
+  "sha256": "e82da5d54574e10dbd56378d808d667f2d9594ac95c43af3ca05288b3ba825f0",
+  "lado_voi_mm": 4.994433,
+  "h_mm": 0.05202534375,
+  "lado_interior_mm": 3.329622,
+  "margen_embebido_mm": 0.8324055,
+  "BVTV_bloque": 0.2828369140625,
+  "BVTV_interior": 0.2582740783691406,
+  "referencia": {
+   "plato": {
+    "t_s": 261.59301219300005,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1127199,
+    "interior": {
+     "ok": true,
+     "E": 2203.5593262943044,
+     "p99": 17.587972532190882,
+     "margen_mm": 0.8324055,
+     "frac_volumen": 0.2711220071064323
+    },
+    "nucleo": {
+     "ok": true,
+     "E": 1980.3543618153108,
+     "p99": 19.27800092207283,
+     "margen_mm": 1.456709625,
+     "frac_volumen": 0.0680999707570714
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 2397.1211459141223,
+     "p99": 16.45424830645683,
+     "margen_mm": 1.09253221875,
+     "frac_volumen": 0.17111119122872384
+    }
+   },
+   "fuerza": {
+    "t_s": 352.06774943100027,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1127199,
+    "interior": {
+     "ok": true,
+     "E": 2166.0428009231478,
+     "p99": 22.559761727553074,
+     "margen_mm": 0.8324055,
+     "frac_volumen": 0.2711220071064323
+    },
+    "nucleo": {
+     "ok": true,
+     "E": 1955.5669342589758,
+     "p99": 21.691041021308493,
+     "margen_mm": 1.456709625,
+     "frac_volumen": 0.0680999707570714
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 2346.01785576174,
+     "p99": 19.72652404771278,
+     "margen_mm": 1.09253221875,
+     "frac_volumen": 0.17111119122872384
+    }
+   }
+  },
+  "metodos": {
+   "B0": {
+    "E": 1573.279250515315,
+    "p99": 22.144565942169063
+   },
+   "F1": {
+    "E": 2092.8622553358446,
+    "p99": 16.769937062839986
+   },
+   "F2": {
+    "E": 1775.3031689522636,
+    "p99": 20.137962716984706
+   },
+   "F12": {
+    "E": 1944.7119549827664,
+    "p99": 17.589779509748272
+   },
+   "F2_exp": {
+    "E": 2203.6989265115685,
+    "p99": 19.279278022728647
+   },
+   "F12_exp": {
+    "E": 2310.4367432446647,
+    "p99": 15.072699854844519
+   }
+  },
+  "corregido": {
+   "E_app": 1944.7119549827664,
+   "metodo_E": "plato_nucleo",
+   "vm_p99_superficie": 16.769937062839986,
+   "metodo_p99": "plato_voi",
+   "cociente_E_lineal": 1.2360882242270668
+  },
+  "gdl_interior": 314712,
+  "sigma_fallo_MPa": {
+   "traccion": 8.411325121420647,
+   "plato": 10.309086239656391
+  }
+ },
+ "Medio PCA": {
+  "especie": "equino",
+  "archivo": "VOI_medio_PCAaligned.vtk",
+  "sha256": "d7d47dcd34df380be4b5028f85f1d614ccb1dda7a0b2d659bb55392328f58b08",
+  "lado_voi_mm": 4.994433,
+  "h_mm": 0.05202534375,
+  "lado_interior_mm": 3.329622,
+  "margen_embebido_mm": 0.8324055,
+  "BVTV_bloque": 0.5477814850983797,
+  "BVTV_interior": 0.44663238525390625,
+  "referencia": {
+   "plato": {
+    "t_s": 245.6351348190001,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1805421,
+    "interior": {
+     "ok": true,
+     "E": 3930.7605863647705,
+     "p99": 9.599663942712574,
+     "margen_mm": 0.8324055,
+     "frac_volumen": 0.2415941329173218
+    },
+    "nucleo": {
+     "ok": true,
+     "E": 3593.6141118209816,
+     "p99": 9.613625432709146,
+     "margen_mm": 1.456709625,
+     "frac_volumen": 0.04382565486729315
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 4070.145612434463,
+     "p99": 9.71389194762184,
+     "margen_mm": 1.09253221875,
+     "frac_volumen": 0.13226936743967213
+    }
+   },
+   "fuerza": {
+    "t_s": 284.11031379499946,
+    "solver": "CG + pyamg (matriz de NGSolve)",
+    "gdl": 1805421,
+    "interior": {
+     "ok": true,
+     "E": 3836.030891072372,
+     "p99": 9.876585857541137,
+     "margen_mm": 0.8324055,
+     "frac_volumen": 0.2415941329173218
+    },
+    "nucleo": {
+     "ok": true,
+     "E": 3760.6345308565737,
+     "p99": 9.623259165202748,
+     "margen_mm": 1.456709625,
+     "frac_volumen": 0.04382565486729315
+    },
+    "nucleo_exp": {
+     "ok": true,
+     "E": 4078.2306524020373,
+     "p99": 9.790897956714598,
+     "margen_mm": 1.09253221875,
+     "frac_volumen": 0.13226936743967213
+    }
+   }
+  },
+  "metodos": {
+   "B0": {
+    "E": 3514.788153268763,
+    "p99": 11.22384208474163
+   },
+   "F1": {
+    "E": 3798.891175156028,
+    "p99": 10.486979296803488
+   },
+   "F2": {
+    "E": 3480.930652693101,
+    "p99": 10.592782819110818
+   },
+   "F12": {
+    "E": 3426.3307558250704,
+    "p99": 10.104671667721002
+   },
+   "F2_exp": {
+    "E": 3738.7801235050683,
+    "p99": 10.499422230497087
+   },
+   "F12_exp": {
+    "E": 3786.2659330269,
+    "p99": 10.10690271963587
+   }
+  },
+  "corregido": {
+   "E_app": 3426.3307558250704,
+   "metodo_E": "plato_nucleo",
+   "vm_p99_superficie": 10.486979296803488,
+   "metodo_p99": "plato_voi",
+   "cociente_E_lineal": 0.9748327940159275
+  },
+  "gdl_interior": 477825,
+  "sigma_fallo_MPa": {
+   "traccion": 16.66418682265818,
+   "plato": 17.857158995495457
+  }
+ }
+}

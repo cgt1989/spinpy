@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Correcciones de borde en VOIs reales</title>
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="katex/katex.min.css">
+<script src="katex/katex.min.js"></script>
+<script src="katex/auto-render.min.js"></script>
+<style>
+.sev.acep { color: var(--leve); background: var(--leve-c); }
+.sev.desc { color: var(--nulo); background: var(--nulo-c); }
+figure img { max-height: 70mm; }
+.ecu { background: var(--fondo); border-radius: 2.5mm; padding: 2mm 4mm; margin: 2.5mm 0 3mm; break-inside: avoid; display: grid; grid-template-columns: 1fr 10mm; align-items: center; }
+.ecu .n { font: 600 8pt "IBM Plex Sans"; color: var(--tinta3); text-align: right; }
+.ecu .katex-display { margin: 1.5mm 0; }
+.katex { font-size: 1.04em; }
+.donde { font-size: 8.8pt; color: var(--tinta2); margin: -1.5mm 0 3mm; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PORTADA ======================= -->
+<section class="portada">
+  <div class="banda">
+    <svg width="70mm" height="70mm" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><pattern id="tr" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><rect width="3.2" height="7" fill="#2a78d6" opacity="0.5"/></pattern></defs>
+      <rect x="6" y="6" width="88" height="88" fill="url(#tr)"/>
+      <rect x="22" y="22" width="56" height="56" fill="none" stroke="#eb6834" stroke-width="2"/>
+      <rect x="34" y="34" width="32" height="32" fill="none" stroke="#86b6ef" stroke-width="1.6" stroke-dasharray="4 3"/>
+    </svg>
+    <div class="tipo">Informe técnico de resultados · comparativa_motores/vois_reales</div>
+    <h1>Las correcciones de borde de spinpy en hueso trabecular real</h1>
+    <div class="sub">Dos VOIs porcinos y tres equinos de micro-CT: cuánto se equivocaba la app, cuánto corrigen la V2.1.0 y la V2.1.1, y qué límites aparecen.</div>
+  </div>
+  <div class="cuerpo">
+    <div>
+      <p>La V2.1.0 de spinpy añadió dos correcciones al ensayo de compresión: el plato rígido en el techo (F1) y la medida de la rigidez y de la tensión en el núcleo del VOI (F2). Se validaron frente a un espinodoide sintético rodeado de su propio hueso. Este informe repite la validación con <b>hueso real</b> y usa la aplicación como lo haría un usuario sobre cinco VOIs de micro-CT.</p>
+      <p>Al hacerlo aparecieron dos defectos de la V2.1.0, que se corrigen en la <b>V2.1.1</b>, y un límite práctico de resolución y memoria que conviene conocer antes de publicar resultados.</p>
+    </div>
+    <div class="preguntas">
+      <b>Preguntas que responde</b>
+      <ol>
+        <li>¿Funcionan las correcciones en hueso real, y cuánto?</li>
+        <li>¿Dónde actúan los artefactos dentro del hueso?</li>
+        <li>¿Qué cambia en los números que ve el usuario?</li>
+        <li>¿Qué falló al usar la V2.1.0 con estos VOIs?</li>
+        <li>¿Con qué resolución hay que trabajar?</li>
+      </ol>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>Versión</b>spinpy V2.1.1<br>NGSolve 6.2.2607</div>
+    <div><b>Fecha</b>6 de octubre de 2026</div>
+    <div><b>Datos y código</b>comparativa_motores/vois_reales/<br>estudio.py, figuras_vois.py, figuras_3d.py, resultados/</div>
+  </div>
+</section>
+
+<!-- ======================= RESUMEN ======================= -->
+<section class="salto">
+  <div class="seccion-et">El informe en una página</div>
+  <h2>Resumen</h2>
+  <p class="entradilla">En los cinco VOIs, la rigidez que publicaba la app estaba entre un 11 y un 35 % por debajo de la del mismo hueso sin bordes artificiales. Con el plato rígido el error baja al −3 a −10 %, y con plato y núcleo, donde el núcleo cabe, al +0,4 a −4,7 %. La tensión citada pasa de sobrestimarse un 17 a 54 % a quedar entre −5 y +9 %.</p>
+
+  <div class="cifras">
+    <div class="cifra"><div class="v">−25 <span class="u">%</span></div><div class="t">error medio del E aparente publicado hasta la V2.0.2 en los cinco VOIs reales (−11 a −35 %).</div></div>
+    <div class="cifra"><div class="v">−6 <span class="u">%</span></div><div class="t">error medio con plato rígido (F1), la corrección disponible en todos los VOIs.</div></div>
+    <div class="cifra"><div class="v">−2 <span class="u">%</span></div><div class="t">error medio con plato y núcleo en los tres VOIs equinos (+0,4; −1,8; −4,7 %).</div></div>
+    <div class="cifra"><div class="v">1,3 <span class="u">a</span> 2,8</div><div class="t">elementos por espesor trabecular con la resolución por omisión (40³); se recomiendan 4.</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Código</th><th>Hallazgo</th><th>Afecta a</th><th>Medido</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr><td><span class="codigo">R1</span></td><td>Las correcciones funcionan en hueso real</td><td>E aparente, p99</td><td>E: −25 % → −6 % (plato) y −2 % (plato y núcleo)</td><td><span class="sev acep">Confirmado</span></td></tr>
+      <tr><td><span class="codigo">R2</span></td><td>Sin E corregido cuando el núcleo no cabe (VOI &lt; 2,25 mm)</td><td>E corregido</td><td>VOIs porcinos de 2 mm sin valor</td><td><span class="sev acep">Corregido V2.1.1</span></td></tr>
+      <tr><td><span class="codigo">R3</span></td><td>El motor de la app marcaba el ensayo como fallido</td><td>GUI y CLI</td><td><code>ok = False</code> con un fallo falso</td><td><span class="sev acep">Corregido V2.1.1</span></td></tr>
+      <tr><td><span class="codigo">R4</span></td><td>Resolución por omisión por debajo de 4 elementos por trabécula</td><td>E y tensiones</td><td>Tb.Th/h de 1,3 a 2,8 a 40³</td><td><span class="sev m">Recomendación</span></td></tr>
+      <tr><td><span class="codigo">R5</span></td><td>Malla suave a 48³ fuera del alcance de 15 GB</td><td>Malla suave</td><td>7,8 a 10 GB previstos; un intento agotó la memoria</td><td><span class="sev m">Límite</span></td></tr>
+      <tr><td><span class="codigo">R6</span></td><td>El p99 de referencia depende de la carga en los VOIs equinos proximales</td><td>p99</td><td>+22 y +28 % al cambiar la carga del bloque</td><td><span class="sev m">Reserva</span></td></tr>
+      <tr><td><span class="codigo">R7</span></td><td>La carga de fallo de Pistoia sube con el plato</td><td>σ<sub>fallo</sub></td><td>+7 a +24 %, sin referencia para validarlo</td><td><span class="sev n">Sin validar</span></td></tr>
+      <tr><td><span class="codigo">R8</span></td><td>La malla suave no se generó en dos VOIs</td><td>Malla suave</td><td>astilla invertida (corregido) y superficie no reparable (pendiente)</td><td><span class="sev m">1 de 2 corregido</span></td></tr>
+      <tr><td><span class="codigo">P</span></td><td>Uso práctico de la aplicación con los VOIs completos</td><td>E y p99 publicados</td><td>E corregido −12 a +67 %; malla suave frente a ladrillos de −13 a −46 % → −3 a −27 %</td><td><span class="sev acep">Funciona</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="caja clave">
+    <div class="tit">Lo esencial</div>
+    <p>Usar el <b>E corregido</b> y el <b>p99 corregido</b> que la app calcula desde la V2.1.0, con la V2.1.1 o posterior, que arregla los dos defectos encontrados aquí. Trabajar a una resolución con al menos 4 vóxeles por espesor trabecular (Tb.Th/h ≥ 4), que la app ya mide, aunque haya que subir de los 40³ por omisión. Y tratar con reserva la carga de fallo de Pistoia con plato, que cambia de forma apreciable y no ha podido validarse.</p>
+  </div>
+</section>
+
+<!-- ======================= 1. CONCEPTO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 1</div>
+  <h2><span class="num">1</span>Qué se comprueba y cómo se construye la referencia</h2>
+  <p>Un VOI recortado de una imagen de micro-CT tiene dos bordes que el hueso no tiene: un techo donde se aplica la carga sobre trabéculas cortadas y cuatro caras laterales que dejan trabéculas sin apoyo. La V2.1.0 los corrige, pero se validó en un espinodoide sintético, cuya arquitectura es más regular que la del hueso. Para juzgar las correcciones en hueso real hace falta un valor sin esos bordes: la rigidez y la tensión que tendría la misma región si estuviera rodeada de hueso. Es la <b>configuración embebida</b>, que atenúa la influencia de las condiciones de contorno sobre la región que se mide<sup class="ref">1</sup>.</p>
+  <p>En el espinodoide, la referencia se obtuvo <i>hacia fuera</i>: el mismo campo de ondas se evaluó en una rejilla mayor y produjo 1,25 mm de hueso adicional alrededor del VOI. En una imagen de micro-CT eso no es posible, porque fuera del VOI no hay datos. La construcción se invierte y se hace <i>hacia dentro</i>, en tres pasos (Figura 1):</p>
+  <ol>
+    <li><b>Bloque.</b> El VOI completo se remuestrea a N = 96 vóxeles por lado (ecuación 8). Ese volumen hace de hueso circundante.</li>
+    <li><b>Cubo de ensayo.</b> Su cubo central de n<sub>C</sub> = 64 vóxeles (dos tercios del lado) se extrae y se ensaya como lo haría la aplicación, aislado, con tracción (lo publicado hasta la V2.0.2) y con las correcciones (ecuación 9). Queda un margen de m<sub>B</sub> = 16 vóxeles de hueso a cada lado.</li>
+    <li><b>Referencia.</b> El bloque se ensaya con plato y su campo se mide solo en la región del cubo, o de su núcleo, con las mismas fórmulas que la aplicación. El error de cada método es su cociente con ese valor (ecuación 10).</li>
+  </ol>
+
+  <figure class="cadena">
+    <svg viewBox="0 0 680 412" width="100%" font-family="IBM Plex Sans" font-size="11">
+      <defs>
+        <marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#77756f"/></marker>
+        <pattern id="trab" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(20)"><rect width="9" height="9" fill="#e6f0fc"/><circle cx="4.5" cy="4.5" r="2.3" fill="#8fbdf0"/></pattern>
+        <pattern id="trabg" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(20)"><rect width="9" height="9" fill="#f1efea"/><circle cx="4.5" cy="4.5" r="2.3" fill="#cfccc4"/></pattern>
+      </defs>
+      <text x="0" y="12" font-size="9" font-weight="600" letter-spacing="1.2" fill="#77756f">CONSTRUCCIÓN, HACIA DENTRO</text>
+      <!-- Paso 1: VOI de micro-CT -->
+      <g transform="translate(10,30)">
+        <text x="50" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">VOI de micro-CT</text>
+        <rect x="0" y="10" width="100" height="100" fill="url(#trabg)" stroke="#77756f"/>
+        <text x="50" y="128" text-anchor="middle" font-size="9.5" fill="#4a4945">188³ a 16 µm (porcino)</text>
+        <text x="50" y="141" text-anchor="middle" font-size="9.5" fill="#4a4945">97³ a 51,5 µm (equino)</text>
+      </g>
+      <!-- Paso 2: bloque -->
+      <g transform="translate(175,30)">
+        <text x="50" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Bloque, 96³</text>
+        <rect x="0" y="10" width="100" height="100" fill="url(#trabg)" stroke="#2a78d6"/>
+        <text x="50" y="128" text-anchor="middle" font-size="9.5" fill="#4a4945">el VOI completo</text>
+        <text x="50" y="141" text-anchor="middle" font-size="9.5" fill="#4a4945">h = 31,3 o 52,0 µm</text>
+      </g>
+      <!-- Paso 3: cubo central -->
+      <g transform="translate(340,30)">
+        <text x="50" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Cubo de ensayo, 64³</text>
+        <rect x="0" y="10" width="100" height="100" fill="url(#trabg)" stroke="#2a78d6"/>
+        <rect x="16.7" y="26.7" width="66.6" height="66.6" fill="url(#trab)" stroke="#eb6834" stroke-width="1.6"/>
+        <g stroke="#1d1c1a" stroke-width="0.8"><line x1="0" y1="118" x2="16.7" y2="118"/><line x1="0" y1="115" x2="0" y2="121"/><line x1="16.7" y1="115" x2="16.7" y2="121"/></g>
+        <text x="20" y="121" font-size="8.5" fill="#1d1c1a">m<tspan font-size="6.5" dy="2">B</tspan><tspan dy="-2"> = 16 h</tspan></text>
+        <text x="50" y="136" text-anchor="middle" font-size="9.5" fill="#4a4945">lado 2,0 o 3,3 mm</text>
+        <text x="50" y="149" text-anchor="middle" font-size="9.5" fill="#4a4945">margen 0,50 o 0,83 mm</text>
+      </g>
+      <g stroke="#77756f" stroke-width="1.4" marker-end="url(#fl)"><line x1="116" y1="90" x2="170" y2="90"/><line x1="281" y1="90" x2="335" y2="90"/></g>
+      <text x="143" y="72" text-anchor="middle" font-size="9" fill="#77756f">remuestreo</text>
+      <text x="143" y="83" text-anchor="middle" font-size="9" fill="#77756f">(8)</text>
+      <text x="308" y="72" text-anchor="middle" font-size="9" fill="#77756f">centro</text>
+      <text x="308" y="83" text-anchor="middle" font-size="9" fill="#77756f">(9)</text>
+      <!-- Nota: espinodoide frente a hueso real -->
+      <g transform="translate(478,24)">
+        <rect x="0" y="0" width="200" height="150" rx="6" fill="#f6f5f1"/>
+        <text x="100" y="17" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1d1c1a">Por qué hacia dentro</text>
+        <rect x="14" y="30" width="56" height="56" fill="none" stroke="#2a78d6" stroke-dasharray="3 2"/>
+        <rect x="26" y="42" width="32" height="32" fill="url(#trab)" stroke="#eb6834"/>
+        <text x="42" y="100" text-anchor="middle" font-size="8.5" fill="#4a4945">espinodoide:</text>
+        <text x="42" y="111" text-anchor="middle" font-size="8.5" fill="#4a4945">se genera hueso</text>
+        <text x="42" y="122" text-anchor="middle" font-size="8.5" fill="#4a4945">fuera del VOI</text>
+        <rect x="118" y="30" width="56" height="56" fill="url(#trabg)" stroke="#2a78d6"/>
+        <rect x="129" y="41" width="34" height="34" fill="none" stroke="#eb6834" stroke-width="1.4"/>
+        <text x="146" y="100" text-anchor="middle" font-size="8.5" fill="#4a4945">hueso real: fuera</text>
+        <text x="146" y="111" text-anchor="middle" font-size="8.5" fill="#4a4945">no hay imagen; se</text>
+        <text x="146" y="122" text-anchor="middle" font-size="8.5" fill="#4a4945">ensaya un cubo interior</text>
+        <text x="100" y="142" text-anchor="middle" font-size="8.5" fill="#77756f">margen: 1,25 mm frente a 0,50–0,83 mm</text>
+      </g>
+
+      <line x1="0" y1="196" x2="680" y2="196" stroke="#e2e0d8"/>
+      <text x="0" y="216" font-size="9" font-weight="600" letter-spacing="1.2" fill="#77756f">COMPARACIÓN</text>
+      <!-- Ensayo de la app -->
+      <g transform="translate(10,236)">
+        <text x="85" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Ensayo de la app (cubo)</text>
+        <rect x="35" y="22" width="100" height="10" fill="#4a4945" opacity="0.15"/>
+        <g stroke="#eb6834" stroke-width="1.6"><line x1="60" y1="8" x2="60" y2="20"/><line x1="85" y1="8" x2="85" y2="20"/><line x1="110" y1="8" x2="110" y2="20"/></g>
+        <rect x="35" y="34" width="100" height="100" fill="url(#trab)" stroke="#eb6834" stroke-width="1.4"/>
+        <rect x="35" y="34" width="12" height="100" fill="#eb6834" opacity="0.28"/><rect x="123" y="34" width="12" height="100" fill="#eb6834" opacity="0.28"/>
+        <text x="85" y="150" text-anchor="middle" font-size="9.5" fill="#4a4945">aislado: techo cargado y caras cortadas</text>
+        <text x="85" y="163" text-anchor="middle" font-size="9.5" fill="#4a4945">B0 (tracción), F1, F2, F1 + F2</text>
+      </g>
+      <!-- Referencia embebida -->
+      <g transform="translate(250,236)">
+        <text x="90" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Referencia embebida (bloque)</text>
+        <rect x="23" y="8" width="134" height="8" fill="#4a4945"/>
+        <rect x="23" y="18" width="134" height="134" fill="url(#trabg)" stroke="#2a78d6"/>
+        <rect x="45" y="40" width="90" height="90" fill="url(#trab)" stroke="#1d1c1a" stroke-dasharray="4 3"/>
+        <rect x="70" y="77" width="40" height="16" rx="2" fill="#ffffff" opacity="0.85"/>
+        <text x="90" y="89" text-anchor="middle" font-size="9.5" fill="#1d1c1a">mismo cubo</text>
+        <text x="90" y="167" text-anchor="middle" font-size="9.5" fill="#4a4945">plato sobre el bloque; se mide solo en el cubo</text>
+      </g>
+      <!-- Error -->
+      <g transform="translate(480,236)">
+        <text x="95" y="0" text-anchor="middle" font-weight="600" fill="#1d1c1a">Error del método</text>
+        <rect x="10" y="16" width="180" height="40" rx="6" fill="#eeece6"/><text x="100" y="34" text-anchor="middle" font-size="10">e<tspan font-size="7.5" dy="2">X</tspan><tspan dy="-2"> = X(cubo) / X(ref.) − 1</tspan></text><text x="100" y="48" text-anchor="middle" font-size="9">X = E aparente o p99 (10)</text>
+        <rect x="10" y="66" width="180" height="40" rx="6" fill="#eeece6"/><text x="100" y="84" text-anchor="middle" font-size="10">región: el cubo (B0, F1)</text><text x="100" y="98" text-anchor="middle" font-size="10">o su núcleo (F2, F1 + F2)</text>
+        <rect x="10" y="116" width="180" height="30" rx="6" fill="#e7f3e7"/><text x="100" y="135" text-anchor="middle" font-size="10" font-weight="600" fill="#2f7d32">0 = sin efecto de borde</text>
+      </g>
+      <g stroke="#77756f" stroke-width="1.4" marker-end="url(#fl)"><line x1="160" y1="320" x2="268" y2="320"/><line x1="418" y1="320" x2="486" y2="320"/></g>
+      <text x="214" y="312" text-anchor="middle" font-size="9" fill="#77756f">se compara</text>
+    </svg>
+    <figcaption><b>Figura 1.</b> Construcción de la referencia en un VOI real. Arriba: el VOI completo, remuestreado a 96³, es el bloque, y su cubo central de 64³ es el VOI que se ensaya; a diferencia del espinodoide, no puede añadirse hueso por fuera. Abajo: el cubo de ensayo aislado (techo cargado y caras cortadas) y el mismo cubo dentro del bloque contienen exactamente los mismos vóxeles; solo cambia lo que los rodea. Los números entre paréntesis remiten a las ecuaciones de la Sección 2.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figs/f_construccion_3d.png" alt="Construcción tridimensional de la referencia" style="max-height:72mm">
+    <figcaption><b>Figura 2.</b> Los tres objetos del ensayo sobre el VOI proximal cúbico (equino), en 3D. (a) Bloque de 96³ con un cuarto retirado para ver el cubo de ensayo (azul) dentro del hueso circundante (gris). (b) El cubo de ensayo aislado, como lo ensaya la aplicación: en naranja, las secciones de trabéculas cortadas por las caras laterales, que quedan sin apoyo; en granate, las secciones del techo, donde se aplica la carga (plato y flechas). (c) El núcleo a 0,625 mm de las caras (en azul, con un cuarto retirado) y las dos franjas del extensómetro virtual (verde) en las que se mide la deformación.</figcaption>
+  </figure>
+
+  <div class="dos">
+    <figure style="margin-top:0">
+      <img src="figs/f_esquema_real.svg" alt="Corte del VOI con las regiones" style="max-height:74mm">
+      <figcaption><b>Figura 3.</b> Corte vertical del mismo VOI, con las dimensiones reales: bloque (negro), cubo de ensayo (naranja) y núcleo a 0,625 mm de las caras (azul), con las franjas del extensómetro sombreadas. La carga es vertical.</figcaption>
+    </figure>
+    <div>
+      <div class="caja leer" style="margin-top:0"><div class="tit">Por qué esta referencia es exigente</div>
+        <p>El cubo de ensayo y la región de referencia contienen exactamente los mismos vóxeles (ecuación 9). La única diferencia es que en la referencia el hueso continúa más allá de los bordes. Cualquier diferencia de rigidez o de tensión entre ambos se debe, por tanto, a los bordes artificiales, que es lo que las correcciones pretenden eliminar.</p></div>
+      <div class="caja leer"><div class="tit">Margen de la referencia</div>
+        <p>El margen embebido es de 16 vóxeles: 0,50 mm en los VOIs porcinos (3 mm de lado) y 0,83 mm en los equinos (5 mm), menos que los 1,25 mm del espinodoide. Para comprobar que basta, el bloque se ensayó con plato y con tracción (ecuación 10). La rigidez de la región cambió entre un 0,2 y un 2,4 %, de modo que la referencia de E es estable; la del p99 lo es menos (ficha R6).</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 2. FORMULACIÓN ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 2</div>
+  <h2><span class="num">2</span>Formulación</h2>
+  <p>Todas las magnitudes se calculan con el código de la aplicación (<code>spinpy/fem.py</code>), con material elástico lineal isótropo (E<sub>s</sub> = 20 GPa, ν = 0,3) y carga en z.</p>
+
+  <h3>Ensayo de la aplicación hasta la V2.0.2: tracción uniforme</h3>
+  <p>Se aplica sobre el hueso del techo una presión uniforme equivalente a la tensión aparente σ<sub>app</sub> sobre la sección bruta A<sub>b</sub>, con la base deslizante. La rigidez se calcula con el desplazamiento medio del techo, ponderado por el área de sus caras:</p>
+  <div class="ecu"><div>$$E_{\mathrm{app}}^{\mathrm{trac}}=\frac{\sigma_{\mathrm{app}}}{\lvert\bar u_z^{\,\mathrm{techo}}\rvert/H},\qquad \bar u_z^{\,\mathrm{techo}}=\frac{\sum_f A_f\,\bar u_{z,f}}{\sum_f A_f},\qquad \sigma_{\mathrm{app}}=\frac{F}{A_b}$$</div><div class="n">(1)</div></div>
+  <p class="donde">H: altura del VOI; A<sub>f</sub>, ū<sub>z,f</sub>: área y desplazamiento vertical medio de cada cara cargada del techo; F: fuerza de reacción.</p>
+
+  <h3>F1: plato rígido</h3>
+  <p>Todos los nodos del techo bajan lo mismo, sin fricción, y la rigidez sale de la fuerza que hace el plato:</p>
+  <div class="ecu"><div>$$u_z\big|_{\mathrm{techo}}=-\varepsilon_p\,H,\qquad E_{\mathrm{app}}^{\mathrm{plato}}=\frac{F_{\mathrm{plato}}}{A_b\,\varepsilon_p}$$</div><div class="n">(2)</div></div>
+  <p class="donde">Al ser lineal, los campos se escalan a la tensión del protocolo multiplicándolos por σ<sub>app</sub>A<sub>b</sub>/F<sub>plato</sub>, de modo que el p99 y la carga de Pistoia se expresan con la misma carga que en (1).</p>
+
+  <h3>F2: medida en el núcleo</h3>
+  <p>El núcleo Ω<sub>n</sub> es la caja interior a m = 0,625 mm de las seis caras, ajustada a la rejilla de vóxeles:</p>
+  <div class="ecu"><div>$$\Omega_n=\prod_{i=1}^{3}\big[\,o_i+k_i h_i,\;o_i+(n_i-k_i)\,h_i\,\big],\qquad k_i=\operatorname{round}\!\left(\frac{m}{h_i}\right)$$</div><div class="n">(3)</div></div>
+  <p class="donde">h<sub>i</sub>, n<sub>i</sub>: tamaño de vóxel y número de vóxeles por eje; o<sub>i</sub>: origen de la malla (0 con hexaedros, −h<sub>i</sub>/2 con tetraedros).</p>
+  <p>La tensión media del núcleo es la del volumen de la caja, poros incluidos. Cada elemento cuenta con la fracción φ<sub>e</sub> de su volumen que cae dentro: 0 o 1 con hexaedros alineados, y el volumen exacto del tetraedro recortado por la caja con tetraedros:</p>
+  <div class="ecu"><div>$$\bar\sigma_n=-\frac{1}{V_n}\sum_{e}\sigma_{zz,e}\,V_e\,\varphi_e,\qquad \varphi_e=\frac{\lvert T_e\cap\Omega_n\rvert}{\lvert T_e\rvert}$$</div><div class="n">(4)</div></div>
+  <p>La deformación se mide con un extensómetro virtual: dos franjas de espesor s = 0,25 mm, arriba y abajo del núcleo, cuyo desplazamiento medio se toma en el centroide de cada elemento, ponderado por volumen:</p>
+  <div class="ecu"><div>$$\bar\varepsilon_n=\frac{\lvert\bar u^{\,\mathrm{sup}}-\bar u^{\,\mathrm{inf}}\rvert}{\lvert\bar z^{\,\mathrm{sup}}-\bar z^{\,\mathrm{inf}}\rvert},\qquad \bar u^{\,F}=\frac{\sum_{e\in F}V_e\,u_z(\mathbf x_e)}{\sum_{e\in F}V_e},\qquad E_n=\frac{\bar\sigma_n}{\bar\varepsilon_n}$$</div><div class="n">(5)</div></div>
+  <p class="donde">Con tetraedros cuadráticos, el desplazamiento en el centroide es \(u_z(\mathbf x_e)=-\tfrac18\sum_{\text{esquinas}}u_z+\tfrac14\sum_{\text{aristas}}u_z\). El núcleo existe si el lado del VOI cumple \(L\ge 2m+4s=2{,}25\) mm.</p>
+
+  <h3>Tensión citada y carga de fallo</h3>
+  <p>El p99 es el percentil 99 de von Mises en la capa superficial, ponderado por volumen. Con los valores ordenados v<sub>i</sub>, sus pesos w<sub>i</sub> y su suma acumulada S<sub>i</sub>, cada elemento se sitúa en el centro de su tramo y se interpola:</p>
+  <div class="ecu"><div>$$c_i=\frac{S_i-w_i/2}{W},\qquad p_{99}=v(c=0{,}99),\qquad p_{99}^{\,n}=p_{99}\,\frac{\sigma_{\mathrm{app}}}{\bar\sigma_n}$$</div><div class="n">(6)</div></div>
+  <p class="donde">En el núcleo, el p99 se expresa a la tensión del protocolo aplicada al núcleo (\(p_{99}^{\,n}\)), la normalización con la que se validó.</p>
+  <p>La carga de fallo sigue el criterio de Pistoia<sup class="ref">2</sup>: el factor k que lleva el percentil 98 en volumen de la deformación efectiva a la deformación crítica:</p>
+  <div class="ecu"><div>$$\varepsilon_{\mathrm{eff}}=\sqrt{\frac{2U}{E_s}},\quad U=\tfrac12\,\boldsymbol\sigma:\mathbb S:\boldsymbol\sigma,\qquad k=\frac{\varepsilon_{\mathrm{crit}}}{\varepsilon_{\mathrm{eff},98}},\qquad \sigma_{\mathrm{fallo}}=k\,\sigma_{\mathrm{app}}$$</div><div class="n">(7)</div></div>
+  <p class="donde">ε<sub>crit</sub> = 0,7 %; 𝕊: flexibilidad isótropa del tejido.</p>
+
+  <h3>Construcción de la referencia embebida</h3>
+  <p>El remuestreo de la aplicación (<code>elastic.remuestrear_bw</code>) toma el vóxel más próximo, de modo que la máscara sigue siendo binaria y no se crea hueso que no estuviera en la imagen:</p>
+  <div class="ecu"><div>$$B_{ijk}=\mathrm{BW}_{\,r(i)\,r(j)\,r(k)},\qquad r(i)=\operatorname{round}\!\left(i\,\frac{n_0-1}{N-1}\right),\qquad h=h_0\,\frac{n_0}{N},\qquad N=96$$</div><div class="n">(8)</div></div>
+  <p class="donde">n<sub>0</sub>, h<sub>0</sub>: vóxeles por lado y tamaño de vóxel de la imagen (188 y 16,0 µm en los porcinos; 97 y 51,5 µm en los equinos), lo que da h = 31,3 y 52,0 µm.</p>
+  <p>El cubo de ensayo C es la submatriz central del bloque, con los mismos vóxeles; Ω<sub>B</sub>, Ω<sub>C</sub> y Ω<sub>C</sub><sup>n</sup> son las regiones que ocupan el bloque, el cubo y el núcleo del cubo:</p>
+  <div class="ecu"><div>$$\begin{aligned}C_{ijk}&amp;=B_{\,i+m_B,\;j+m_B,\;k+m_B},\qquad 0\le i,j,k\lt n_C,\qquad m_B=\frac{N-n_C}{2}=16\\ \Omega_C&amp;=\big[m_Bh,\,(m_B+n_C)h\big]^3,\qquad \Omega_C^{\,n}=\big[(m_B+k)h,\,(m_B+n_C-k)h\big]^3\end{aligned}$$</div><div class="n">(9)</div></div>
+  <p class="donde">n<sub>C</sub> = 64; k como en (3). El núcleo existe si n<sub>C</sub>h ≥ 2m + 4s, es decir, si h ≥ 35,2 µm: no cabe en los cubos porcinos (2,0 mm de lado) y en los equinos mide 2,08 mm (k = 12).</p>
+  <p>El error de cada método y la sensibilidad de la referencia a la carga del bloque son:</p>
+  <div class="ecu"><div>$$e_X=\frac{X_{\text{método}}(C)}{X\big(B,\ \text{plato};\ R\big)}-1,\qquad \Delta_{\text{ref}}=\frac{X\big(B,\ \text{tracción};\ R\big)}{X\big(B,\ \text{plato};\ R\big)}-1,\qquad R=\begin{cases}\Omega_C &amp; \text{B0, F1}\\ \Omega_C^{\,n} &amp; \text{F2, F1+F2}\end{cases}$$</div><div class="n">(10)</div></div>
+  <p class="donde">X(B, ·; R): la magnitud X (E aparente o p99) medida con las ecuaciones (4) a (6) sobre la región R del campo del bloque. Con R = Ω<sub>C</sub>, el extensómetro y la tensión media se toman en las caras del cubo, dentro del bloque.</p>
+
+  <h3>Perfiles de tensión</h3>
+  <p>Para ver dónde actúan los artefactos, el campo de cada elemento se lleva a la rejilla del cubo (los poros valen 0) y se promedia en capas. Lateralmente, por la distancia d a la cara lateral más próxima; verticalmente, por altura, y en este caso solo en el hueso:</p>
+  <div class="ecu"><div>$$\begin{aligned}\frac{\bar\sigma_{zz}(d)}{\bar\sigma}&amp;=\frac{1}{\bar\sigma\,\lvert S_d\rvert}\sum_{v\in S_d}\big(-\sigma_{zz,v}\big),\qquad d_v=h\min\!\big(i+\tfrac12,\;n_C-i-\tfrac12,\;j+\tfrac12,\;n_C-j-\tfrac12\big)\\ \frac{\bar\sigma_{\mathrm{vM}}(z_k)}{\bar\sigma}&amp;=\frac{1}{\bar\sigma\,\lvert H_k\rvert}\sum_{v\in H_k}\sigma_{\mathrm{vM},v},\qquad \bar\sigma=\frac{1}{n_C^3}\sum_{v\in C}\big(-\sigma_{zz,v}\big)\end{aligned}$$</div><div class="n">(11)</div></div>
+  <p class="donde">S<sub>d</sub>: vóxeles del cubo (hueso y poro) en una capa de 2h de espesor a distancia d; H<sub>k</sub>: vóxeles de hueso de la capa horizontal k; \(\bar\sigma\): tensión vertical media de todo el cubo, poros incluidos (valen 0). En el cubo aislado, \(\bar\sigma\) es la tensión aparente aplicada; en el bloque, la que soporta la región del cubo. Los perfiles reflejan dos cosas: la arquitectura de cada capa, que es la misma en los tres ensayos porque los vóxeles son los mismos, y el efecto de los bordes. Por eso se presentan divididos por los de la referencia: el cociente vale 1 donde el cubo aislado reparte la carga como dentro del bloque.</p>
+
+  <h3>Criterio de resolución</h3>
+  <div class="ecu"><div>$$\frac{\mathrm{Tb.Th}}{h}\ \ge\ 4$$</div><div class="n">(12)</div></div>
+  <p class="donde">Es el criterio de la convergencia de modelos de alta resolución de hueso trabecular<sup class="ref">3</sup> (ficha R4).</p>
+</section>
+
+<!-- ======================= 3. DATOS ======================= -->
+<section>
+  <div class="seccion-et" style="margin-top:3mm">Sección 3</div>
+  <h2><span class="num">3</span>Datos y ensayos</h2>
+  <table>
+    <thead><tr><th>VOI</th><th>Especie</th><th class="n">Vóxeles</th><th class="n">h (µm)</th><th class="n">Lado (mm)</th><th class="n">BV/TV</th><th class="n">Tb.Th (mm)</th><th class="n">Tb.Sp (mm)</th><th class="n">DA</th></tr></thead>
+    <tbody>
+      <tr><td>C1</td><td>porcino</td><td class="n">188³</td><td class="n">16,0</td><td class="n">3,0</td><td class="n">0,365</td><td class="n">0,121</td><td class="n">0,211</td><td class="n">1,30</td></tr>
+      <tr><td>C2</td><td>porcino</td><td class="n">188³</td><td class="n">16,0</td><td class="n">3,0</td><td class="n">0,388</td><td class="n">0,132</td><td class="n">0,208</td><td class="n">1,23</td></tr>
+      <tr><td>Proximal cúbico</td><td>equino</td><td class="n">97³</td><td class="n">51,5</td><td class="n">5,0</td><td class="n">0,280</td><td class="n">0,169</td><td class="n">0,435</td><td class="n">1,51</td></tr>
+      <tr><td>Proximal PCA</td><td>equino</td><td class="n">97³</td><td class="n">51,5</td><td class="n">5,0</td><td class="n">0,282</td><td class="n">0,160</td><td class="n">0,407</td><td class="n">1,41</td></tr>
+      <tr><td>Medio PCA</td><td>equino</td><td class="n">97³</td><td class="n">51,5</td><td class="n">5,0</td><td class="n">0,546</td><td class="n">0,347</td><td class="n">0,289</td><td class="n">1,28</td></tr>
+    </tbody>
+  </table>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3); margin-top: -2mm;"><b>Tabla 1.</b> Los cinco VOIs, con la morfometría de la aplicación (<code>morphometry.morfometria</code>, modelo de placas para Tb.Th; DA del tensor MIL). «PCA»: VOI alineado con los ejes principales del hueso.</p>
+
+  <figure>
+    <img src="figs/f_vois_3d.png" alt="Los cinco VOIs en 3D" style="max-height:52mm">
+    <figcaption><b>Figura 4.</b> Los cinco VOIs, dibujados a la misma escala (superficie del hueso, remuestreada a 80³ solo para el dibujo). Los porcinos miden 3 mm de lado y los equinos, 5 mm. La carga se aplica en el eje vertical. En el equino medio, la capa compacta del techo (Figura 5) aparece como un volumen macizo.</figcaption>
+  </figure>
+  <p>Los VOIs no son homogéneos en altura, y eso importa al leer los resultados. En los porcinos, el BV/TV de cada capa horizontal oscila entre 0,29 y 0,47 sin una tendencia común. En los dos equinos proximales baja de 0,5 en la base a 0,16 o 0,17 hacia el 80 % de la altura y vuelve a 0,32 en el techo; sus perfiles son casi idénticos, lo que es coherente con que se trate de la misma región con dos alineaciones distintas. El equino medio termina en una <b>capa compacta</b>: sus 10 capas superiores (0,51 mm) tienen un BV/TV de 0,98 o más, y la transición desde el hueso trabecular (0,32 a mitad de altura) ocupa casi un tercio del VOI (Figura 5). Su cubo de ensayo, que deja fuera 0,83 mm por cada lado, tiene un BV/TV de 0,45, frente a 0,55 del VOI completo.</p>
+  <figure>
+    <img src="figs/f_perfil_bvtv.svg" alt="BV/TV por capa horizontal" style="max-height:60mm">
+    <figcaption><b>Figura 5.</b> BV/TV de cada capa horizontal frente a la altura relativa, en la imagen nativa. Banda gris: la altura que ocupa el cubo de ensayo dentro del bloque. El equino medio termina en una capa de hueso compacto de 0,5 mm.</figcaption>
+  </figure>
+
+  <h3>Dos estudios</h3>
+  <div class="dos" style="margin-bottom:0">
+    <div class="caja leer"><div class="tit">Validación embebida y campos</div>
+      <p>Cada VOI se remuestrea a 96³ (h = 31 µm en los porcinos y 52 µm en los equinos). Bloque de 1,1 a 1,8 millones de grados de libertad (GDL) con plato y con tracción; cubo central de 64³ (2,0 y 3,3 mm de lado, 0,31 a 0,48 millones de GDL) ensayado con la app. Diez bloques en total, de 2,5 a 6 min cada uno. Para los campos, el bloque con plato y el cubo con tracción y con plato se repitieron guardando la tensión de cada vóxel (ecuación 11).</p></div>
+    <div class="caja leer"><div class="tit">Uso práctico</div>
+      <p>Cada VOI completo por <code>fem.analizar</code>, el camino de la interfaz, con los análisis «lineal» y «lineal con plato», NGSolve y procesos aislados. Ladrillos y malla suave a 40³: la resolución de ladrillos por omisión. La malla suave a 48³ (su valor por omisión) no cupo en memoria (ficha R5).</p></div>
+  </div>
+</section>
+
+<!-- ======================= 4. PANORAMA ======================= -->
+<section>
+  <div class="seccion-et" style="margin-top:7mm">Sección 4</div>
+  <h2><span class="num">4</span>Panorama: dónde actúan los artefactos y cuánto corrigen</h2>
+  <h3>Los artefactos en el campo de tensiones</h3>
+  <p>La Figura 6 muestra la tensión vertical en un corte del cubo de ensayo del VOI proximal cúbico, el más afectado, en los tres ensayos de la Figura 1. Los tres mapas se parecen porque contienen las mismas trabéculas; las diferencias con la referencia (fila inferior) señalan dónde reparte mal la carga cada ensayo. Con tracción, las diferencias se concentran en la mitad superior: hay trabéculas que llegan al techo y cargan más que dentro del bloque, y otras que cargan menos porque, en el bloque, la carga les llegaba por hueso que el corte eliminó. Con el plato, la mitad superior se acerca a la referencia, pero persisten las diferencias en las trabéculas junto a las caras laterales.</p>
+  <p>Los perfiles de la ecuación (11) resumen ese comportamiento en los cinco VOIs (Figura 7). Como cada perfil se divide por el de la referencia, la arquitectura se cancela y queda solo el efecto de los bordes. Tres resultados se repiten:</p>
+  <ul>
+    <li><b>Techo (A1).</b> Con tracción, el von Mises medio del hueso en el 5 % superior de la altura fue 1,13 a 1,77 veces el de la referencia. Con plato quedó entre 0,87 y 0,93 en cuatro VOIs y en 1,15 en el equino medio. El plato suprime la concentración en el techo, con un ligero defecto de signo contrario.</li>
+    <li><b>Caras laterales (A2).</b> En la capa exterior (hasta 2 vóxeles de la cara), el cubo aislado soporta solo el 69 a 93 % de la tensión vertical de la referencia con tracción, y el 68 a 85 % con plato. El plato no corrige este artefacto: lo corrige el núcleo (F2), que mide lejos de esas capas. En los equinos proximales, el déficit exterior es incluso mayor con plato (0,69 y 0,68) que con tracción (0,93 y 0,77), porque la tracción reparte la carga por igual sobre todo el hueso del techo, también sobre las trabéculas cortadas del borde, y con ello enmascara en parte su falta de apoyo.</li>
+    <li><b>Base.</b> En el 5 % inferior, el von Mises de los dos cubos aislados fue de 0,92 a 1,03 veces el de la referencia, sin diferencia entre tracción y plato. La base deslizante es otra cara artificial; ninguno de los dos ensayos la corrige, y el núcleo también la excluye.</li>
+  </ul>
+  <p>El déficit lateral no se debe a que el cubo aislado pierda hueso: más del 99,7 % de los vóxeles óseos del cubo formaron parte del modelo resistente en los quince ensayos. Las trabéculas cortadas siguen unidas al resto, pero sin el hueso vecino que les transmitía carga.</p>
+  <figure>
+    <img src="figs/f_campos_corte.png" alt="Mapas de tensión vertical y diferencias" style="max-height:104mm">
+    <figcaption><b>Figura 6.</b> Tensión vertical normalizada por la media del cubo, \(-\sigma_{zz}/\bar\sigma\), en el corte vertical central del cubo de ensayo del VOI proximal cúbico (3,33 mm de lado, 52 µm por vóxel). (a) a (c): cubo aislado con tracción, con plato y dentro del bloque. (d) y (e): diferencia de cada cubo aislado con la referencia; rojo, el cubo aislado carga más que dentro del bloque; azul, menos. Bordes izquierdo y derecho: caras laterales; borde superior: techo.</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/f_perfiles.png" alt="Perfiles lateral y vertical frente a la referencia" style="max-height:90mm; width:100%; object-fit:contain">
+    <figcaption><b>Figura 7.</b> Perfiles de tensión de los cubos aislados divididos por los del mismo cubo dentro del bloque (ecuación 11). Arriba: tensión vertical media de cada capa según su distancia a la cara lateral más próxima. Abajo: von Mises medio del hueso de cada capa horizontal. La línea negra (1) es el reparto de la referencia; los perfiles comparan cómo se reparte la carga, no su nivel, que da el E de la Figura 8.</figcaption>
+  </figure>
+  <div class="caja leer"><div class="tit">Cómo leer las Figuras 6 y 7</div>
+    <p>Un valor por debajo de 1 en una capa significa que el cubo aislado le hace soportar a esa capa menos tensión que la que soportaría rodeada de hueso; por encima de 1, más. Como la tensión media del cubo está fijada, un déficit cerca de las caras se compensa con un exceso en el interior. Los perfiles laterales son más ruidosos en los porcinos porque sus capas, de 63 µm, contienen pocas trabéculas.</p></div>
+
+  <h3>Errores frente a la referencia</h3>
+  <p>La Figura 8 resume el resultado principal. En los cinco VOIs, el E que publicaba la aplicación queda muy por debajo del hueso embebido, con errores de −25 a −26 % en los porcinos, −29 y −35 % en los equinos proximales y −11 % en el equino medio, el más denso. Todas las correcciones acercan el valor a la referencia; el plato rígido lo hace en todos los VOIs y la combinación con el núcleo, en los tres en que el núcleo cabe. En las Figuras 8 y 9, cada fila es un VOI y cada punto, un método; un punto en 0 reproduce el hueso embebido, y los puntos naranjas son lo que la aplicación publicaba antes de las correcciones.</p>
+  <figure>
+    <img src="figs/f_validacion_E.svg" alt="Error de E por VOI y método" style="max-height:68mm">
+    <figcaption><b>Figura 8.</b> Error del E aparente frente al mismo hueso embebido. Banda gris: ±5 %. En los VOIs porcinos, el cubo de ensayo (2 mm) no admite el núcleo de 0,625 mm de la aplicación; el círculo hueco es un núcleo exploratorio de 0,25 mm, que no forma parte de la aplicación.</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/f_validacion_p99.svg" alt="Error del p99 por VOI" style="max-height:55mm">
+    <figcaption><b>Figura 9.</b> Error del p99 de von Mises frente a la referencia: el publicado hasta la V2.0.2 (tracción) y el p99 corregido (plato rígido sobre el VOI completo).</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= FICHA R1 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">R1</span> · validación</div><h2>Las correcciones funcionan en hueso real</h2></div>
+    <div class="derecha"><span class="sev acep">Confirmado</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">p99</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>La comprobación de que las correcciones aceptadas en el espinodoide, el plato rígido (F1) y el núcleo (F2), reducen el error también en hueso trabecular de micro-CT, con arquitecturas más irregulares, anisotropía real y densidades de 0,26 a 0,45 en el cubo de ensayo.</p>
+      <h4>Qué medimos</h4>
+      <p>El error del E publicado hasta la V2.0.2 fue de −25,8 y −25,3 % (porcinos), −34,7 y −28,6 % (equinos proximales) y −10,6 % (equino medio). Con plato rígido bajó a −6,8; −5,4; −9,6; −5,0 y −3,4 %. Con plato y núcleo, en los equinos, a +0,4; −1,8 y −4,7 %. El núcleo solo con tracción dio −5,0; −10,4 y −3,1 %.</p>
+      <p>El artefacto es mayor cuanto menos denso es el hueso: el VOI medio (BV/TV del cubo 0,45) perdió un 11 % de rigidez, y los proximales (0,26), un 29 a 35 %. Es la tendencia descrita en especímenes reales para el artefacto lateral, que crece al disminuir la fracción de volumen y aumentar la separación trabecular<sup class="ref">4</sup>.</p>
+      <p>Con el p99, el valor publicado sobrestimaba la referencia entre un 17 y un 54 %. Con plato, el error quedó entre −4,7 y +9,4 %. Los campos explican el cambio (Figuras 6 y 7): con tracción, el hueso del techo soportaba hasta 1,8 veces el von Mises de la referencia, y el plato elimina esa concentración.</p>
+      <h4>Lo que no mejoró</h4>
+      <p>En el VOI medio, el núcleo con plato (−4,7 %) no superó al plato solo (−3,4 %), y el núcleo exploratorio de 0,25 mm empeoró los VOIs equinos (−3,6 a −8,7 %). El margen de 0,625 mm sigue siendo el adecuado para VOIs de 5 mm. En hueso denso, la ganancia del núcleo es pequeña porque el artefacto de partida también lo es. El plato, por su parte, no corrige el déficit de carga junto a las caras laterales (del 68 al 85 % de la referencia en la capa exterior); por eso el núcleo sigue siendo necesario donde cabe.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Error de E por VOI</h5>
+        <div class="kv">
+          <span>C1: antes / plato</span><span>−25,8 / −6,8 %</span>
+          <span>C2</span><span>−25,3 / −5,4 %</span>
+          <span>Prox. cúbico: antes / plato / plato+núcleo</span><span>−34,7 / −9,6 / +0,4 %</span>
+          <span>Prox. PCA</span><span>−28,6 / −5,0 / −1,8 %</span>
+          <span>Medio PCA</span><span>−10,6 / −3,4 / −4,7 %</span>
+        </div></div>
+      <div class="bloque"><h5>Estabilidad de la referencia</h5>
+        <div class="kv"><span>E del bloque, tracción frente a plato</span><span>−2,4 a +0,4 %</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= FICHA R2 + R3 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Fichas <span class="codigo">R2</span> y <span class="codigo">R3</span> · defectos de la V2.1.0</div><h2>Dos fallos que solo aparecieron con datos reales</h2></div>
+    <div class="derecha"><span class="sev acep">Corregidos en V2.1.1</span></div>
+  </div>
+  <h3><span class="codigo">R2</span> Sin E corregido cuando el núcleo no cabe</h3>
+  <div class="ficha-cuerpo">
+    <div>
+      <p><b>Qué es.</b> El núcleo necesita un VOI de al menos 2,25 mm de lado, según el límite de la ecuación (5). En los VOIs porcinos, el cubo de ensayo mide 2,0 mm y el núcleo no existe. La V2.1.0 tenía previsto que, sin núcleo con plato, se usara el núcleo con tracción, pero no qué hacer si tampoco ese existía. El registro <code>corregido</code> se quedaba entonces sin E, aunque el plato sobre el VOI completo estaba calculado.</p>
+      <p><b>Cómo se corrigió.</b> La V2.1.1 añade un tercer escalón: si no cabe ningún núcleo, el E corregido es el del plato sobre el VOI completo (<code>plato_voi</code>), la corrección F1 ya aceptada en el espinodoide. En los dos VOIs porcinos, ese valor tiene un error de −6,8 y −5,4 %, frente a −25,8 y −25,3 % sin corregir. El informe de publicación declara el método usado.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Orden de los valores corregidos</h5>
+        <div class="kv"><span>1. núcleo con plato</span><span>plato_nucleo</span><span>2. núcleo con tracción</span><span>traccion_nucleo</span><span>3. plato, VOI completo (nuevo)</span><span>plato_voi</span></div></div>
+    </div>
+  </div>
+  <h3><span class="codigo">R3</span> El motor de la app marcaba el ensayo como fallido</h3>
+  <p><b>Qué es.</b> <code>fem.analizar</code>, el camino que usan la interfaz y la línea de órdenes, filtraba los análisis pidiendo al motor capacidades no lineales para todo lo que no se llamara exactamente «lineal». Con el motor propio de la aplicación, que no resuelve el plato ni el no lineal, el nuevo «lineal con plato» se descartaba y se anotaba como fallo. El registro quedaba con <code>ok = False</code>, aunque el lineal y el E corregido con el núcleo se habían calculado bien. En la interfaz, el ensayo aparecía con fallos.</p>
+  <p><b>Por qué no se vio antes.</b> Las pruebas de la V2.1.0 llamaban a <code>fem.ensayo</code> directamente, que sí trata bien el caso. El fallo estaba en la capa de encima.</p>
+  <p><b>Cómo se corrigió.</b> El filtro trata «lineal con plato» como lineal, y <code>fem.ensayo</code> lo declara no disponible sin contarlo como fallo. El bloque 30 de la suite tiene dos pruebas nuevas: una pasa por <code>fem.analizar</code> con el motor de la app y con NGSolve, y falla con la V2.1.0 (comprobado); la otra cubre el escalón <code>plato_voi</code> de R2.</p>
+</section>
+
+<!-- ======================= FICHA R4 + R5 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Fichas <span class="codigo">R4</span> y <span class="codigo">R5</span> · resolución y memoria</div><h2>Con qué resolución trabajar</h2></div>
+    <div class="derecha"><span class="sev m">Recomendación</span></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>La aplicación remuestrea el VOI a 40³ para la malla de ladrillos y a 48³ para la malla suave, por omisión. Con trabéculas de 0,12 a 0,35 mm, eso deja de 1,3 a 2,8 vóxeles por espesor trabecular (Figura 10). En modelos de alta resolución de hueso trabecular, las propiedades aparentes se mantuvieron a menos del 10 % de las de la malla más fina cuando el espesor medio superaba cuatro elementos<sup class="ref">3</sup>.</p>
+      <h4>Qué medimos</h4>
+      <p>La validación embebida se hizo a 96³, con 3,1 a 6,7 elementos por espesor. Los errores de las correcciones medidos aquí valen para esa resolución. A 40³, el error de discretización se suma al de los bordes; las correcciones atacan el segundo, no el primero.</p>
+      <p>La malla suave a 48³ de estos VOIs necesitaría, según la estimación de la propia aplicación (<code>fem.tamano_previsto</code>), entre 7,8 y 10 GB con el resolvedor directo. En un equipo de 15 GB, el primer intento (C1, con BDDC) agotó la memoria y el proceso terminó con el código 137. Por eso el uso práctico usó la malla suave a 40³.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Tb.Th / h</h5>
+        <div class="kv"><span>Porcinos, 40³ / 96³</span><span>1,6 a 1,8 / 3,9 a 4,2</span><span>Equinos proximales</span><span>1,3 a 1,4 / 3,1 a 3,3</span><span>Equino medio</span><span>2,8 / 6,7</span></div></div>
+      <div class="bloque"><h5>Malla suave a 48³ (previsto)</h5>
+        <div class="kv"><span>GDL</span><span>0,96 a 1,21 millones</span><span>Memoria (directo)</span><span>7,8 a 10,1 GB</span></div></div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_resolucion.svg" alt="Elementos por espesor trabecular" style="max-height:52mm">
+    <figcaption><b>Figura 10.</b> Elementos por espesor trabecular (Tb.Th/h) con la resolución de ladrillos por omisión (40³) y con la de la validación embebida (96³). Línea discontinua: 4 elementos por espesor.</figcaption>
+  </figure>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Elegir la resolución por Tb.Th, no por un número fijo de vóxeles.</b> La aplicación ya mide Tb.Th; podría proponer la n que da Tb.Th/h ≥ 4, sin superar la resolución nativa de la imagen, y avisar cuando no se alcance.</p><div class="meta">Esfuerzo bajo · afecta a E y tensiones</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Comprobar la memoria antes de lanzar la malla suave.</b> <code>tamano_previsto</code> ya estima la memoria; la interfaz puede bloquear o avisar si supera la del equipo.</p><div class="meta">Esfuerzo bajo · evita cierres por memoria</div></div></div>
+  </div>
+</section>
+
+<!-- ======================= 5. USO PRÁCTICO ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Sección 5 · ficha <span class="codigo">P</span></div><h2>Lo que ve el usuario: los VOIs completos en la aplicación</h2></div>
+    <div class="derecha"><span class="sev acep">Funciona</span><div style="margin-top:1.5mm"><span class="chip">E corregido</span><span class="chip">p99 corregido</span><span class="chip">malla suave</span></div></div>
+  </div>
+  <p>Cada VOI completo se ensayó por <code>fem.analizar</code>, el camino de la interfaz, con NGSolve, «lineal» y «lineal con plato», y ladrillos y malla suave a 40³. Aquí no hay referencia: se ve cuánto cambian los números publicados.</p>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Rigidez</h4>
+      <p>Con ladrillos, el E corregido fue mayor que el publicado en cuatro VOIs: +8 y +10 % en los porcinos y +67 y +57 % en los equinos proximales. En el equino medio fue un 12 % menor (4114 frente a 4660 MPa). En ese VOI, el plato sobre el VOI completo sí aumentó el E (+6 %), pero el núcleo, un cubo de 3,75 mm en el centro, deja fuera la capa compacta del techo (0,51 mm de hueso macizo, Figura 5): en la imagen nativa, su BV/TV es de 0,47, frente a 0,55 del VOI completo, y es menos rígido que el conjunto. El valor corregido de un VOI heterogéneo describe su núcleo, no el VOI completo, y eso debe declararse al citarlo; en este caso describe el hueso trabecular sin la capa compacta.</p>
+      <h4>Tensión citada</h4>
+      <p>El p99 corregido fue entre un 2 y un 24 % menor que el publicado con ladrillos, y entre un 12 y un 39 % menor con la malla suave. Es el sentido que predijo la validación (Figura 9).</p>
+
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>E con ladrillos, 40³ (MPa)</h5>
+        <div class="kv"><span>C1: publicado / corregido</span><span>3476 / 3759</span><span>C2</span><span>3508 / 3864</span><span>Prox. cúbico</span><span>982 / 1641</span><span>Prox. PCA</span><span>1159 / 1823</span><span>Medio PCA</span><span>4660 / 4114</span></div></div>
+      <div class="bloque"><h5>Malla suave / ladrillos</h5>
+        <div class="kv"><span>C1: antes / corregido</span><span>−20 / −3 %</span><span>C2</span><span>−13 / −3 %</span><span>Prox. cúbico</span><span>−46 / −27 %</span><span>Medio PCA</span><span>−20 / −10 %</span></div></div>
+      <div class="bloque"><h5>Coste (ambos análisis)</h5>
+        <div class="kv"><span>Ladrillos, 40³</span><span>15 a 44 s</span><span>Malla suave, 40³</span><span>76 a 210 s</span></div></div>
+    </div>
+  </div>
+  <figure>
+    <img src="figs/f_practico.svg" alt="E publicado y corregido" style="max-height:48mm">
+    <figcaption><b>Figura 11.</b> E aparente de los VOIs completos con la aplicación: el publicado hasta la V2.0.2 (tracción, VOI completo) y el E corregido (plato y núcleo), con ladrillos (a) y malla suave (b) a 40³. «Sin malla»: tetgen no generó la malla suave (ficha R8).</figcaption>
+  </figure>
+  <h4>Ladrillos frente a malla suave</h4>
+  <p>Hasta la V2.0.2, la malla suave daba un E entre un 13 y un 46 % menor que la de ladrillos. Con las correcciones, la diferencia bajó al −3 % en los porcinos y al −10 % en el equino medio, pero siguió en −27 % en el equino proximal cúbico. Ese VOI tiene trabéculas de 1,4 vóxeles de espesor a 40³, que el suavizado adelgaza (ficha R4); la corrección de borde no compensa una resolución insuficiente.</p>
+  <figure>
+    <img src="figs/f_a3.svg" alt="Malla suave frente a ladrillos" style="max-height:46mm">
+    <figcaption><b>Figura 12.</b> E de la malla suave frente al de ladrillos en el mismo VOI y a la misma resolución, antes y después de las correcciones. Línea discontinua: −10 %.</figcaption>
+  </figure>
+  <div class="caja leer"><div class="tit">Cómo leer las Figuras 11 y 12</div>
+    <p>En la Figura 11, cada par de barras es un VOI: la naranja es lo que la aplicación publicaba y la azul, el E corregido con la V2.1.1. En la Figura 12, una barra en 0 significa que las dos mallas dan la misma rigidez; la diferencia que queda tras las correcciones se debe sobre todo a la resolución, no a los bordes.</p></div>
+
+</section>
+
+<!-- ======================= FICHA R8 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">R8</span> · mallado</div><h2>La malla suave falló en dos de los cinco VOIs</h2></div>
+    <div class="derecha"><span class="sev m">1 corregido · 1 pendiente</span><div style="margin-top:1.5mm"><span class="chip">malla suave</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué es</h4>
+      <p>Dos de las cinco mallas suaves a 40³ no llegaron a resolverse porque el mallado se detuvo. Son fallos del mallador de la aplicación, previos a las correcciones de borde y ajenos a ellas.</p>
+      <h4>Equino medio: una astilla invertida (corregido en la V2.1.1)</h4>
+      <p>Tras el suavizado, la aplicación devuelve a su plano exacto los nodos que quedan a menos de 10⁻³ vóxeles de una cara del cubo. Las «astillas planas», tetraedros con sus cuatro esquinas en una cara, quedan con volumen cero y ya se eliminaban. En el VOI medio apareció otro caso: un tetraedro con tres esquinas en la base y la cuarta a 0,001 vóxeles, de volumen 1,7·10⁻¹⁰ veces la mediana, que al ajustar los nodos se invirtió en lugar de aplanarse. La aplicación rechazaba entonces toda la malla. La V2.1.1 quita estas astillas invertidas si son degeneradas (menos de 10⁻⁶ veces la mediana) y lo declara en el informe de malla. Un tetraedro invertido de tamaño normal sigue rechazando la malla. Con el arreglo, la malla del VOI medio se generó quitando una astilla invertida y 65 planas, con una pérdida de volumen del 0,04 %.</p>
+      <h4>Equino proximal PCA: superficie no reparable (pendiente)</h4>
+      <p>tetgen no pudo tetraedralizar la superficie: «Failed to tetrahedralize. You may need to repair surface by making it manifold». La superficie suavizada y reparada contiene una zona que no es una variedad, y no se ha investigado su origen. La aplicación lo comunica como un fallo del ensayo, sin resultado erróneo.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>Estado de las mallas suaves a 40³</h5>
+        <div class="kv"><span>C1, C2, Prox. cúbico</span><span>correctas</span><span>Medio PCA</span><span>correcta en V2.1.1</span><span>Prox. PCA</span><span>falla (tetgen)</span></div></div>
+    </div>
+  </div>
+  <h4>Cómo resolverlo</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Astillas invertidas degeneradas.</b> Hecho en <code>fem.preparar_tet10</code>, con prueba en el bloque 30.</p><div class="meta">Hecho · V2.1.1</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Superficie no reparable.</b> Localizar la arista o el vértice que no es variedad tras el aplanado de las tapas y repararlo antes de tetgen, o reintentar con otro decimado o suavizado.</p><div class="meta">Esfuerzo medio · <code>solido.malla_tet10</code></div></div></div>
+  </div>
+</section>
+
+
+<!-- ======================= FICHA R6 + R7 ======================= -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Fichas <span class="codigo">R6</span> y <span class="codigo">R7</span> · reservas</div><h2>Lo que este estudio no permite afirmar</h2></div>
+    <div class="derecha"><span class="sev m">Reservas</span></div>
+  </div>
+  <h3><span class="codigo">R6</span> El p99 de referencia en los VOIs equinos proximales</h3>
+  <p>La rigidez de la referencia apenas depende de cómo se cargue el bloque, pero el p99 sí en dos VOIs: en los equinos proximales, cambiar el plato por tracción en el bloque elevó el p99 de la región de referencia un 21,6 y un 28,3 %, frente a un 1,4 a 3,6 % en los demás. El margen embebido (0,83 mm) no aísla del todo la tensión local de la región en estos VOIs, los más porosos (Tb.Sp de 0,407 y 0,435 mm), aunque sí su rigidez. Por eso los errores de p99 de estos dos VOIs (+4,9 y −4,7 % con plato) tienen una incertidumbre del orden de su propio valor, y el p99 corregido debe citarse con reserva en hueso muy poroso.</p>
+  <h3><span class="codigo">R7</span> La carga de fallo de Pistoia con plato</h3>
+  <div class="ficha-cuerpo">
+    <div>
+      <p>Con plato, la tensión de fallo del criterio de Pistoia (ecuación 7) fue mayor que con tracción en los cinco cubos de ensayo: +17,9 y +23,6 % en los porcinos, +17,6 y +22,6 % en los equinos proximales y +7,2 % en el medio. Es coherente con que el techo, menos deformado con el plato, deje de concentrar la deformación que dispara el criterio. Sin embargo, la referencia embebida no se usó para la carga de fallo y el criterio se calibró con ensayos en los que la carga se aplicaba de otra forma<sup class="ref">2</sup>, de modo que este cambio no está validado. La aplicación muestra la carga de fallo con plato solo como dato del análisis, no como valor corregido.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>σ<sub>fallo</sub> (MPa): tracción / plato</h5>
+        <div class="kv"><span>C1</span><span>15,2 / 17,9</span><span>C2</span><span>15,5 / 19,1</span><span>Prox. cúbico</span><span>8,1 / 9,5</span><span>Prox. PCA</span><span>8,4 / 10,3</span><span>Medio PCA</span><span>16,7 / 17,9</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SÍNTESIS ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 6</div>
+  <h2><span class="num">6</span>Síntesis</h2>
+  <div class="dos">
+    <div class="caja clave"><div class="tit">Robusto</div>
+      <ul>
+        <li>El sesgo de la rigidez publicada hasta la V2.0.2 (−11 a −35 %) y su dependencia de la densidad.</li>
+        <li>La reducción con plato rígido (−3 a −10 %) en los cinco VOIs.</li>
+        <li>La combinación de plato y núcleo en VOIs de 5 mm (+0,4 a −4,7 %).</li>
+        <li>La estabilidad de la referencia de E (±2,4 %).</li>
+        <li>El mecanismo, visto en los campos: el plato elimina la concentración de tensión del techo (de 1,1 a 1,8 veces la referencia con tracción), y el déficit junto a las caras laterales (68 a 93 %) solo lo evita el núcleo.</li>
+      </ul></div>
+    <div class="caja alerta"><div class="tit">Con reservas</div>
+      <ul>
+        <li>El p99 corregido en hueso muy poroso (R6).</li>
+        <li>La carga de fallo con plato (R7).</li>
+        <li>Cualquier valor a 40³ en estos VOIs, por la resolución (R4), y la malla suave del VOI proximal cúbico, que sigue un 27 % por debajo de los ladrillos.</li>
+        <li>El E corregido de un VOI heterogéneo describe su núcleo, no el VOI completo (ficha P).</li>
+        <li>Generalizar a otras especies o localizaciones con solo cinco VOIs.</li>
+      </ul></div>
+  </div>
+  <h2 style="margin-top:6mm"><span class="num">7</span>Hoja de ruta</h2>
+  <table class="ruta">
+    <thead><tr><th>#</th><th>Acción</th><th>Corrige</th><th>Dónde</th><th>Esfuerzo</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Publicar la V2.1.1 con los arreglos de R2, R3 y la astilla invertida de R8</td><td>R2, R3, R8</td><td><code>fem._corregido</code>, <code>fem.analizar</code>, <code>fem.preparar_tet10</code></td><td class="esfuerzo" style="color:var(--leve)">Hecho</td></tr>
+      <tr><td>2</td><td>Resolución propuesta según Tb.Th/h ≥ 4</td><td>R4</td><td><code>visor.py</code>, <code>fem.analizar</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>3</td><td>Aviso o bloqueo por memoria antes de la malla suave</td><td>R5</td><td><code>fem.tamano_previsto</code>, diálogo FEM</td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>4</td><td>Reparar la superficie no variedad antes de tetgen</td><td>R8</td><td><code>solido.malla_tet10</code></td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>4b</td><td>Validar la carga de fallo con plato frente a la referencia embebida</td><td>R7</td><td><code>vois_reales/estudio.py</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>5</td><td>Referencia embebida con más margen para el p99 en hueso poroso (VOIs mayores)</td><td>R6</td><td>protocolo de imagen</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>6</td><td>Repetir en más VOIs y localizaciones (vértebra, fémur)</td><td>generalidad</td><td>datos</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+    </tbody>
+  </table>
+</section>
+<section class="salto">
+  <h2><span class="num">8</span>Limitaciones</h2>
+  <ul>
+    <li>Cinco VOIs de dos especies. Los resultados describen estos especímenes y no permiten estimar la variabilidad de una población.</li>
+    <li>La referencia embebida es el mismo VOI más grande, con márgenes de 0,50 y 0,83 mm. La rigidez resultó estable, pero el p99 no lo fue en dos VOIs (R6).</li>
+    <li>El remuestreo por vecino más próximo a 96³ altera la geometría respecto de la imagen nativa, sobre todo en los porcinos (de 188³ a 96³). Es igual para la referencia y para los métodos, así que no sesga la comparación, pero los valores absolutos no son los de la resolución nativa.</li>
+    <li>Solo compresión en z y régimen lineal; los VOIs alineados por PCA se ensayaron según el eje z de su archivo.</li>
+    <li>Los VOIs no son homogéneos en altura (Figura 5): los equinos proximales triplican su BV/TV entre el 80 % de la altura y la base, y el equino medio incluye 0,51 mm de hueso compacto. La validación compara el mismo cubo en dos condiciones y no se ve afectada, pero en el uso práctico el valor corregido describe el núcleo y no el VOI completo.</li>
+    <li>No hubo validación experimental: la referencia es numérica.</li>
+  </ul>
+</section>
+
+<!-- ======================= APOYO ======================= -->
+<section>
+  <div style="height:6mm"></div>
+  <div class="seccion-et">Apoyo</div>
+  <h2>Glosario</h2>
+  <dl class="glosario">
+    <dt>VOI</dt><dd>Volumen de interés recortado de la imagen de micro-CT.</dd>
+    <dt>Configuración embebida</dt><dd>La región que se mide, rodeada de su propio hueso; aquí, el cubo central dentro del VOI completo.</dd>
+    <dt>Cubo de ensayo</dt><dd>El cubo central de 64³ vóxeles que se ensaya como si fuera un VOI.</dd>
+    <dt>Núcleo</dt><dd>Caja interior a 0,625 mm de las caras, ecuación (3).</dd>
+    <dt>F1, F2</dt><dd>Plato rígido en el techo; medida en el núcleo.</dd>
+    <dt>E corregido</dt><dd>E con plato y núcleo, o el siguiente escalón disponible (ficha R2).</dd>
+    <dt>p99 corregido</dt><dd>p99 de von Mises con plato sobre el VOI completo.</dd>
+    <dt>Tb.Th, Tb.Sp</dt><dd>Espesor y separación trabecular medios.</dd>
+    <dt>GDL</dt><dd>Grados de libertad del sistema (tres por nodo).</dd>
+    <dt>Capa compacta</dt><dd>Capas del VOI con BV/TV de 0,98 o más; aquí, los 0,51 mm superiores del equino medio.</dd>
+    <dt>Perfil lateral y vertical</dt><dd>Tensión media por capas según la distancia a la cara lateral o según la altura, ecuación (11).</dd>
+    <dt>BDDC</dt><dd>Precondicionador por subestructuración que usa NGSolve con la malla suave.</dd>
+  </dl>
+</section>
+
+<section class="salto">
+  <h2>Reproducir</h2>
+  <p>Los VOIs no viajan con el repositorio; su huella SHA-256 queda en <code>resultados/validacion.json</code>. Desde <code>comparativa_motores/vois_reales/</code>, con los cinco archivos en una carpeta:</p>
+  <p><code>python estudio.py CARPETA morfometria validacion</code> (unos 45 min; bloques de hasta 1,8 millones de GDL)<br>
+  <code>python estudio.py CARPETA practico</code> (procesos aislados; malla suave a 40³)<br>
+  <code>python estudio.py CARPETA campos</code> (unos 25 min; cortes y perfiles de tensión)<br>
+  <code>python resumen_campos.py</code><br>
+  <code>python figuras_vois.py CARPETA</code><br>
+  <code>python figuras_3d.py CARPETA</code> (superficies por marching cubes, sin OpenGL)<br>
+  <code>python -m pytest tests/test_30_correcciones.py</code></p>
+  <h2 style="margin-top:7mm">Referencias</h2>
+  <ol class="refs">
+    <li>Wili P, Maquer G, Panyasantisuk J, Zysset PK. Estimation of the effective yield properties of human trabecular bone using nonlinear micro-finite element analyses. Biomech Model Mechanobiol. 2017;16(6):1925-36. doi:10.1007/s10237-017-0928-0</li>
+    <li>Pistoia W, van Rietbergen B, Lochmüller EM, Lill CA, Eckstein F, Rüegsegger P. Estimation of distal radius failure load with micro-finite element analysis models based on three-dimensional peripheral quantitative computed tomography images. Bone. 2002;30(6):842-8. doi:10.1016/s8756-3282(02)00736-6</li>
+    <li>Niebur GL, Yuen JC, Hsia AC, Keaveny TM. Convergence behavior of high-resolution finite element models of trabecular bone. J Biomech Eng. 1999;121(6):629-35. doi:10.1115/1.2800865</li>
+    <li>Un K, Bevill G, Keaveny TM. The effects of side-artifacts on the elastic modulus of trabecular bone. J Biomech. 2006;39(11):1955-63. doi:10.1016/j.jbiomech.2006.05.012</li>
+    <li>Erdemir A, Guess TM, Halloran J, Tadepalli SC, Morrison TM. Considerations for reporting finite element analysis studies in biomechanics. J Biomech. 2012;45(4):625-33. doi:10.1016/j.jbiomech.2011.11.038</li>
+  </ol>
+  <p style="font: 8pt 'IBM Plex Sans'; color: var(--tinta3);">Referencias verificadas en PubMed. Documentos internos: <code>comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf</code> (validación en el espinodoide) y <code>comparativa_motores/INFORME_ARTEFACTOS.pdf</code> (diagnóstico).</p>
+</section>
+
+<section class="salto">
+  <div class="seccion-et">Anexo</div>
+  <h2>Lista de chequeo de reporte</h2>
+  <p><b>Diseño del trabajo.</b> Estudio computacional de verificación y aplicación de un modelo de elementos finitos sobre cinco especímenes de micro-CT, con referencia numérica embebida; sin sujetos ni datos clínicos, de modo que PRISMA, CONSORT y STROBE no son aplicables. Se usa la guía de Erdemir et al. (2012) para estudios de elementos finitos en biomecánica<sup class="ref">5</sup>; no consta una versión posterior que la sustituya.</p>
+  <table class="lista-chequeo">
+    <thead><tr><th>Ítem</th><th>Contenido</th><th>Estado</th><th>Modificación necesaria</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Identificación del modelo</td></tr>
+      <tr><td>1</td><td>Propósito y magnitudes de interés</td><td><span class="sev l">Cumple</span></td><td>Portada y sección 1.</td></tr>
+      <tr><td>2</td><td>Versión del software</td><td><span class="sev l">Cumple</span></td><td>Portada.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura del modelo</td></tr>
+      <tr><td>3</td><td>Geometría: origen de las imágenes, segmentación</td><td><span class="sev m">Parcial</span></td><td>VOIs ya segmentados por el usuario, con su geometría en 3D y su perfil de densidad (Figuras 4 y 5); faltan escáner, voltaje, umbral y localización anatómica exacta.</td></tr>
+      <tr><td>4</td><td>Malla: tipo, tamaño, número de elementos</td><td><span class="sev l">Cumple</span></td><td>Secciones 3 y 5.</td></tr>
+      <tr><td>5</td><td>Propiedades del material</td><td><span class="sev m">Parcial</span></td><td>E<sub>s</sub> = 20 GPa, ν = 0,3 (protocolo de la app), homogéneo; falta justificarlo para cada especie.</td></tr>
+      <tr><td>6</td><td>Condiciones de contorno y cargas</td><td><span class="sev l">Cumple</span></td><td>Sección 2, ecuaciones (1) y (2).</td></tr>
+      <tr><td>7</td><td>Contacto</td><td><span class="sev n">No aplica</span></td><td>Sin contacto.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura de la simulación</td></tr>
+      <tr><td>8</td><td>Resolvedor y tolerancias</td><td><span class="sev l">Cumple</span></td><td>Secciones 3 y 5.</td></tr>
+      <tr><td>9</td><td>Postproceso</td><td><span class="sev l">Cumple</span></td><td>Sección 2, ecuaciones (3) a (11).</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Verificación</td></tr>
+      <tr><td>10</td><td>Verificación del código</td><td><span class="sev l">Cumple</span></td><td>Bloque 30 (11 pruebas) e informes anteriores.</td></tr>
+      <tr><td>11</td><td>Convergencia de malla</td><td><span class="sev g">No cumple</span></td><td>No se estudió la convergencia en estos VOIs; la ficha R4 muestra que 40³ queda por debajo del criterio. Para publicar, repetir a varias resoluciones.</td></tr>
+      <tr><td>12</td><td>Sensibilidad</td><td><span class="sev l">Cumple</span></td><td>Carga del bloque de referencia (R6).</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Validación</td></tr>
+      <tr><td>13</td><td>Comparación con datos experimentales</td><td><span class="sev g">No cumple</span></td><td>Referencia numérica; declarado en Limitaciones.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Disponibilidad</td></tr>
+      <tr><td>14</td><td>Modelo, datos y código</td><td><span class="sev m">Parcial</span></td><td>Código y resultados en el repositorio; los VOIs no se publican (huella SHA-256 registrada).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<script>
+renderMathInElement(document.body, {delimiters: [
+  {left: "$$", right: "$$", display: true},
+  {left: "\\(", right: "\\)", display: false}], throwOnError: false});
+</script>
+</body>
+</html>
