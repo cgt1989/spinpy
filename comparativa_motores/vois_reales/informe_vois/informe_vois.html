@@ -43,6 +43,7 @@ figure img { max-height: 70mm; }
       <b>Preguntas que responde</b>
       <ol>
         <li>¿Funcionan las correcciones en hueso real, y cuánto?</li>
+        <li>¿Dónde actúan los artefactos dentro del hueso?</li>
         <li>¿Qué cambia en los números que ve el usuario?</li>
         <li>¿Qué falló al usar la V2.1.0 con estos VOIs?</li>
         <li>¿Con qué resolución hay que trabajar?</li>
@@ -301,21 +302,39 @@ figure img { max-height: 70mm; }
 </section>
 
 <!-- ======================= 4. PANORAMA ======================= -->
-<section class="salto">
-  <div class="seccion-et">Sección 4</div>
-  <h2><span class="num">4</span>Panorama de la validación</h2>
-  <p>La Figura 8 resume el resultado principal. En los cinco VOIs, el E que publicaba la aplicación queda muy por debajo del hueso embebido, con errores de −25 a −26 % en los porcinos, −29 y −35 % en los equinos proximales y −11 % en el equino medio, el más denso. Todas las correcciones acercan el valor a la referencia; el plato rígido lo hace en todos los VOIs y la combinación con el núcleo, en los tres en que el núcleo cabe.</p>
+<section>
+  <div class="seccion-et" style="margin-top:7mm">Sección 4</div>
+  <h2><span class="num">4</span>Panorama: dónde actúan los artefactos y cuánto corrigen</h2>
+  <h3>Los artefactos en el campo de tensiones</h3>
+  <p>La Figura 6 muestra la tensión vertical en un corte del cubo de ensayo del VOI proximal cúbico, el más afectado, en los tres ensayos de la Figura 1. Los tres mapas se parecen porque contienen las mismas trabéculas; las diferencias con la referencia (fila inferior) señalan dónde reparte mal la carga cada ensayo. Con tracción, las diferencias se concentran en la mitad superior: hay trabéculas que llegan al techo y cargan más que dentro del bloque, y otras que cargan menos porque, en el bloque, la carga les llegaba por hueso que el corte eliminó. Con el plato, la mitad superior se acerca a la referencia, pero persisten las diferencias en las trabéculas junto a las caras laterales.</p>
+  <p>Los perfiles de la ecuación (11) resumen ese comportamiento en los cinco VOIs (Figura 7). Como cada perfil se divide por el de la referencia, la arquitectura se cancela y queda solo el efecto de los bordes. Tres resultados se repiten:</p>
+  <ul>
+    <li><b>Techo (A1).</b> Con tracción, el von Mises medio del hueso en el 5 % superior de la altura fue 1,13 a 1,77 veces el de la referencia. Con plato quedó entre 0,87 y 0,93 en cuatro VOIs y en 1,15 en el equino medio. El plato suprime la concentración en el techo, con un ligero defecto de signo contrario.</li>
+    <li><b>Caras laterales (A2).</b> En la capa exterior (hasta 2 vóxeles de la cara), el cubo aislado soporta solo el 69 a 93 % de la tensión vertical de la referencia con tracción, y el 68 a 85 % con plato. El plato no corrige este artefacto: lo corrige el núcleo (F2), que mide lejos de esas capas. En los equinos proximales, el déficit exterior es incluso mayor con plato (0,69 y 0,68) que con tracción (0,93 y 0,77), porque la tracción reparte la carga por igual sobre todo el hueso del techo, también sobre las trabéculas cortadas del borde, y con ello enmascara en parte su falta de apoyo.</li>
+    <li><b>Base.</b> En el 5 % inferior, el von Mises de los dos cubos aislados fue de 0,92 a 1,03 veces el de la referencia, sin diferencia entre tracción y plato. La base deslizante es otra cara artificial; ninguno de los dos ensayos la corrige, y el núcleo también la excluye.</li>
+  </ul>
+  <p>El déficit lateral no se debe a que el cubo aislado pierda hueso: más del 99,7 % de los vóxeles óseos del cubo formaron parte del modelo resistente en los quince ensayos. Las trabéculas cortadas siguen unidas al resto, pero sin el hueso vecino que les transmitía carga.</p>
   <figure>
-    <img src="figs/f_validacion_E.svg" alt="Error de E por VOI y método">
+    <img src="figs/f_campos_corte.png" alt="Mapas de tensión vertical y diferencias" style="max-height:104mm">
+    <figcaption><b>Figura 6.</b> Tensión vertical normalizada por la media del cubo, \(-\sigma_{zz}/\bar\sigma\), en el corte vertical central del cubo de ensayo del VOI proximal cúbico (3,33 mm de lado, 52 µm por vóxel). (a) a (c): cubo aislado con tracción, con plato y dentro del bloque. (d) y (e): diferencia de cada cubo aislado con la referencia; rojo, el cubo aislado carga más que dentro del bloque; azul, menos. Bordes izquierdo y derecho: caras laterales; borde superior: techo.</figcaption>
+  </figure>
+  <figure>
+    <img src="figs/f_perfiles.png" alt="Perfiles lateral y vertical frente a la referencia" style="max-height:90mm; width:100%; object-fit:contain">
+    <figcaption><b>Figura 7.</b> Perfiles de tensión de los cubos aislados divididos por los del mismo cubo dentro del bloque (ecuación 11). Arriba: tensión vertical media de cada capa según su distancia a la cara lateral más próxima. Abajo: von Mises medio del hueso de cada capa horizontal. La línea negra (1) es el reparto de la referencia; los perfiles comparan cómo se reparte la carga, no su nivel, que da el E de la Figura 8.</figcaption>
+  </figure>
+  <div class="caja leer"><div class="tit">Cómo leer las Figuras 6 y 7</div>
+    <p>Un valor por debajo de 1 en una capa significa que el cubo aislado le hace soportar a esa capa menos tensión que la que soportaría rodeada de hueso; por encima de 1, más. Como la tensión media del cubo está fijada, un déficit cerca de las caras se compensa con un exceso en el interior. Los perfiles laterales son más ruidosos en los porcinos porque sus capas, de 63 µm, contienen pocas trabéculas.</p></div>
+
+  <h3>Errores frente a la referencia</h3>
+  <p>La Figura 8 resume el resultado principal. En los cinco VOIs, el E que publicaba la aplicación queda muy por debajo del hueso embebido, con errores de −25 a −26 % en los porcinos, −29 y −35 % en los equinos proximales y −11 % en el equino medio, el más denso. Todas las correcciones acercan el valor a la referencia; el plato rígido lo hace en todos los VOIs y la combinación con el núcleo, en los tres en que el núcleo cabe. En las Figuras 8 y 9, cada fila es un VOI y cada punto, un método; un punto en 0 reproduce el hueso embebido, y los puntos naranjas son lo que la aplicación publicaba antes de las correcciones.</p>
+  <figure>
+    <img src="figs/f_validacion_E.svg" alt="Error de E por VOI y método" style="max-height:68mm">
     <figcaption><b>Figura 8.</b> Error del E aparente frente al mismo hueso embebido. Banda gris: ±5 %. En los VOIs porcinos, el cubo de ensayo (2 mm) no admite el núcleo de 0,625 mm de la aplicación; el círculo hueco es un núcleo exploratorio de 0,25 mm, que no forma parte de la aplicación.</figcaption>
   </figure>
   <figure>
-    <img src="figs/f_validacion_p99.svg" alt="Error del p99 por VOI">
+    <img src="figs/f_validacion_p99.svg" alt="Error del p99 por VOI" style="max-height:55mm">
     <figcaption><b>Figura 9.</b> Error del p99 de von Mises frente a la referencia: el publicado hasta la V2.0.2 (tracción) y el p99 corregido (plato rígido sobre el VOI completo).</figcaption>
   </figure>
-  <div class="caja leer"><div class="tit">Cómo leer las figuras</div>
-    <p>Cada fila es un VOI y cada punto, un método. Un punto en 0 reproduce el hueso embebido. A la izquierda, el método subestima; a la derecha, sobrestima. Los puntos naranjas son lo que la aplicación publicaba antes de las correcciones.</p>
-  </div>
 </section>
 
 <!-- ======================= FICHA R1 ======================= -->
@@ -331,9 +350,9 @@ figure img { max-height: 70mm; }
       <h4>Qué medimos</h4>
       <p>El error del E publicado hasta la V2.0.2 fue de −25,8 y −25,3 % (porcinos), −34,7 y −28,6 % (equinos proximales) y −10,6 % (equino medio). Con plato rígido bajó a −6,8; −5,4; −9,6; −5,0 y −3,4 %. Con plato y núcleo, en los equinos, a +0,4; −1,8 y −4,7 %. El núcleo solo con tracción dio −5,0; −10,4 y −3,1 %.</p>
       <p>El artefacto es mayor cuanto menos denso es el hueso: el VOI medio (BV/TV del cubo 0,45) perdió un 11 % de rigidez, y los proximales (0,26), un 29 a 35 %. Es la tendencia descrita en especímenes reales para el artefacto lateral, que crece al disminuir la fracción de volumen y aumentar la separación trabecular<sup class="ref">4</sup>.</p>
-      <p>Con el p99, el valor publicado sobrestimaba la referencia entre un 17 y un 54 %. Con plato, el error quedó entre −4,7 y +9,4 %.</p>
+      <p>Con el p99, el valor publicado sobrestimaba la referencia entre un 17 y un 54 %. Con plato, el error quedó entre −4,7 y +9,4 %. Los campos explican el cambio (Figuras 6 y 7): con tracción, el hueso del techo soportaba hasta 1,8 veces el von Mises de la referencia, y el plato elimina esa concentración.</p>
       <h4>Lo que no mejoró</h4>
-      <p>En el VOI medio, el núcleo con plato (−4,7 %) no superó al plato solo (−3,4 %), y el núcleo exploratorio de 0,25 mm empeoró los VOIs equinos (−3,6 a −8,7 %). El margen de 0,625 mm sigue siendo el adecuado para VOIs de 5 mm. En hueso denso, la ganancia del núcleo es pequeña porque el artefacto de partida también lo es.</p>
+      <p>En el VOI medio, el núcleo con plato (−4,7 %) no superó al plato solo (−3,4 %), y el núcleo exploratorio de 0,25 mm empeoró los VOIs equinos (−3,6 a −8,7 %). El margen de 0,625 mm sigue siendo el adecuado para VOIs de 5 mm. En hueso denso, la ganancia del núcleo es pequeña porque el artefacto de partida también lo es. El plato, por su parte, no corrige el déficit de carga junto a las caras laterales (del 68 al 85 % de la referencia en la capa exterior); por eso el núcleo sigue siendo necesario donde cabe.</p>
     </div>
     <div class="lado">
       <div class="bloque"><h5>Error de E por VOI</h5>
@@ -395,7 +414,7 @@ figure img { max-height: 70mm; }
     </div>
   </div>
   <figure>
-    <img src="figs/f_resolucion.svg" alt="Elementos por espesor trabecular">
+    <img src="figs/f_resolucion.svg" alt="Elementos por espesor trabecular" style="max-height:52mm">
     <figcaption><b>Figura 10.</b> Elementos por espesor trabecular (Tb.Th/h) con la resolución de ladrillos por omisión (40³) y con la de la validación embebida (96³). Línea discontinua: 4 elementos por espesor.</figcaption>
   </figure>
   <h4>Cómo resolverlo</h4>
@@ -418,8 +437,7 @@ figure img { max-height: 70mm; }
       <p>Con ladrillos, el E corregido fue mayor que el publicado en cuatro VOIs: +8 y +10 % en los porcinos y +67 y +57 % en los equinos proximales. En el equino medio fue un 12 % menor (4114 frente a 4660 MPa). En ese VOI, el plato sobre el VOI completo sí aumentó el E (+6 %), pero el núcleo, un cubo de 3,75 mm en el centro, deja fuera la capa compacta del techo (0,51 mm de hueso macizo, Figura 5): en la imagen nativa, su BV/TV es de 0,47, frente a 0,55 del VOI completo, y es menos rígido que el conjunto. El valor corregido de un VOI heterogéneo describe su núcleo, no el VOI completo, y eso debe declararse al citarlo; en este caso describe el hueso trabecular sin la capa compacta.</p>
       <h4>Tensión citada</h4>
       <p>El p99 corregido fue entre un 2 y un 24 % menor que el publicado con ladrillos, y entre un 12 y un 39 % menor con la malla suave. Es el sentido que predijo la validación (Figura 9).</p>
-      <h4>Ladrillos frente a malla suave</h4>
-      <p>Hasta la V2.0.2, la malla suave daba un E entre un 13 y un 46 % menor que la de ladrillos. Con las correcciones, la diferencia bajó al −3 % en los porcinos y al −10 % en el equino medio, pero siguió en −27 % en el equino proximal cúbico. Ese VOI tiene trabéculas de 1,4 vóxeles de espesor a 40³, que el suavizado adelgaza (ficha R4); la corrección de borde no compensa una resolución insuficiente.</p>
+
     </div>
     <div class="lado">
       <div class="bloque"><h5>E con ladrillos, 40³ (MPa)</h5>
@@ -431,13 +449,18 @@ figure img { max-height: 70mm; }
     </div>
   </div>
   <figure>
-    <img src="figs/f_practico.svg" alt="E publicado y corregido" style="max-height:44mm">
+    <img src="figs/f_practico.svg" alt="E publicado y corregido" style="max-height:48mm">
     <figcaption><b>Figura 11.</b> E aparente de los VOIs completos con la aplicación: el publicado hasta la V2.0.2 (tracción, VOI completo) y el E corregido (plato y núcleo), con ladrillos (a) y malla suave (b) a 40³. «Sin malla»: tetgen no generó la malla suave (ficha R8).</figcaption>
   </figure>
+  <h4>Ladrillos frente a malla suave</h4>
+  <p>Hasta la V2.0.2, la malla suave daba un E entre un 13 y un 46 % menor que la de ladrillos. Con las correcciones, la diferencia bajó al −3 % en los porcinos y al −10 % en el equino medio, pero siguió en −27 % en el equino proximal cúbico. Ese VOI tiene trabéculas de 1,4 vóxeles de espesor a 40³, que el suavizado adelgaza (ficha R4); la corrección de borde no compensa una resolución insuficiente.</p>
   <figure>
-    <img src="figs/f_a3.svg" alt="Malla suave frente a ladrillos" style="max-height:38mm">
+    <img src="figs/f_a3.svg" alt="Malla suave frente a ladrillos" style="max-height:46mm">
     <figcaption><b>Figura 12.</b> E de la malla suave frente al de ladrillos en el mismo VOI y a la misma resolución, antes y después de las correcciones. Línea discontinua: −10 %.</figcaption>
   </figure>
+  <div class="caja leer"><div class="tit">Cómo leer las Figuras 11 y 12</div>
+    <p>En la Figura 11, cada par de barras es un VOI: la naranja es lo que la aplicación publicaba y la azul, el E corregido con la V2.1.1. En la Figura 12, una barra en 0 significa que las dos mallas dan la misma rigidez; la diferencia que queda tras las correcciones se debe sobre todo a la resolución, no a los bordes.</p></div>
+
 </section>
 
 <!-- ======================= FICHA R8 ======================= -->
@@ -475,7 +498,7 @@ figure img { max-height: 70mm; }
     <div class="derecha"><span class="sev m">Reservas</span></div>
   </div>
   <h3><span class="codigo">R6</span> El p99 de referencia en los VOIs equinos proximales</h3>
-  <p>La rigidez de la referencia apenas depende de cómo se cargue el bloque, pero el p99 sí en dos VOIs: en los equinos proximales, cambiar el plato por tracción en el bloque elevó el p99 de la región de referencia un 21,6 y un 28,3 %, frente a un 1,4 a 3,6 % en los demás. El margen embebido (0,83 mm) no aísla del todo la tensión local de la región en estos VOIs, los más porosos (Tb.Sp de 0,41 a 0,43 mm), aunque sí su rigidez. Por eso los errores de p99 de estos dos VOIs (+4,9 y −4,7 % con plato) tienen una incertidumbre del orden de su propio valor, y el p99 corregido debe citarse con reserva en hueso muy poroso.</p>
+  <p>La rigidez de la referencia apenas depende de cómo se cargue el bloque, pero el p99 sí en dos VOIs: en los equinos proximales, cambiar el plato por tracción en el bloque elevó el p99 de la región de referencia un 21,6 y un 28,3 %, frente a un 1,4 a 3,6 % en los demás. El margen embebido (0,83 mm) no aísla del todo la tensión local de la región en estos VOIs, los más porosos (Tb.Sp de 0,407 y 0,435 mm), aunque sí su rigidez. Por eso los errores de p99 de estos dos VOIs (+4,9 y −4,7 % con plato) tienen una incertidumbre del orden de su propio valor, y el p99 corregido debe citarse con reserva en hueso muy poroso.</p>
   <h3><span class="codigo">R7</span> La carga de fallo de Pistoia con plato</h3>
   <div class="ficha-cuerpo">
     <div>
@@ -499,6 +522,7 @@ figure img { max-height: 70mm; }
         <li>La reducción con plato rígido (−3 a −10 %) en los cinco VOIs.</li>
         <li>La combinación de plato y núcleo en VOIs de 5 mm (+0,4 a −4,7 %).</li>
         <li>La estabilidad de la referencia de E (±2,4 %).</li>
+        <li>El mecanismo, visto en los campos: el plato elimina la concentración de tensión del techo (de 1,1 a 1,8 veces la referencia con tracción), y el déficit junto a las caras laterales (68 a 93 %) solo lo evita el núcleo.</li>
       </ul></div>
     <div class="caja alerta"><div class="tit">Con reservas</div>
       <ul>
@@ -522,7 +546,9 @@ figure img { max-height: 70mm; }
       <tr><td>6</td><td>Repetir en más VOIs y localizaciones (vértebra, fémur)</td><td>generalidad</td><td>datos</td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
     </tbody>
   </table>
-  <h2 style="margin-top:6mm"><span class="num">8</span>Limitaciones</h2>
+</section>
+<section class="salto">
+  <h2><span class="num">8</span>Limitaciones</h2>
   <ul>
     <li>Cinco VOIs de dos especies. Los resultados describen estos especímenes y no permiten estimar la variabilidad de una población.</li>
     <li>La referencia embebida es el mismo VOI más grande, con márgenes de 0,50 y 0,83 mm. La rigidez resultó estable, pero el p99 no lo fue en dos VOIs (R6).</li>
@@ -534,7 +560,8 @@ figure img { max-height: 70mm; }
 </section>
 
 <!-- ======================= APOYO ======================= -->
-<section class="salto">
+<section>
+  <div style="height:6mm"></div>
   <div class="seccion-et">Apoyo</div>
   <h2>Glosario</h2>
   <dl class="glosario">
@@ -551,7 +578,10 @@ figure img { max-height: 70mm; }
     <dt>Perfil lateral y vertical</dt><dd>Tensión media por capas según la distancia a la cara lateral o según la altura, ecuación (11).</dd>
     <dt>BDDC</dt><dd>Precondicionador por subestructuración que usa NGSolve con la malla suave.</dd>
   </dl>
-  <h2 style="margin-top:7mm">Reproducir</h2>
+</section>
+
+<section class="salto">
+  <h2>Reproducir</h2>
   <p>Los VOIs no viajan con el repositorio; su huella SHA-256 queda en <code>resultados/validacion.json</code>. Desde <code>comparativa_motores/vois_reales/</code>, con los cinco archivos en una carpeta:</p>
   <p><code>python estudio.py CARPETA morfometria validacion</code> (unos 45 min; bloques de hasta 1,8 millones de GDL)<br>
   <code>python estudio.py CARPETA practico</code> (procesos aislados; malla suave a 40³)<br>
@@ -560,10 +590,7 @@ figure img { max-height: 70mm; }
   <code>python figuras_vois.py CARPETA</code><br>
   <code>python figuras_3d.py CARPETA</code> (superficies por marching cubes, sin OpenGL)<br>
   <code>python -m pytest tests/test_30_correcciones.py</code></p>
-</section>
-
-<section class="salto">
-  <h2>Referencias</h2>
+  <h2 style="margin-top:7mm">Referencias</h2>
   <ol class="refs">
     <li>Wili P, Maquer G, Panyasantisuk J, Zysset PK. Estimation of the effective yield properties of human trabecular bone using nonlinear micro-finite element analyses. Biomech Model Mechanobiol. 2017;16(6):1925-36. doi:10.1007/s10237-017-0928-0</li>
     <li>Pistoia W, van Rietbergen B, Lochmüller EM, Lill CA, Eckstein F, Rüegsegger P. Estimation of distal radius failure load with micro-finite element analysis models based on three-dimensional peripheral quantitative computed tomography images. Bone. 2002;30(6):842-8. doi:10.1016/s8756-3282(02)00736-6</li>
