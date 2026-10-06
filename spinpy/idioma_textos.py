@@ -203,6 +203,8 @@ EN = {
         "outside the volume</b>",
     "  ·  <b style='color:#c0392b;'>{p:.1f} % fuera</b>":
         "  ·  <b style='color:#c0392b;'>{p:.1f} % outside</b>",
+    "Ejes PCA poco definidos (eje {k}: {g:.0f} grados por 1 % de cambio de la covarianza): la orientacion del recorte depende de la segmentacion.":
+        "Poorly defined PCA axes (axis {k}: {g:.0f} degrees per 1 % change of the covariance): the crop orientation depends on the segmentation.",
     "{p:.1f} % del cubo cae fuera del volumen: el BV/TV esta subestimado.":
         "{p:.1f} % of the cube falls outside the volume: BV/TV is "
         "underestimated.",

@@ -904,7 +904,8 @@ def _corregido(reg):
 
 
 def ensayo(malla, prot, carpeta=None, analisis=("lineal",), motor=MOTOR_DEF,
-           hilos=None, cancelar=None, material="svk", pasos=1, progreso=None,
+           hilos=None, cancelar=None, material="neohookeano", pasos=1,
+           progreso=None,
            solver="auto", aislado=True, BW=None, prefijo="ensayo", **_viejos):
     """Ensayo de compresion de un protocolo sobre `malla`, con `motor`.
 
@@ -1141,7 +1142,7 @@ def ensayo_app(BW, spacing, prot, eje=2):
 
 def analizar(BW, spacing, prot, malla="hex8", analisis=("lineal",), eje=2,
              carpeta=".", n=None, motores_fem=None, hilos=None, cancelar=None,
-             material="svk", pasos=1, progreso=None, comparar_app=True,
+             material="neohookeano", pasos=1, progreso=None, comparar_app=True,
              opciones_malla=None, etiqueta="estructura", conv_malla=False,
              solver="auto", aislado=True, motor=None, **_viejos):
     """Una estructura, un protocolo de compresion, una malla, un eje, y uno
@@ -1533,8 +1534,8 @@ def main(argv=None):
                     help="no corregir la perdida de volumen del suavizado")
     ap.add_argument("--conv-malla", action="store_true",
                     help="TET10: repetir el lineal con la mitad del tamano")
-    ap.add_argument("--material", default="svk", choices=["svk",
-                                                          "neohookeano"])
+    ap.add_argument("--material", default="neohookeano",
+                    choices=["svk", "neohookeano"])
     ap.add_argument("--pasos", type=int, default=1)
     ap.add_argument("--hilos", type=int, default=None)
     ap.add_argument("--salida", default="./fem_resultados")

@@ -488,6 +488,47 @@ def marco_pca(mask, spacing):
     return ejes, centro, (pts - centro) @ ejes
 
 
+#: Sensibilidad de un eje (grados por 1 % de perturbacion relativa de la
+#: covarianza) a partir de la cual se avisa. 5 grados por 1 % corresponde a
+#: un cociente de desviaciones de ~0,95 entre ejes consecutivos. PROVISIONAL:
+#: en elipsoides con ruido de segmentacion sintetico el giro medido fue ~0,3
+#: veces esta sensibilidad (comparativa_motores/libros/p5_pca.py); falta
+#: calibrarlo moviendo el umbral de segmentacion en VOIs reales.
+SENSIBILIDAD_PCA_MAX_GRADOS = 5.0
+
+
+def estabilidad_pca(proyecciones):
+    """Cuanto de bien definidos estan los ejes de `marco_pca`.
+
+    La descomposicion de la covarianza es esencialmente unica, salvo el signo
+    de cada eje, solo si sus autovalores son simples (Modersitzki 2004, cap.
+    5). Si dos varianzas casi coinciden, cualquier par de ejes de ese plano es
+    igual de valido y la orientacion del recorte queda al azar del ruido de
+    segmentacion. El condicionamiento de un autovector es la inversa de la
+    distancia a los demas autovalores: una perturbacion E de la covarianza
+    mueve el autovector k como mucho ||E|| / min_j |l_k - l_j| (Quarteroni,
+    Sacco y Saleri 2007, propiedad 5.5). Con ||E|| = delta l_k, el giro es unos
+    delta l_k / min_j |l_k - l_j| radianes; aqui se da en grados para
+    delta = 1 %.
+
+    Devuelve {"desviaciones_mm", "cocientes" (s2/s1, s3/s2),
+    "grados_por_pct" (eje 1, eje 2), "aviso", "eje_inestable"}.
+    """
+    p = np.asarray(proyecciones, float)
+    var = p.var(axis=0)
+    s = np.sqrt(var)
+    sens = []
+    for k in range(2):
+        hueco = min(abs(var[k] - var[j]) for j in range(3) if j != k)
+        sens.append(float(np.degrees(0.01 * var[k] / hueco))
+                    if hueco > 0 else float("inf"))
+    malo = [k + 1 for k in range(2) if sens[k] > SENSIBILIDAD_PCA_MAX_GRADOS]
+    return {"desviaciones_mm": s.tolist(),
+            "cocientes": [float(s[1] / s[0]), float(s[2] / s[1])],
+            "grados_por_pct": sens, "aviso": bool(malo),
+            "eje_inestable": malo}
+
+
 def centros_por_tercios(proyecciones, n=3):
     """Centro de cada tercio a lo largo del eje principal, en el marco PCA.
 

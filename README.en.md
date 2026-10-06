@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 29 blocks" src="https://img.shields.io/badge/verification-29%20blocks-5b6b7f">
+  <img alt="Verification: 30 blocks" src="https://img.shields.io/badge/verification-30%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -189,6 +189,7 @@ extras are installed as needed:
 
 ```
 pip install -e ".[elastico]"   # multigrid: homogenization and FE test
+pip install -e ".[fem]"        # built-in FE engines: NGSolve and scikit-fem
 pip install -e ".[malla]"      # TET10 meshing
 pip install -e ".[lote]"       # batch and statistics
 pip install -e ".[gui]"        # graphical interface
@@ -198,7 +199,11 @@ pip install -e ".[todo]"       # everything
 
 `pyamg` is listed as an extra, but it is not optional in practice: without
 it the solver falls back to conjugate gradient with Jacobi, which does not
-converge with the 10⁻⁶ contrast between bone and void.
+converge with the 10⁻⁶ contrast between bone and void. Without `.[fem]` the
+application runs with its own solver (bricks, linear) but cannot solve the
+smooth mesh, the nonlinear analyses or the rigid platen behind the corrected
+E. SfePy and FEniCSx are not required: they are detected if already
+installed.
 
 ---
 
@@ -288,10 +293,12 @@ python Test/replicar_kumar2020.py --rapido   # ~1.5 min
 python -m pytest tests/ -q
 ```
 
-29 blocks with tolerances **declared before measuring**: topology, SMI,
+30 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
-Mises surface layer… A failure here is a finding, not a bug in the suite.
+Mises surface layer, convergence order of every installed FE engine (block
+29), boundary-artefact corrections (block 30) and changes from the review of
+the numerical-methods library (block 31)… A failure here is a finding, not a bug in the suite.
 The two findings already documented (the slab of block 04 comes out one voxel
 thicker, and the Gibson-Ashby exponent of block 05 comes out ≈ 3.9) are
 marked as strict `xfail`: the suite stays green, the log still records them
@@ -536,7 +543,13 @@ does not close the window. The same computation runs from the command line:
 
 ```bash
 python -m spinpy.fem VOI.vtk --protocolo app tapia2026 --malla hex8 tet10 --motores app ngsolve
+python -m spinpy.fem VOI.vtk --analisis lineal lineal_plato --motores ngsolve   # with corrected E and p99
 ```
+
+In the GUI, the analysis "Linear with rigid platen and core measurement" is
+ticked by default. From the command line it has to be requested with
+`--analisis lineal lineal_plato`; without it, the record only holds the
+uncorrected values (see [Boundary artefacts](#boundary-artefacts-corrected-e-and-p99)).
 
 ### Report: engine comparison
 
@@ -566,6 +579,37 @@ multigrid. The work also found and fixed two bugs in the app's TET10 meshing
 (flat tetrahedra on the cube faces that aborted the mesh, and mid-side nodes
 off their edge midpoint after snapping to the planes).
 
+### Convergence order against an exact solution
+
+Engines agreeing on the same mesh shows that they solve the same discrete
+problem, not that this problem approaches the continuum. To measure that,
+`comparativa_motores/convergencia.py` imposes a closed-form solution of the
+Navier equations (Papkovich-Neuber) on the boundary of a cube and measures the
+discretization error under refinement (V2.0.2; section 3.8 of the report):
+
+| element | theoretical slope L2 / H1 | observed slope L2 / H1 |
+|---|---|---|
+| hex8 | 2 / 1 | 1.99 / 1.00 |
+| TET4 | 2 / 1 | 1.98 / 0.99 |
+| TET10 | 3 / 2 | 3.00 / 1.99 |
+
+The figures agree across all engines to the fourth significant digit. With a
+fixed mesh and increasing degree (NGSolve and FEniCSx), the L2 error falls
+exponentially, from 4.4·10⁻² at p = 1 to 3.8·10⁻¹² at p = 8. Block 29 of the
+suite repeats the test with every installed engine.
+
+<p align="center"><img src="comparativa_motores/figs/fig5_convergencia.png" alt="Error against element size and against polynomial degree, per engine and element" width="90%"></p>
+
+This verifies the code, not the model: the cube has no edges, no smoothed
+surface and no near-degenerate elements, which are what keep the stress peak
+from converging in bone.
+
+```
+cd comparativa_motores
+python convergencia.py h    # hex8, TET4 and TET10; n = 4 to 32
+python convergencia.py p    # degree 1 to 8 on a fixed mesh
+```
+
 ### Background: smooth mesh (TET10) against bricks, with FEBio
 
 📄 [Report (PDF)](comparativa_febio_tet/INFORME.pdf) ·
@@ -580,12 +624,141 @@ program, and still hold with the built-in engines.
 
 ---
 
+## Boundary artefacts: corrected E and p99
+
+A VOI cropped from a micro-CT image has two boundaries that bone does not
+have: the top face, where the load is applied to cut trabeculae, and four
+lateral faces that leave trabeculae unsupported. Up to V2.0.2 these
+boundaries made the application underestimate apparent stiffness and
+overestimate the cited stress (von Mises p99). The V2.1 series diagnoses
+them, corrects them and validates the correction in three reports (in
+Spanish):
+
+| report | question it answers | version |
+|---|---|---|
+| 📄 [Numerical artefacts](comparativa_motores/INFORME_ARTEFACTOS.pdf) | which part of the result comes from cropping, meshing, loading or the solver rather than from the bone | diagnosis on V2.0.2 |
+| 📄 [Corrections](comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf) | which correction truly improves the application, judged by a rule fixed before measuring ([preregistration](comparativa_motores/correcciones/PRERREGISTRO.md)) | V2.1.0 |
+| 📄 [Real VOIs](comparativa_motores/vois_reales/INFORME_VOIS_REALES.pdf) | whether the corrections work on porcine and equine micro-CT trabecular bone | V2.1.1 |
+
+### Diagnosis
+
+Eight linear tests were solved on the same spinodoid (two mesh types, three
+resolutions, two loading and two support conditions), and the origin of
+every high von Mises value was traced. The engines add no artefacts of their
+own when they solve with a direct method or with BDDC; the important ones
+arise before the solver. With uniform traction on the top face, apparent
+stiffness was 1.6 to 2.0 times lower than with a rigid platen, and the 6 % of
+bone closest to the top held 34 % of the von Mises tail. The band within
+0.3 mm of the lateral faces, 21 % of the bone, carried half the mean stress
+of the core. Hot spots, on the other hand, are mostly real: 83 to 97 % of
+them reappear in the same place when the resolution or element type changes.
+
+### Correction and validation
+
+The reference is the same spinodoid surrounded by 1.25 mm of its own bone,
+tested with a rigid platen and measured only within the VOI region, which
+therefore has neither a loaded top nor cut faces. A correction was accepted
+if it at least halved the error in E (and by at least 5 points) without
+worsening the p99 by more than 2 points, at 32³, 48³ and 64³:
+
+| correction | error in E (32³ · 48³ · 64³) | decision |
+|---|---|---|
+| none: traction, whole VOI | −55 · −43 · −43 % | baseline |
+| F1: rigid platen on the top face | −12 · −8 · −10 % | accepted |
+| F2: measurement in the core, 0.625 mm from the faces | −7 · −6 · −10 % | accepted |
+| F1 + F2: **corrected E** | **+0.8 · +1.5 · +1.5 %** | accepted |
+
+With the rigid platen, the p99 error fell from +53 · +33 · +33 % to
++10 · +0.5 · +1 %. With the corrected protocol, the stiffness gap between the
+smooth mesh and bricks at 48³ went from −27 to −5.6 % without changing the
+meshing. Two changes to the smoothing or decimation of the smooth mesh were
+also tried: one did not produce a valid mesh and the other gave a softer
+one, and both were discarded.
+
+On real bone (two porcine VOIs of 3 mm at 16 µm and three equine VOIs of 5 mm
+at 51.5 µm), the reference was built inwards: the VOI resampled to 96³ acts
+as surrounding bone and its central 64³ cube is tested. The error in the
+stiffness published up to V2.0.2 (−11 to −35 %) fell to −3 to −10 % with the
+rigid platen and to +0.4 to −4.7 % with platen and core in the three equine
+VOIs, which are the ones large enough for a core. The p99 error went from
++17 to +54 % to −5 to +9 %.
+
+<p align="center"><img src="comparativa_motores/vois_reales/informe_vois/figs/f_validacion_E.png" alt="Apparent-modulus error against the same embedded bone in five real VOIs, before and after the corrections (labels in Spanish)" width="90%"></p>
+
+### What the application shows
+
+The results table and the publication report give the **corrected E** and
+the **corrected p99** next to the usual values, and state the method used:
+
+| quantity | method | when it is used |
+|---|---|---|
+| corrected E | `plato_nucleo`: rigid platen and core | by default, with NGSolve, scikit-fem, FEniCSx or SfePy |
+| | `traccion_nucleo`: traction and core | with the app's engine, which does not solve the platen |
+| | `plato_voi`: rigid platen on the whole VOI | VOIs smaller than 2.25 mm, where the core does not fit (V2.1.1) |
+| corrected p99 | `plato_voi`: rigid platen on the whole VOI | with an engine that solves the platen |
+| | `traccion_nucleo`: traction and core | with the app's engine |
+
+The platen analysis adds one linear solve per test; the core measurement
+costs no computing time.
+
+### What it does not correct
+
+- **Local stress on the smooth mesh** remains 25 % above that of bricks
+  (artefact A4), and the element-by-element map keeps a median error of 28
+  to 33 % even with the corrections. The corrected p99 is a statistic; the
+  colour map is not citable element by element.
+- **The Pistoia failure load with a platen** rises by 7 to 24 % and there is
+  no reference to validate it: cite it with reservations.
+- **Insufficient resolution.** At the default 40³, the five real VOIs had
+  1.3 to 2.8 voxels per trabecular thickness. At least 4 are recommended
+  (Tb.Th/h ≥ 4). In the cubic proximal equine VOI, with trabeculae 1.4 voxels
+  thick, the smooth mesh stayed 27 % softer than bricks after correction.
+
+### Reproducing
+
+```
+cd comparativa_motores && python artefactos.py                       # diagnosis
+cd comparativa_motores/correcciones
+python correcciones.py referencia hex8 tet10                         # embedded reference and corrections
+python decision.py                                                   # applies the preregistered rule
+python validar_app.py                                                # integrated code, end to end
+cd comparativa_motores/vois_reales
+python estudio.py VOI_FOLDER validacion practico morfometria campos
+python -m pytest tests/test_30_correcciones.py                       # small version
+```
+
+The real VOIs are not shipped with the repository; their SHA-256 fingerprint
+is stored in the JSON files of `comparativa_motores/vois_reales/resultados/`.
+
+---
+
+## Recent versions
+
+Full notes for each version are in [`instalador/notas/`](instalador/notas/)
+(in Spanish) and on the [releases](https://github.com/cgt1989/spinpy/releases)
+page, together with the Windows installer and zip.
+
+| version | date | main changes |
+|---|---|---|
+| [V2.1.1](instalador/notas/v2.1.1.md) | 2026-10-05 | Validation of the boundary corrections on five real VOIs. Fixes three V2.1.0 defects: the test with the app's engine no longer shows as failed, the corrected E exists for VOIs smaller than 2.25 mm (`plato_voi`), and the smooth mesh is no longer rejected because of a degenerate sliver that inverts when nodes are snapped to the faces. |
+| [V2.1.0](instalador/notas/v2.1.0.md) | 2026-10-05 | E and p99 corrected for boundary artefacts (rigid platen and core measurement), artefact report and block 30 of the suite. |
+| [V2.0.2](instalador/notas/v2.0.2.md) | 2026-10-01 | Convergence order of the five engines against an exact solution (h- and p-refinement) and block 29 of the suite. |
+| [V2.0.1](instalador/notas/v2.0.1.md) | 2026-09-30 | Built-in FE engines instead of FEBio; Windows installer with NGSolve and scikit-fem, and a self-test that requires all engines to agree. |
+
+---
+
 ## Documentation
 
-The mechanical validation against FEBio is in
-[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf),
-and the comparison of the built-in FE engines in
-[`comparativa_motores/INFORME.pdf`](comparativa_motores/INFORME.pdf).
+| report (in Spanish) | contents |
+|---|---|
+| [`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf) | mechanical validation of every analysis against FEBio 4.5 |
+| [`comparativa_febio/INFORME.pdf`](comparativa_febio/INFORME.pdf) | compression test against FEBio on equine H4 VOIs |
+| [`comparativa_febio_tet/INFORME.pdf`](comparativa_febio_tet/INFORME.pdf) | smooth mesh (TET10) against bricks, with FEBio |
+| [`comparativa_motores/INFORME.pdf`](comparativa_motores/INFORME.pdf) | comparison of the built-in FE engines and convergence order |
+| [`comparativa_motores/INFORME_ARTEFACTOS.pdf`](comparativa_motores/INFORME_ARTEFACTOS.pdf) | diagnosis of the numerical artefacts of the test |
+| [`comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf`](comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf) | correction of the boundary artefacts and its validation |
+| [`comparativa_motores/vois_reales/INFORME_VOIS_REALES.pdf`](comparativa_motores/vois_reales/INFORME_VOIS_REALES.pdf) | the corrections on real porcine and equine VOIs |
+| [`docs/validacion_literatura/Verificacion_spinpy.pdf`](docs/validacion_literatura/Verificacion_spinpy.pdf) | verification against published literature and closed-form solutions |
 
 `docs/MANUAL_spinpy.pdf` documents every module and every function, and is
 generated from the code itself (`python docs/generar_manual.py`). The
@@ -608,6 +781,21 @@ Code, docstrings and reports are in Spanish.
 - Below ρ ≈ 0.25 (isotropic class) periodic homogenization does not reach the
   declared tolerance: it is a property of the regime near the rigidity
   threshold, and the application reports it.
+- **The default resolution (40³) may fall short.** On real VOIs it leaves 1.3
+  to 2.8 voxels per trabecular thickness; it should be raised to
+  Tb.Th/h ≥ 4. The compression test does not yet warn when this is not met
+  (the *in silico* simulations do, below 1.7).
+- **The smooth mesh at 48³ does not fit on a 15 GB machine** with real VOIs
+  (7.8 to 10 GB expected for the direct solver). At 32³ it comes out too soft
+  on real bone, and the force-controlled nonlinear analysis does not converge
+  on that mesh.
+- **Tail stress depends on the mesh.** The von Mises peak does not converge,
+  and the cited p99 changes by 22 % from 32³ to 64³ with bricks: report it
+  with its resolution. The Pistoia failure load with a rigid platen is not
+  validated.
+- On one equine VOI, tetgen could not tetrahedralize the smoothed surface (it
+  is not a manifold). The application reports this as a failed test, without
+  giving a wrong result; the cause has not been investigated.
 
 ---
 

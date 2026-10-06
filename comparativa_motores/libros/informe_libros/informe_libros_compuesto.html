@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cambios de la revisión de la biblioteca</title>
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<link rel="stylesheet" href="estilo.css">
+<style>
+.sev.int { color: var(--leve); background: var(--leve-c); }
+.sev.opc { color: var(--mod); background: var(--mod-c); }
+.sev.exp { color: var(--nulo); background: var(--nulo-c); }
+.sev.desc { color: var(--grave); background: var(--grave-c); }
+figure img { max-height: 70mm; }
+.ficha figure img { max-height: 50mm; }
+.ficha p { margin: 0 0 1.6mm; }
+.ficha h4 { margin: 2.6mm 0 0.8mm; }
+.resumen-tabla { font-size: 7.8pt; }
+.resumen-tabla td, .resumen-tabla th { padding-top: 1.2mm; padding-bottom: 1.2mm; }
+.cifras { margin: 1mm 0 4mm; }
+.cifra { padding: 3mm 3.5mm 3mm; }
+.caja { padding: 3mm 4.5mm; margin: 2.5mm 0 3mm; font-size: 9pt; }
+figure { margin: 2mm 0 3.5mm; }
+.fuente { font: 8pt 'IBM Plex Sans'; color: var(--tinta3); }
+.fuentes { margin-top: 4mm; }
+.fuentes .fuente { font: 8.6pt/1.4 'Source Serif 4', serif; color: var(--tinta); background: var(--fondo); border-left: 1.2mm solid var(--azul); border-radius: 1.5mm; padding: 2.5mm 3.5mm; margin: 0 0 2.5mm; break-inside: avoid; }
+.fuentes .fcab { font: 600 8.6pt 'IBM Plex Sans'; color: var(--tinta); }
+.fuentes .floc { font: 7.6pt 'IBM Plex Sans'; color: var(--tinta2); margin: 0.8mm 0 1.5mm; }
+.fuentes .floc code { font-size: 7.2pt; }
+.fuentes blockquote { margin: 0 0 1.5mm; padding: 0 0 0 3mm; border-left: 0.4mm solid var(--regla); font-style: italic; font-size: 8.4pt; }
+.fuentes .fresp { font: 7.8pt/1.35 'IBM Plex Sans'; color: var(--tinta2); }
+.fuentes .fmed { font: 7.8pt/1.35 'IBM Plex Sans'; color: var(--tinta2); padding: 1.5mm 3.5mm; border: 0.3mm dashed var(--regla); border-radius: 1.5mm; }
+table.matriz { font-size: 7.3pt; }
+table.matriz td, table.matriz th { padding: 1mm 1.4mm; vertical-align: top; }
+table.matriz code { font-size: 6.6pt; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PORTADA ======================= -->
+<section class="portada">
+  <div class="banda">
+    <svg width="70mm" height="70mm" viewBox="0 0 100 100" aria-hidden="true">
+      <rect x="10" y="14" width="18" height="72" fill="#2a78d6" opacity="0.30"/>
+      <rect x="30" y="20" width="14" height="66" fill="#2a78d6" opacity="0.45"/>
+      <rect x="46" y="10" width="20" height="76" fill="#86b6ef" opacity="0.6"/>
+      <rect x="68" y="26" width="12" height="60" fill="#eb6834" opacity="0.6"/>
+      <rect x="82" y="18" width="10" height="68" fill="#1baf7a" opacity="0.6"/>
+      <rect x="6" y="86" width="90" height="4" fill="#cde2fb"/>
+    </svg>
+    <div class="tipo">Informe técnico de resultados · comparativa_motores/libros</div>
+    <h1>Siete cambios a los métodos numéricos de spinpy, probados uno a uno</h1>
+    <div class="sub">Qué propone la bibliografía de elementos finitos y análisis numérico del grupo, qué se implementó y cuánto cambia cada resultado frente a una referencia.</div>
+  </div>
+  <div class="cuerpo">
+    <div>
+      <p>La revisión de los 23 textos de la biblioteca del grupo (<code>docs/revision_libros/REVISION_LIBROS.md</code>) produjo 17 propuestas para spinpy. Este informe recoge las siete que se pudieron implementar y medir en esta fase: dos en el resolvedor lineal, dos en el análisis no lineal, dos en el elemento de la malla de vóxeles y una en la orientación del recorte.</p>
+      <p>Cada cambio se probó contra una referencia propia (solución cerrada, resolvedor directo o extrapolación con la geometría fija) y se compara con el comportamiento de la V2.1.1. Los cambios están en una rama de trabajo y <b>no se ha abierto ninguna solicitud de integración</b>: el informe está pensado para decidir cuáles se integran.</p>
+    </div>
+    <div class="preguntas">
+      <b>Preguntas que responde</b>
+      <ol>
+        <li>¿Qué se cambió en el código y por qué lo propone la bibliografía?</li>
+        <li>¿Cuánto mejora cada cambio, medido contra una referencia?</li>
+        <li>¿Alguno cambia resultados que la aplicación ya publicaba?</li>
+        <li>¿Cuáles conviene integrar, cuáles dejar como opción y cuáles siguen siendo experimentos?</li>
+      </ol>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>Versión</b>spinpy V2.1.1 (commit c7c5bec) con los cambios de la rama <code>claude/fem-numerical-analysis-books-objtnc</code><br>NGSolve 6.2.2608 · pyamg 5.3.0 · scikit-fem 12.0.2</div>
+    <div><b>Fecha</b>6 de octubre de 2026</div>
+    <div><b>Datos y código</b>comparativa_motores/libros/<br>p1 a p7 (*.py), resultados/, figuras_libros.py<br>tests/test_31_revision_libros.py</div>
+  </div>
+</section>
+
+<!-- ======================= RESUMEN ======================= -->
+<section class="salto">
+  <div class="seccion-et">El informe en una página</div>
+  <h2>Resumen</h2>
+  <p class="entradilla">Cuatro de los siete cambios mejoran la aplicación y se proponen para integrar; de ellos, solo el del material cambia resultados por omisión. Dos cambian el elemento de la malla de vóxeles y reducen de forma medible el error de discretización, pero modifican el problema discreto validado, por lo que se proponen como opción y como experimento. El séptimo, una cota del error del iterativo, no detecta el error que debía detectar y se descarta.</p>
+
+  <div class="cifras">
+    <div class="cifra"><div class="v">−35 <span class="u">→</span> −0,7</div><div class="t">error (%) de la flecha de una viga de un vóxel de canto, con el hexaedro trilineal y con modos incompatibles (C6).</div></div>
+    <div class="cifra"><div class="v">0 <span class="u">→</span> 3</div><div class="t">ensayos neo-Hookeanos de 5 a 20 MPa, en un solo incremento, que convergen con el Newton de la V2.1.1 y con el globalizado (C2; espinodoide hex8 a 24³).</div></div>
+    <div class="cifra"><div class="v">0,30 <span class="u">→</span> 0,20</div><div class="t">densidad mínima a la que converge la homogeneización iterativa a 16³, sin y con los modos rígidos en el multigrid (C1).</div></div>
+    <div class="cifra"><div class="v">2,9 <span class="u">×</span></div><div class="t">grados de libertad que ahorran los hexaedros cuadráticos frente al trilineal refinado para el mismo error de rigidez (C7).</div></div>
+  </div>
+
+  <table class="resumen-tabla">
+    <thead><tr><th>Código</th><th>Cambio</th><th>Dónde</th><th>Resultado medido</th><th>Propuesta</th></tr></thead>
+    <tbody>
+      <tr><td><span class="codigo">C1</span></td><td>Modos rígidos en el multigrid de la homogeneización y LU de respaldo</td><td><code>elastic.homogeneizar</code></td><td>Iteraciones −44 % (ρ 0,30) y −61 % (ρ 0,40); converge hasta ρ 0,20; por debajo, tensor del LU</td><td><span class="sev int">Integrar</span></td></tr>
+      <tr><td><span class="codigo">C2</span></td><td>Newton globalizado: búsqueda lineal y corte de carga solo si Newton diverge</td><td><code>motores/m_ngsolve.py</code></td><td>Mismas iteraciones donde Newton ya convergía; converge en seis casos donde fallaba</td><td><span class="sev int">Integrar</span></td></tr>
+      <tr><td><span class="codigo">C3</span></td><td>Neo-Hookeano como material no lineal por omisión</td><td><code>fem.py</code>, GUI</td><td>A 10 % de acortamiento local, SVK da un 21 % menos de tensión; su carga cae a partir del 42 %</td><td><span class="sev int">Integrar</span></td></tr>
+      <tr><td><span class="codigo">C4</span></td><td>Cota del error del iterativo con κ estimado en el CG</td><td>solo en <code>p4_cota_error.py</code></td><td>No detecta el error: en TET10 la cota fue de 10⁻⁹ con un error medido del 1,2 al 1,8 %</td><td><span class="sev desc">Descartar</span></td></tr>
+      <tr><td><span class="codigo">C5</span></td><td>Aviso de ejes PCA mal definidos al recortar</td><td><code>voi.estabilidad_pca</code>, GUI</td><td>Sensibilidad estimada ordena bien el giro medido (0,4° a 9,7°)</td><td><span class="sev int">Integrar</span></td></tr>
+      <tr><td><span class="codigo">C6</span></td><td>Hexaedro con modos incompatibles (hex8i)</td><td><code>elastic.hex8_ke</code></td><td>Flexión: −35/−12 % → −0,7/−0,6 %; espinodoide: error +110 % → +88 %</td><td><span class="sev opc">Opción</span></td></tr>
+      <tr><td><span class="codigo">C7</span></td><td>Hexaedros cuadráticos (Q2) de NGSolve sobre los vóxeles</td><td><code>motores/m_ngsolve.py</code></td><td>Mismo error que el trilineal con 2,9 veces menos GDL y 2,4 veces menos memoria</td><td><span class="sev exp">Experimental</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="caja clave">
+    <div class="tit">Lo esencial</div>
+    <p>Las tres acciones con mejor relación entre beneficio y esfuerzo son <b>C1</b>, <b>C2</b> y <b>C3</b>: tocan pocas líneas, no cambian ningún resultado que ya convergía y amplían el rango de casos que la aplicación resuelve (homogeneización de estructuras poco densas y ensayos no lineales con fuerza impuesta). C3 sí cambia los números no lineales por omisión y debe declararse en las notas de versión. El hallazgo más importante para la interpretación de resultados no es un cambio sino una medida: con la geometría fija, la rigidez del espinodoide a 24³ (1,2 vóxeles por espesor trabecular) está al doble del límite de su propia malla de vóxeles, y ningún elemento lo corrige del todo.</p>
+  </div>
+</section>
+
+<!-- ======================= 1. CONCEPTO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 1</div>
+  <h2><span class="num">1</span>Dónde actúa cada cambio</h2>
+  <p>Un número de spinpy, por ejemplo el módulo aparente de un VOI, sale de una cadena de pasos: orientar y recortar el volumen, mallarlo con vóxeles, asignar el material, resolver uno o varios sistemas lineales (dentro de un Newton si el análisis es no lineal) y resumir el campo. Cada cambio de este informe actúa en un eslabón distinto, y por eso cada uno necesita una prueba distinta (Figura 1).</p>
+  <figure class="cadena">
+    <svg viewBox="0 0 680 190" width="100%" font-family="IBM Plex Sans" font-size="11">
+      <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#77756f"/></marker></defs>
+      <g font-weight="600" fill="#1d1c1a" text-anchor="middle">
+        <rect x="5" y="30" width="100" height="46" rx="6" fill="#eeece6"/><text x="55" y="50">Recorte</text><text x="55" y="66" font-weight="400" font-size="9.5">ejes PCA</text>
+        <rect x="120" y="30" width="100" height="46" rx="6" fill="#eeece6"/><text x="170" y="50">Malla</text><text x="170" y="66" font-weight="400" font-size="9.5">elemento</text>
+        <rect x="235" y="30" width="100" height="46" rx="6" fill="#eeece6"/><text x="285" y="50">Material</text><text x="285" y="66" font-weight="400" font-size="9.5">no lineal</text>
+        <rect x="350" y="30" width="100" height="46" rx="6" fill="#eeece6"/><text x="400" y="50">Sistema lineal</text><text x="400" y="66" font-weight="400" font-size="9.5">CG, multigrid</text>
+        <rect x="465" y="30" width="100" height="46" rx="6" fill="#eeece6"/><text x="515" y="50">Newton</text><text x="515" y="66" font-weight="400" font-size="9.5">no lineal</text>
+        <rect x="580" y="30" width="95" height="46" rx="6" fill="#e6f0fc"/><text x="627" y="50">Magnitudes</text><text x="627" y="66" font-weight="400" font-size="9.5">E, p99, C</text>
+      </g>
+      <g stroke="#77756f" stroke-width="1.4" marker-end="url(#fl)">
+        <line x1="105" y1="53" x2="118" y2="53"/><line x1="220" y1="53" x2="233" y2="53"/><line x1="335" y1="53" x2="348" y2="53"/><line x1="450" y1="53" x2="463" y2="53"/><line x1="565" y1="53" x2="578" y2="53"/>
+      </g>
+      <g font-size="10" text-anchor="middle" font-weight="600">
+        <rect x="35" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="55" y="111" fill="#fff">C5</text>
+        <rect x="128" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="148" y="111" fill="#fff">C6</text>
+        <rect x="172" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="192" y="111" fill="#fff">C7</text>
+        <rect x="265" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="285" y="111" fill="#fff">C3</text>
+        <rect x="358" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="378" y="111" fill="#fff">C1</text>
+        <rect x="402" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="422" y="111" fill="#fff">C4</text>
+        <rect x="495" y="96" width="40" height="22" rx="4" fill="#eb6834" opacity="0.9"/><text x="515" y="111" fill="#fff">C2</text>
+      </g>
+      <g font-size="9" fill="#4a4945" text-anchor="middle">
+        <text x="55" y="136">Modersitzki; Quarteroni</text>
+        <text x="170" y="136">Zienkiewicz; Bathe; Šolín</text>
+        <text x="285" y="136">Kamensky; Bathe</text>
+        <text x="400" y="136">Brenner; Quarteroni</text>
+        <text x="515" y="136">Bathe; Nocedal</text>
+      </g>
+      <text x="340" y="170" font-size="9.5" fill="#4a4945" text-anchor="middle">Los cambios están en el código de la aplicación; el informe solo mide su efecto.</text>
+    </svg>
+    <figcaption><b>Figura 1.</b> Cadena de cálculo de una magnitud de spinpy, con el eslabón donde actúa cada cambio (recuadros naranja) y los textos de la biblioteca que lo fundamentan.</figcaption>
+  </figure>
+  <div class="dos">
+    <div><p>Tres cambios (<b>C1</b>, <b>C2</b>, <b>C4</b>) son de <i>resolución</i>: no alteran el problema discreto, solo la forma de resolverlo. Su prueba es que den la misma solución que antes donde antes había solución, y que la den también donde antes no la había o no se sabía si era fiable.</p></div>
+    <div><p>Los otros cuatro cambian el <i>problema</i>: el material (C3), el elemento (C6, C7) o la orientación del recorte (C5, solo como aviso). Para ellos la prueba es una referencia independiente del cambio: una solución cerrada, una referencia con refinamiento a geometría fija o un experimento sintético.</p></div>
+  </div>
+</section>
+
+<!-- ======================= 2. MÉTODO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 2</div>
+  <h2><span class="num">2</span>Método</h2>
+  <h3>Ensayos</h3>
+  <p>Todos los ensayos usan el espinodoide de referencia de la comparativa de motores (ρ = 0,30, número de onda 12π, 700 ondas, conos 30, 30 y 90°, semilla 1, 5 mm de lado) o espinodoides isótropos de la misma familia, con E = 20 GPa y ν = 0,3. Ninguno usa VOIs reales, que no viajan con el repositorio. Como control, las variantes nuevas se corrieron también en casos con solución conocida: el bloque macizo con plato (fuerza de la solución cerrada a 10⁻¹²) y el Laplaciano 2D (κ exacto).</p>
+  <table>
+    <thead><tr><th>Guion</th><th>Cambio</th><th>Caso</th><th>Referencia</th></tr></thead>
+    <tbody>
+      <tr><td><code>p1_homogeneizacion.py</code></td><td>C1</td><td>Espinodoide isótropo, ρ 0,15 a 0,40, 16³ y 24³</td><td>LU directo</td></tr>
+      <tr><td><code>p2_newton.py</code></td><td>C2</td><td>Bloque macizo con plato; espinodoide 24³ hex8 y TET10 con fuerza en un incremento</td><td>Solución cerrada; Newton de la V2.1.1</td></tr>
+      <tr><td><code>p3_material.py</code></td><td>C3</td><td>Compresión uniaxial homogénea</td><td>Solución cerrada de los dos materiales</td></tr>
+      <tr><td><code>p4_cota_error.py</code></td><td>C4</td><td>Espinodoide 24³ y 32³, hex8 y TET10, scikit-fem iterativo</td><td>NGSolve directo</td></tr>
+      <tr><td><code>p5_pca.py</code></td><td>C5</td><td>Elipsoides de semiejes (1, b, 0,5), b 0,6 a 0,99</td><td>Giro con ruido de segmentación</td></tr>
+      <tr><td><code>p6_flexion.py</code></td><td>C6</td><td>Viga en voladizo de vóxeles, 1 a 8 elementos de canto</td><td>Richardson con hex8i fino; Euler-Bernoulli</td></tr>
+      <tr><td><code>p6_espinodoide.py</code></td><td>C6</td><td>Espinodoide a 24³ (y 40³) subdividido en m³ subvóxeles</td><td>Extrapolación con geometría fija</td></tr>
+      <tr><td><code>p7_hex_orden2.py</code></td><td>C7</td><td>El mismo, con NGSolve y plato rígido</td><td>Extrapolación con geometría fija</td></tr>
+    </tbody>
+  </table>
+  <p>Cada afirmación tomada de un libro lleva un código de fuente (F1 a F26) con su extracto textual en la ficha correspondiente y su ubicación en la matriz del Anexo A.</p>
+  <h3>Instrumentos de medida</h3>
+  <div class="dos">
+    <div class="caja leer"><div class="tit">Error con la geometría fija</div><p>Al subir la resolución del generador cambia la estructura, porque cada vóxel vuelve a clasificarse como hueso o vacío. Para medir solo el error del elemento, la máscara se genera una vez y cada vóxel se divide en m³ subvóxeles: la geometría es idéntica y solo cambia la discretización. El límite E∞ se estima ajustando E = E∞ + C·h<sup>p</sup> a las mallas más finas. Ese límite es el de la <i>malla de vóxeles</i>, escalera y uniones por arista incluidas, no el del hueso.</p></div>
+    <div class="caja leer"><div class="tit">Cota del error del iterativo</div><p>Un iterativo que para por residuo garantiza ‖r‖/‖b‖ ≤ ε, pero el error relativo de la solución solo queda acotado por ε·κ, donde κ es el número de condición (Quarteroni et al., §4.6.2). Con precondicionador se usa el residuo precondicionado y el κ del operador precondicionado. κ se estima con los coeficientes del propio CG, por lo que la cota es optimista: κ estimado ≤ κ verdadero.</p></div>
+  </div>
+</section>
+
+<!-- ======================= 3. PANORAMA ======================= -->
+<section class="salto">
+  <div class="seccion-et">Sección 3</div>
+  <h2><span class="num">3</span>Panorama: cuánto error trae la malla de vóxeles</h2>
+  <p>Antes de las fichas conviene ver la magnitud que más pesa en los resultados de spinpy. La Figura 2 muestra el error de la rigidez aparente del espinodoide a 24³ frente a los grados de libertad, con la geometría fija, para los tres elementos probados. A esa resolución hay 1,2 vóxeles por espesor trabecular, un valor bajo pero representativo: los VOIs reales a 40³ quedaron entre 1,3 y 2,8 (<code>INFORME_VOIS_REALES.pdf</code>).</p>
+  <figure><img src="figs/f_espinodoide.svg" alt=""><figcaption><b>Figura 2.</b> Error del módulo aparente del espinodoide de referencia a 24³ frente a los grados de libertad, con cada vóxel dividido en m³ subvóxeles (m = 1 a 4). (a) Ensayo de la app con tracción en el techo: hexaedro trilineal (hex8) y con modos incompatibles (hex8i), frente a E∞ = 155,2 MPa. (b) NGSolve con plato rígido: trilineal y cuadrático (Q2), frente a E∞ = 269,7 MPa. Ejes logarítmicos.</figcaption>
+  </figure>
+  <div class="caja leer"><div class="tit">Cómo leer la figura</div><p>Cada punto es un ensayo; más a la derecha, más fina la malla. Una recta en escala logarítmica indica un orden de convergencia constante; su pendiente medida es cercana a 1 en las cuatro series (p ≈ 1,0), la mitad de lo que daría una solución suave. Bajar una serie respecto de otra a igual abscisa significa menos error con el mismo coste. A la resolución de trabajo (m = 1), el error es del +110 % con hex8: la rigidez sale al doble del límite de su propia malla.</p></div>
+  <p>El orden 1 indica que domina un error que ningún elemento corrige del todo: las aristas y vértices de la escalera de vóxeles y las uniones por arista entre vóxeles (artefacto A5 del informe de artefactos), cuya rigidez tiende a cero al refinar. Bevill y Keaveny ya señalaron que, con elementos grandes, pueden aparecer errores de convergencia importantes en las predicciones de resistencia de núcleos trabeculares<sup class="ref">1</sup>. Los dos elementos nuevos reducen el error a igual coste, pero no cambian el orden.</p>
+</section>
+
+<!-- ======================= FICHAS ======================= -->
+<!-- C1 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C1</span> · Sistema lineal</div><h2>Modos rígidos en el multigrid de la homogeneización, y LU de respaldo</h2></div>
+    <div class="derecha"><span class="sev int">Integrar</span><div style="margin-top:1.5mm"><span class="chip">tensor C</span><span class="chip">ρ bajas</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué cambia</h4><p><code>elastic.homogeneizar</code> construía el multigrid algebraico sin espacio casi nulo, de modo que pyamg usaba el vector constante de un problema escalar. Ahora recibe las tres traslaciones y las tres rotaciones de cada nodo (<code>espacio_nulo="rigidos"</code>), como ya hacía el ensayo de compresión. Si aun así el CG no converge y el sistema tiene hasta 45 000 GDL, se repite con el LU directo y se declara.</p>
+      <h4>Por qué</h4><p>El multigrid funciona porque el suavizador elimina el error oscilante y la malla gruesa el suave, de baja energía (Dolean y Tabeart, §6.3.2, p. 87; fuentes F1 y F2)<sup class="ref">2</sup>. En una estructura poco conectada, los modos de menor energía son movimientos casi rígidos de cada trabécula; si el espacio grueso no los representa, el CG se estanca. El ensayo de compresión ya documentaba ese fallo (<code>resistencia.py</code>), pero el arreglo no había llegado a la homogeneización.</p>
+      <h4>Qué medimos</h4><p>A 16³, con el espacio escalar de la V2.1.1 el iterativo no alcanzó el criterio de la app (residuo ≤ 10⁻⁶) en ρ = 0,15, 0,20 y 0,25. Con los modos rígidos convergió desde 0,20 y redujo las iteraciones de 164 a 92 (ρ 0,30) y de 70 a 27 (ρ 0,40), con el mismo tensor que el LU (diferencia de 2·10⁻⁹ a ρ 0,20 y ≤ 5·10⁻¹² desde ρ 0,25). A ρ = 0,15 ninguna variante converge en 500 iteraciones y el LU sí, en 12 s: con el respaldo, la función devuelve ese tensor en lugar de un error. A 24³ (41 472 GDL) el problema se desplaza hacia densidades mayores (Figura 3b). En ρ = 0,15 y 0,20 ninguna variante converge en 500 iteraciones, aunque los modos rígidos dejan el residuo más bajo (4·10⁻⁵ y 3·10⁻⁶, frente a 2·10⁻⁴ y 1·10⁻⁵ del escalar). En ρ = 0,25 el escalar falla y los modos rígidos convergen en 426 a 482 iteraciones; desde ρ = 0,30 convergen las tres variantes, con 140 frente a 336 iteraciones (ρ 0,30) y 34 frente a 120 (ρ 0,40). Todos los tensores convergidos coinciden con el LU a ≤ 10⁻¹¹, salvo el escalar a ρ 0,30 (3·10⁻⁹). El respaldo tiene un coste a esta resolución: el LU tardó de 171 a 220 s, y en los casos que no convergen se suma al CG fallido (268 a 515 s con modos rígidos). A ρ = 0,25 el CG convergido (246 s) ya fue más lento que el LU (206 s); con modos rígidos, el iterativo solo compensa desde ρ ≈ 0,30 (78 s y 10 s a ρ 0,30 y 0,40).</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 110" width="100%" font-family="IBM Plex Sans" font-size="9">
+          <rect x="10" y="40" width="40" height="12" fill="#2a78d6" opacity="0.7" transform="rotate(-20 30 46)"/>
+          <rect x="60" y="30" width="12" height="50" fill="#2a78d6" opacity="0.7"/>
+          <rect x="85" y="50" width="45" height="12" fill="#2a78d6" opacity="0.7" transform="rotate(15 107 56)"/>
+          <circle cx="56" cy="40" r="3" fill="#eb6834"/><circle cx="78" cy="58" r="3" fill="#eb6834"/>
+          <path d="M140 30 a20 20 0 1 1 0 40" fill="none" stroke="#eb6834" stroke-width="1.5"/>
+          <text x="150" y="95" text-anchor="middle" fill="#4a4945">giro casi libre</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">Trabéculas unidas por cuellos finos: girar una cuesta casi nada de energía, y el multigrid debe poder representarlo.</p>
+      </div>
+      <div class="bloque"><h5>En cifras (16³)</h5>
+        <div class="kv"><span>converge desde ρ</span><span>0,30 → 0,20</span></div>
+        <div class="kv"><span>iteraciones, ρ 0,30</span><span>164 → 92</span></div>
+        <div class="kv"><span>iteraciones, ρ 0,40</span><span>70 → 27</span></div>
+        <div class="kv"><span>diferencia con LU</span><span>≤ 2·10⁻⁹</span></div>
+        <div class="kv"><span>16³, ρ 0,15 con respaldo</span><span>LU, 12 s</span></div>
+        <div class="kv"><span>24³, converge desde ρ</span><span>0,30 → 0,25</span></div>
+        <div class="kv"><span>24³, tiempo del LU</span><span>171 a 220 s</span></div>
+      </div>
+    </div>
+  </div>
+  <figure><img src="figs/f_homogeneizacion.svg" alt=""><figcaption><b>Figura 3.</b> Iteraciones del CG en la homogeneización de espinodoides isótropos según el espacio casi nulo del multigrid. ×: no alcanza el criterio de la app (residuo ≤ 10⁻⁶) en 500 iteraciones. Una barra en 500 sin ×: alcanza el criterio de aceptación sin llegar a la tolerancia pedida, 10⁻⁸.</figcaption></figure>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Integrar el espacio casi nulo rígido como opción por omisión.</b> No cambia ningún tensor que ya convergía (a ρ 0,30 y 0,40, diferencias de 10⁻¹⁵ frente al LU con las dos variantes).</p><div class="meta">Esfuerzo bajo · amplía el rango de ρ que se homogeneiza</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Integrar el respaldo LU.</b> Su coste es el de las iteraciones fallidas (unos 125 s a 16³) más el LU; convendría cortar antes el CG cuando el residuo deja de bajar.</p><div class="meta">Esfuerzo bajo · da tensor donde antes había error</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F1</span> <b>Dolean y Tabeart (2026)</b>, §6.3.2 «Coarse-grid correction», p. 87</div><div class="floc">Archivo: <code>Advanced Lineal Algebra with Applications Part 1.pdf</code>, página 93 · párrafo 1 de §6.3.2 y recuadro siguiente («Coarse-grid correction cannot be an iterative method on its own»), con el párrafo que lo cierra</div><blockquote>Section 6.3.1 left us with an iterate whose error is smooth: the smoother has removed the oscillatory components and stalls on the rest. [...] Coarse-grid correction cannot be an iterative method on its own. [...] Coarse-grid correction removes the part of the error that the coarse space can see, and by construction can do nothing about the rest. This is the precise sense in which the two ingredients are complementary, and it is why neither is optional. The smoother cannot touch smooth error; the coarse correction cannot touch anything outside its range.</blockquote><div class="fresp"><b>Respalda:</b> El multigrid solo elimina el error de baja energía que su espacio grueso puede representar. Que en elasticidad esos modos sean los movimientos rígidos de cada trabécula es la aplicación de spinpy (ya documentada en resistencia.py), no una afirmación del texto.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F2</span> <b>Dolean y Tabeart (2026)</b>, §6.3.1, recuadro «Takeaways», p. 86</div><div class="floc">Archivo: <code>Advanced Lineal Algebra with Applications Part 1.pdf</code>, página 92 · recuadro «Takeaways», tras la proposición 6.3.3</div><blockquote>Weighted Jacobi with ω = 2/3 is not a scalable solver, but it is an effective smoother: it damps oscillatory components uniformly while leaving smooth components for the coarse grid to remove.</blockquote><div class="fresp"><b>Respalda:</b> El suavizador no elimina el error suave; esa tarea corresponde al espacio grueso.</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> Umbral del respaldo LU (45 000 GDL) y su coste: p1_homogeneizacion.py.</div>
+</div>
+</section>
+
+<!-- C2 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C2</span> · Newton no lineal</div><h2>Newton globalizado: búsqueda lineal y corte de carga cuando Newton diverge</h2></div>
+    <div class="derecha"><span class="sev int">Integrar</span><div style="margin-top:1.5mm"><span class="chip">no lineal</span><span class="chip">fuerza impuesta</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué cambia</h4><p>El motor NGSolve resolvía cada incremento de carga con Newton completo y, si no convergía en 30 iteraciones, el ensayo fallaba. Por omisión la app usa un solo incremento. Ahora: (1) se intenta Newton completo, igual que antes; (2) si diverge, se repite el incremento con búsqueda lineal (se acepta el paso si baja la energía potencial, o si no, el residuo; se rechaza si algún elemento se invierte); (3) si tampoco converge, se divide la carga por la mitad, hasta diez veces. Se registra cuántas veces la dirección de Newton no fue de descenso, señal de tangente no definida positiva.</p>
+      <h4>Por qué</h4><p>Bathe señala que, con la tangente exacta, «el procedimiento principal para alcanzar la convergencia es reducir el incremento de carga», y que la búsqueda lineal «puede evitar la divergencia» (§8.4.1 y §8.4.2, pp. 758 y 761; F4 y F5)<sup class="ref">4</sup>. Nocedal y Wright dan la condición de Armijo para aceptar el paso (§3.1, p. 33; F6) y advierten que el Newton puro converge rápido cerca de la solución pero lejos de ella puede no dar siquiera direcciones de descenso (§3.3, p. 41; F7)<sup class="ref">5</sup>. Una primera versión con búsqueda lineal siempre activa ralentizó casos que Newton completo resolvía (TET10 a 20³: 119 iteraciones frente a 19), y por eso la búsqueda solo entra cuando Newton completo falla.</p>
+      <h4>Qué medimos</h4><p>En el bloque macizo, la fuerza coincide con la solución cerrada a 4·10⁻¹² (SVK) y 8·10⁻¹³ (neo-Hookeano), como antes. En el espinodoide a 24³ con fuerza en un incremento, los cuatro casos SVK de hex8 (2 a 20 MPa) dan las mismas iteraciones y el mismo desplazamiento que la V2.1.1. Con neo-Hookeano, el Newton de la V2.1.1 falla a 5, 10 y 20 MPa (el paso completo invierte elementos y log J deja de estar definido); el globalizado converge en los tres, sin cortar la carga. En la malla TET10 a 24³, el Newton de la V2.1.1 solo resolvió los dos casos de 2 MPa; el globalizado reprodujo esos dos con las mismas iteraciones y el mismo desplazamiento (24 con SVK y 15 con neo-Hookeano) y además convergió con SVK a 5 MPa y con neo-Hookeano a 5 y 10 MPa. El coste fue alto: dos o tres cortes de carga, 172 a 256 iteraciones y 570 a 860 s, frente a 50 a 72 s a 2 MPa. SVK a 10 MPa siguió sin converger con ninguna de las dos variantes; el globalizado alcanzó la mitad de la carga tras 2377 s. Sumando hex8 y TET10, el globalizado convergió en seis casos donde la V2.1.1 fallaba y no empeoró ninguno de los que ya convergían.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 110" width="100%" font-family="IBM Plex Sans" font-size="9">
+          <path d="M15 95 Q70 20 120 40 T190 25" fill="none" stroke="#2a78d6" stroke-width="1.8"/>
+          <line x1="20" y1="92" x2="150" y2="15" stroke="#eb6834" stroke-dasharray="4 3"/>
+          <circle cx="150" cy="15" r="3" fill="#eb6834"/><text x="152" y="12" fill="#4a4945">paso completo</text>
+          <circle cx="78" cy="38" r="3" fill="#1baf7a"/><text x="60" y="58" fill="#4a4945">paso recortado</text>
+          <text x="15" y="106" fill="#4a4945">desplazamiento →</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">El paso completo puede salir del dominio del material (J ≤ 0); recortarlo devuelve a una zona donde Newton converge.</p>
+      </div>
+      <div class="bloque"><h5>En cifras (hex8, 24³)</h5>
+        <div class="kv"><span>SVK, iteraciones a 20 MPa</span><span>23 → 23</span></div>
+        <div class="kv"><span>hex8 neo-Hookeano 5, 10, 20 MPa</span><span>fallo → converge</span></div>
+        <div class="kv"><span>TET10, casos que fallaban</span><span>4 → 1</span></div>
+        <div class="kv"><span>diferencia de u donde ambos convergen</span><span>≤ 10⁻¹²</span></div>
+        <div class="kv"><span>bloque, error frente a solución cerrada</span><span>≤ 4·10⁻¹²</span></div>
+      </div>
+    </div>
+  </div>
+  <figure><img src="figs/f_newton.svg" alt=""><figcaption><b>Figura 4.</b> Iteraciones de Newton en el espinodoide de referencia con fuerza impuesta en un solo incremento, con el Newton de la V2.1.1 y el globalizado. ×: el ensayo falla. En el globalizado, el recuento incluye las iteraciones del intento de Newton completo que falló antes de activar la búsqueda lineal o el corte de carga. TET10 SVK 10 MPa no converge con ninguna variante.</figcaption></figure>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Integrar con <code>globalizar=True</code> por omisión.</b> Donde Newton completo convergía, el resultado y el número de iteraciones son los mismos; <code>globalizar=False</code> reproduce la V2.1.1.</p><div class="meta">Esfuerzo bajo · ensayos no lineales que antes fallaban</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Mostrar en el informe el recuento de tangentes no definidas.</b> Lejos de la solución la dirección de Newton puede no ser de descenso porque la matriz tangente no es definida positiva (Nocedal y Wright, §3.4, p. 48; F8), y en el colapso la rigidez tangente es singular (Bathe, §8.4.3, p. 762; F9): un valor distinto de cero apunta a inestabilidad estructural más que a un fallo numérico. Contar los pivotes negativos de la factorización (Bathe, §10.2, p. 849; F10) daría el número exacto de modos inestables.</p><div class="meta">Esfuerzo bajo · interpretación de la carga de fallo</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F3</span> <b>Bathe (1996)</b>, §8.4 «Solution of nonlinear equations», p. 755</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 768 · párrafo 1 de la p. 755, antes de §8.4.1</div><blockquote>The methods we now present are basic techniques that in practice would be combined in a self-adaptive procedure that chooses load steps, iterative method, and convergence criteria automatically depending on the problem considered and solution accuracy sought.</blockquote><div class="fresp"><b>Respalda:</b> Combinar Newton, búsqueda lineal y elección automática del incremento de carga en un mismo procedimiento.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F4</span> <b>Bathe (1996)</b>, §8.4.1 «Newton-Raphson schemes», pp. 757-758</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 770-771 · último párrafo de la p. 757 («The practical consequence of these properties») y párrafo 2 de la p. 758 («In an effective finite element program»)</div><blockquote>The practical consequence of these properties is that if the current solution iterate is sufficiently close to the solution U* and if the tangent stiffness matrix does not change abruptly, we can expect rapid (i.e., quadratic) convergence. The assumption is of course that the exact tangent stiffness matrix is used in the iteration [...]. On the other hand, if the current solution iterate is not sufficiently close to U* and/or the stiffness matrix used is not the exact tangent matrix and/or changes abruptly, then the iteration may diverge. In an effective finite element program, the exact tangent stiffness matrix will be used, if possible, and hence the primary procedure for reaching convergence (if convergence difficulties are encountered) is to decrease the magnitude of the load step.</blockquote><div class="fresp"><b>Respalda:</b> Newton completo diverge lejos de la solución; con la tangente exacta (la de NGSolve lo es), el remedio principal es reducir el incremento de carga.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F5</span> <b>Bathe (1996)</b>, §8.4.2 «The BFGS method», p. 761</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 774 · párrafo 3 de la p. 761 («As pointed out above, the line search is an integral part»)</div><blockquote>As pointed out above, the line search is an integral part of the solution method. Of course, such line searches as performed in (8.98) and (8.99) can also be used in the Newton-Raphson methods presented in Section 8.4.1. With the line search performed within an iteration (i), the expense of the iteration increases, but fewer iterations may be needed for convergence. Also, the line search may prevent divergence of the iterations, and in practice, this increased robustness is the major reason why a line search can in general be effective.</blockquote><div class="fresp"><b>Respalda:</b> Añadir búsqueda lineal al Newton completo para evitar la divergencia.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F6</span> <b>Nocedal y Wright (2006)</b>, §3.1 «Step length», «The Wolfe conditions», p. 33</div><div class="floc">Archivo: <code>Numerical Optimization by Jorge Nocedal, Stephen Wright.pdf</code>, página 55 · párrafos 1 y 2 de «The Wolfe conditions»</div><blockquote>A popular inexact line search condition stipulates that αk should first of all give sufficient decrease in the objective function f, as measured by the following inequality: f(xk + α pk) ≤ f(xk) + c1 α ∇fkᵀ pk, (3.4) for some constant c1 ∈ (0, 1). In other words, the reduction in f should be proportional to both the step length αk and the directional derivative ∇fkᵀ pk. Inequality (3.4) is sometimes called the Armijo condition. [...] In practice, c1 is chosen to be quite small, say c1 = 10⁻⁴.</blockquote><div class="fresp"><b>Respalda:</b> La condición de aceptación del paso sobre la energía potencial (f) y el valor c1 = 10⁻⁴ del código.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F7</span> <b>Nocedal y Wright (2006)</b>, §3.3 «Rate of convergence», p. 41</div><div class="floc">Archivo: <code>Numerical Optimization by Jorge Nocedal, Stephen Wright.pdf</code>, página 63 · párrafo 2 de §3.3 («Algorithmic strategies that achieve rapid convergence»)</div><blockquote>Algorithmic strategies that achieve rapid convergence can sometimes conflict with the requirements of global convergence, and vice versa. For example, the steepest descent method is the quintessential globally convergent algorithm, but it is quite slow in practice, as we shall see below. On the other hand, the pure Newton iteration converges rapidly when started close enough to a solution, but its steps may not even be descent directions away from the solution. The challenge is to design algorithms that incorporate both properties: good global convergence guarantees and a rapid rate of convergence.</blockquote><div class="fresp"><b>Respalda:</b> El orden elegido: Newton completo primero (rápido cerca de la solución) y globalización solo si falla. La versión con búsqueda lineal siempre activa ralentizaba casos que Newton resolvía (medido).</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F8</span> <b>Nocedal y Wright (2006)</b>, §3.4 «Newton&#x27;s method with Hessian modification», p. 48</div><div class="floc">Archivo: <code>Numerical Optimization by Jorge Nocedal, Stephen Wright.pdf</code>, página 70 · párrafo 1 de §3.4</div><blockquote>Away from the solution, the Hessian matrix ∇²f(x) may not be positive definite, so the Newton direction pkN defined by ∇²f(xk) pkN = −∇f(xk) (3.38) (see (3.30)) may not be a descent direction.</blockquote><div class="fresp"><b>Respalda:</b> El recuento de direcciones de Newton que no son de descenso como señal de tangente no definida positiva.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F9</span> <b>Bathe (1996)</b>, §8.4.3 «Load-displacement-constraint methods», p. 762</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 775 · párrafo 2 de la p. 762 («In order to calculate the response in Fig. 8.13»)</div><blockquote>In order to calculate the response in Fig. 8.13 initially relatively large load increments can be employed, but as the collapse of the structural model is approached, the load increments must become smaller and there is also the difficulty of traversing the collapse point. At that point, the stiffness matrix is singular (the slope of the load-displacement response curve is zero), and beyond that point a special solution procedure that allows for a decrease in load and an increase in displacement must be used to calculate the ensuing response.</blockquote><div class="fresp"><b>Respalda:</b> Que la tangente deje de ser definida positiva cerca del colapso es estructural, no numérico; y que pasado el punto límite con fuerza impuesta haga falta otro método (R13).</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F10</span> <b>Bathe (1996)</b>, §10.2 «Fundamental facts used in the solution of eigensystems», p. 849</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 862 · párrafo 2 de la p. 849 («An important fact that follows»)</div><blockquote>The important fact is that in the decomposition of K − μM, the number of negative elements in D is equal to the number of eigenvalues smaller than μ.</blockquote><div class="fresp"><b>Respalda:</b> Mejora pendiente: contar los pivotes negativos de la factorización LDLᵀ de la tangente (μ = 0) daría el número exacto de modos inestables. No está implementado.</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> Que la búsqueda lineal siempre activa ralentizaba casos que Newton completo resolvía (TET10 a 20³: 119 frente a 19 iteraciones): p2_newton.py y la prueba documentada en m_ngsolve.py.</div>
+</div>
+</section>
+
+<!-- C3 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C3</span> · Material</div><h2>Neo-Hookeano como material no lineal por omisión</h2></div>
+    <div class="derecha"><span class="sev int">Integrar</span><div style="margin-top:1.5mm"><span class="chip">no lineal</span><span class="chip">cambia resultados</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué cambia</h4><p>El material por omisión de los análisis no lineales pasa de St. Venant-Kirchhoff (SVK) a neo-Hookeano en la API (<code>fem.ensayo</code>, <code>fem.analizar</code>), la línea de comandos y las dos ventanas de la interfaz. SVK sigue disponible. El diálogo guarda ahora la clave del material y no su posición en la lista, para que una sesión antigua no cambie de material sin avisar.</p>
+      <h4>Por qué</h4><p>El SVK es la generalización directa de la ley de Hooke a grandes desplazamientos y es adecuado con rotaciones grandes y deformaciones pequeñas (Bathe, §6.6.1, p. 584; F12)<sup class="ref">4</sup>; con deformaciones grandes «deben esperarse predicciones completamente distintas» (p. 589; F13). Kamensky añade que el SVK «no es estable en compresión»: su energía no diverge cuando J → 0 (§4.3.4, p. 57; F11)<sup class="ref">6</sup>. La policonvexidad es la propiedad que permite demostrar la existencia de minimizadores en elasticidad no lineal (Dacorogna, observación 3.20, p. 100; F14)<sup class="ref">7</sup>; que el neo-Hookeano la tenga y el SVK no es un resultado de Ball que Dacorogna cita, no una afirmación suya.</p>
+      <h4>Qué medimos</h4><p>Con las soluciones cerradas de la comparativa (Figura 5), los dos materiales coinciden a pequeña deformación, pero a un 5 % de acortamiento SVK da un 11 % menos de tensión, a un 10 % un 21 % menos, y a partir del 42 % su carga disminuye. En un ensayo no lineal la deformación aparente es pequeña, pero en los cuellos de las trabéculas la local puede no serlo: en el espinodoide a 20 MPa el desplazamiento del techo difirió un 5 % entre los dos materiales.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>En cifras (uniaxial)</h5>
+        <div class="kv"><span>SVK / neo a 2 %</span><span>0,955</span></div>
+        <div class="kv"><span>SVK / neo a 5 %</span><span>0,890</span></div>
+        <div class="kv"><span>SVK / neo a 10 %</span><span>0,786</span></div>
+        <div class="kv"><span>SVK / neo a 20 %</span><span>0,600</span></div>
+        <div class="kv"><span>máximo de carga SVK</span><span>42,3 %</span></div>
+        <div class="kv"><span>espinodoide 20 MPa, Δu techo</span><span>5 %</span></div>
+      </div>
+    </div>
+  </div>
+  <figure><img src="figs/f_material.svg" alt=""><figcaption><b>Figura 5.</b> Tensión nominal de compresión uniaxial homogénea (laterales libres) para St. Venant-Kirchhoff y neo-Hookeano con E = 20 GPa y ν = 0,3, de las soluciones cerradas de <code>comparativa_motores/comun.py</code>. La línea discontinua marca el máximo de carga del SVK, λ = 1/√3.</figcaption></figure>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Integrar y declararlo en las notas de versión.</b> Cambia los números no lineales por omisión; la comparativa de motores verificó los dos materiales frente a su solución cerrada. SfePy, que solo resuelve SVK, queda fuera del no lineal salvo que se elija SVK.</p><div class="meta">Esfuerzo bajo · material estable en compresión grande</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F11</span> <b>Kamensky (2022)</b>, §4.3.4 (hiperelasticidad), p. 57</div><div class="floc">Archivo: <code>Finite_element_analysis_for_coupled_problems.pdf</code>, página 64 · párrafo que empieza «The small-deformation correspondence between E and the small strain»</div><blockquote>The small-deformation correspondence between E and the small strain from linear elasticity motivates the formally-simplest hyperelastic model, the St. Venant–Kirchhoff model, ψ = ½ E : C : E, (4.51) where C is the rank-4 elasticity tensor. However, this model is not stable under compression, and it can be seen that the energy density does not diverge as J → 0, as would be needed to prevent non-physical degenerated deformations. The St. Venant–Kirchhoff model is only well-suited to problems with small deformations (but potentially large rotations, unlike linear elasticity). A slightly more complex model that retains stability under compression is the compressible neo-Hookean model, [...]</blockquote><div class="fresp"><b>Respalda:</b> Cambiar el material por omisión de SVK a neo-Hookeano.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F12</span> <b>Bathe (1996)</b>, §6.6.1 «Elastic material behavior. Generalization of Hooke&#x27;s law», p. 584</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 597 · párrafo 2 de la p. 584 («Considering this material description») y párrafo 4 («The preceding observations»)</div><blockquote>[...] However, an important observation is that in large displacement and large rotation but small strain analysis, the relation in (6.184) provides a natural material description because the components of the second Piola-Kirchhoff stress and Green-Lagrange strain tensors do not change under rigid body rotations [...]. The preceding observations are of special importance because, in practice, Hooke&#x27;s law is applicable only to small strains and because there are many engineering problems in which large displacements, large rotations, but only small strain conditions are encountered.</blockquote><div class="fresp"><b>Respalda:</b> El SVK (ecuación 6.184) es adecuado con rotaciones grandes y deformaciones pequeñas.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F13</span> <b>Bathe (1996)</b>, §6.6.1, p. 589</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 602 · último párrafo de la p. 589 («However, when large strains are modeled»)</div><blockquote>However, when large strains are modeled using (6.184) and (6.197) with the same elastic material constants, completely different response predictions must be expected.</blockquote><div class="fresp"><b>Respalda:</b> Con deformaciones grandes, la respuesta depende de la elección de la ley; no da igual SVK que otra.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F14</span> <b>Dacorogna (2004)</b>, §3.5 «The vectorial case», observación 3.20 (tras el teorema 3.19), p. 100</div><div class="floc">Archivo: <code>INTRODUCTION TO THE CALCULUS OF VARIATIONS - Bernard Dacorogna.pdf</code>, página 113 · apartado (v) de la observación 3.20</div><blockquote>(v) A function f that can be written in terms of a convex function F as in the theorem is called polyconvex. The theorem is due to Morrey (see also Ball [7] for important applications of such results to non linear elasticity).</blockquote><div class="fresp"><b>Respalda:</b> El marco de la policonvexidad. Que el neo-Hookeano compresible sea policonvexo y el SVK no es un resultado de Ball (referencia [7] del texto), no una afirmación de Dacorogna.</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> Las cifras de tensión de los dos materiales: soluciones cerradas de comparativa_motores/comun.py (p3_material.py).</div>
+</div>
+</section>
+
+<!-- C4 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C4</span> · Sistema lineal</div><h2>Cota del error del iterativo con κ estimado en el propio CG</h2></div>
+    <div class="derecha"><span class="sev desc">Descartar</span><div style="margin-top:1.5mm"><span class="chip">fiabilidad</span><span class="chip">resultado negativo</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué se probó</h4><p>Un CG precondicionado propio (<code>gc_lanczos</code>) que guarda los coeficientes α y β, forma con ellos la matriz tridiagonal de Lanczos, estima κ del operador precondicionado y declara la cota ε<sub>P</sub>·κ junto al residuo. Se probó sustituyendo el resolvedor de scikit-fem desde el guion del estudio; <b>no se integró en la aplicación</b>.</p>
+      <h4>Por qué</h4><p>El informe de motores encontró que el CG + pyamg de scikit-fem se detenía en el residuo pedido con un error de desplazamiento del 0,9 % en las mallas TET10, y que el residuo, por sí solo, no lo detectaba. La cota ‖e‖/‖x‖ ≤ ε·κ es la que da Quarteroni et al., con el residuo precondicionado si hay precondicionador (§4.6.2, p. 174; F15)<sup class="ref">8</sup>; el CG es una variante de Lanczos (observación 4.5, p. 168; F16), lo que permite estimar κ con sus propios coeficientes, y κ gobierna también su convergencia (Brenner y Scott, §9.8, pp. 266-267; F17)<sup class="ref">3</sup>.</p>
+      <h4>Qué medimos</h4><p>En el Laplaciano 2D de 60 × 60 el κ estimado coincidió con el exacto (1507,4), y en las mallas hex8 del espinodoide la cota (6·10⁻¹⁰) quedó por encima del error medido (8·10⁻¹² a 9·10⁻¹²), como debe. Pero en las mallas TET10, el caso que motivó la propuesta, falló por siete órdenes de magnitud: a 24³ el error medido frente al directo fue del 1,2 % (0,5 % en el desplazamiento máximo) y la cota, 1,5·10⁻⁹; a 32³, 1,8 % (0,89 %, el valor del informe de motores) frente a 4,6·10⁻⁹. El κ estimado (unos 2000) no ve los modos de energía casi nula que produce el error: el CG los alcanza tarde y Lanczos solo aproxima los autovalores que el CG ya ha explorado.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>En cifras</h5>
+        <div class="kv"><span>Laplaciano 60 × 60, κ</span><span>exacto</span></div>
+        <div class="kv"><span>hex8 24³, error · cota</span><span>8·10⁻¹² · 6·10⁻¹⁰</span></div>
+        <div class="kv"><span>TET10 24³, error · cota</span><span>1,2·10⁻² · 1,5·10⁻⁹</span></div>
+        <div class="kv"><span>TET10 32³, error · cota</span><span>1,8·10⁻² · 4,6·10⁻⁹</span></div>
+        <div class="kv"><span>κ estimado en TET10</span><span>1660 a 1950</span></div>
+      </div>
+    </div>
+  </div>
+  <figure><img src="figs/f_cota.svg" alt=""><figcaption><b>Figura 6.</b> Cota estimada ε<sub>P</sub>·κ frente al error relativo medido del CG + pyamg de scikit-fem, tomando como referencia el directo de NGSolve, en el espinodoide a 24³ y 32³. Por encima de la diagonal la cota cubre el error; en TET10 queda siete órdenes por debajo.</figcaption></figure>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>No integrar la cota.</b> Un campo que dice «error ≤ 10⁻⁹» cuando el error es del 1 % es peor que no tenerlo.</p><div class="meta">Sin esfuerzo · evita una garantía falsa</div></div></div>
+    <div class="sol"><div class="k">2</div><div><p><b>Con TET10, no usar el iterativo de scikit-fem</b> o declarar su resultado como no fiable en la tabla de motores, que es la conclusión del informe de motores y aquí se confirma. Una cota útil exigiría estimar el menor autovalor por separado (por ejemplo, con un método de bloque precondicionado), con un coste del orden de la propia resolución.</p><div class="meta">Esfuerzo bajo · evita el error oculto</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F15</span> <b>Quarteroni et al. (2007)</b>, §4.6.2 «A stopping test based on the residual», p. 174</div><div class="floc">Archivo: <code>Quarteroni, Sacco, Saleri - Numerical Mathematics (2007).pdf</code>, página 193 · la subsección completa</div><blockquote>A different stopping criterion consists of continuing the iteration until ‖r(k)‖ ≤ ε, ε being a fixed tolerance. Note that ‖x − x(k)‖ = ‖A⁻¹b − x(k)‖ = ‖A⁻¹r(k)‖ ≤ ‖A⁻¹‖ ε. Considering instead a normalized residual, i.e. stopping the iteration as soon as ‖r(k)‖/‖b‖ ≤ ε, we obtain the following control on the relative error ‖x − x(k)‖/‖x‖ ≤ ‖A⁻¹‖ ‖r(k)‖/‖x‖ ≤ K(A) ‖r(k)‖/‖b‖ ≤ εK(A). In the case of preconditioned methods, the residual is replaced by the preconditioned residual, so that the previous criterion becomes ‖P⁻¹r(k)‖/‖P⁻¹r(0)‖ ≤ ε, where P is the preconditioning matrix.</blockquote><div class="fresp"><b>Respalda:</b> La cota ε·κ y su versión con el residuo precondicionado.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F16</span> <b>Quarteroni et al. (2007)</b>, §4.4.3, observación 4.5 «The conjugate gradient method», p. 168</div><div class="floc">Archivo: <code>Quarteroni, Sacco, Saleri - Numerical Mathematics (2007).pdf</code>, página 187 · observación 4.5, párrafo 1</div><blockquote>If A is symmetric and positive definite, starting from the Lanczos method for linear systems it is possible to derive the conjugate gradient method already introduced in Section 4.3.4 (see [Saa96]). The conjugate gradient method is a variant of the Lanczos method where the orthonormalization process remains incomplete.</blockquote><div class="fresp"><b>Respalda:</b> Que los coeficientes del CG definen la tridiagonal de Lanczos con la que se estimó κ.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F17</span> <b>Brenner y Scott (2008)</b>, §9.8 «Applications to the conjugate-gradient method», pp. 266-267</div><div class="floc">Archivo: <code>Susanne Brenner. The mathematical theory of finite element methods.pdf</code>, página 277-278 · párrafos 1 y 2 de §9.8</div><blockquote>The conjugate-gradient method for solving a linear system of the form AU = F is an iterative method whose convergence properties can be estimated in terms of the condition number of A (cf. Luenberger 1973). [...] ‖U − U(k)‖_A ≤ C exp(−2k/√κ₂(A)) ‖U‖_A [...] This estimate says that to reduce the relative error ‖u − u(k)‖_a/‖u‖_a to O(ε) requires at most k = O(√κ₂(A) |log ε|) iterations.</blockquote><div class="fresp"><b>Respalda:</b> La relación entre κ, iteraciones y error del CG.</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> Que la cota falla en TET10: p4_cota_error.py.</div>
+</div>
+</section>
+
+<!-- C5 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C5</span> · Recorte del VOI</div><h2>Aviso de ejes PCA mal definidos</h2></div>
+    <div class="derecha"><span class="sev int">Integrar</span><div style="margin-top:1.5mm"><span class="chip">orientación</span><span class="chip">solo aviso</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué cambia</h4><p>Nueva función <code>voi.estabilidad_pca</code> que, a partir de las proyecciones del marco PCA, calcula cuántos grados giraría cada eje por un 1 % de cambio de la covarianza. La ventana de recorte añade una nota al VOI cuando el eje 1 o el 2 superan 5° por 1 %. El recorte no cambia.</p>
+      <h4>Por qué</h4><p>La descomposición de la covarianza es única, salvo el signo, solo si sus autovalores son simples (Modersitzki, cap. 5, p. 46; F18)<sup class="ref">9</sup>. El condicionamiento de un autovector es la inversa de la distancia a los demás autovalores (Quarteroni et al., propiedad 5.5, p. 190; F19)<sup class="ref">8</sup>. Si dos varianzas casi coinciden, la orientación del recorte depende del ruido de segmentación.</p>
+      <h4>Qué medimos</h4><p>En elipsoides de 80³ con ruido gaussiano en la segmentación, el giro medido del eje principal creció con la sensibilidad estimada: 0,4° con s2/s1 = 0,60 y 9,7° con 0,99 (Figura 7). El umbral de 5 °/% corresponde a s2/s1 ≈ 0,95. El giro medido fue de 0,2 a 0,4 veces la sensibilidad, de modo que el umbral es <b>provisional</b>: falta calibrarlo moviendo el umbral de segmentación en VOIs reales.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 100" width="100%" font-family="IBM Plex Sans" font-size="9">
+          <ellipse cx="55" cy="50" rx="45" ry="20" fill="#cde2fb" stroke="#2a78d6"/>
+          <line x1="10" y1="50" x2="100" y2="50" stroke="#eb6834" stroke-width="1.5"/>
+          <ellipse cx="150" cy="50" rx="40" ry="37" fill="#cde2fb" stroke="#2a78d6"/>
+          <line x1="112" y1="38" x2="188" y2="62" stroke="#eb6834" stroke-width="1.5"/>
+          <line x1="112" y1="58" x2="188" y2="42" stroke="#eb6834" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <text x="55" y="95" text-anchor="middle" fill="#4a4945">eje bien definido</text>
+          <text x="150" y="98" text-anchor="middle" fill="#4a4945">eje al azar</text>
+        </svg>
+      </div>
+      <div class="bloque"><h5>En cifras</h5>
+        <div class="kv"><span>s2/s1 = 0,60</span><span>0,9 °/% · 0,4°</span></div>
+        <div class="kv"><span>s2/s1 = 0,90</span><span>3,0 °/% · 0,6°</span></div>
+        <div class="kv"><span>s2/s1 = 0,95</span><span>5,8 °/% · 1,5°</span></div>
+        <div class="kv"><span>s2/s1 = 0,99</span><span>25 °/% · 9,7°</span></div>
+      </div>
+    </div>
+  </div>
+  <figure><img src="figs/f_pca.svg" alt=""><figcaption><b>Figura 7.</b> Sensibilidad estimada del eje principal (grados por 1 % de perturbación de la covarianza) y giro máximo medido con ruido de segmentación (cinco semillas), frente al cociente de las dos primeras desviaciones. La línea discontinua es el umbral de aviso.</figcaption></figure>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Integrar como aviso y calibrar el umbral con VOIs reales.</b> No cambia ningún recorte.</p><div class="meta">Esfuerzo bajo · trazabilidad de la orientación</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F18</span> <b>Modersitzki (2004)</b>, cap. 5 «Principal axes-based registration», p. 46</div><div class="floc">Archivo: <code>Numerical_Methods_for_Image_Registration_Modersitzki.pdf</code>, página 56 · párrafo 1 de la p. 46</div><blockquote>For normalization purposes, we arrange the columns of D_B such that for the standard deviations we have σ_B,1 ≥ ... ≥ σ_B,d ≥ 0. If the eigenvalues of Cov_B are simple, the decomposition is essentially unique, up to a sign in the columns of D_B.</blockquote><div class="fresp"><b>Respalda:</b> Los ejes PCA solo están bien definidos (salvo el signo) si las varianzas son distintas.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F19</span> <b>Quarteroni et al. (2007)</b>, §5.2.1, propiedad 5.5, p. 190</div><div class="floc">Archivo: <code>Quarteroni, Sacco, Saleri - Numerical Mathematics (2007).pdf</code>, página 208 · último párrafo de §5.2.1 («We conclude this section with a stability result») y propiedad 5.5</div><blockquote>We conclude this section with a stability result for the approximation of the eigenvector associated with a simple eigenvalue. [...] Property 5.5 The eigenvectors xk and xk(ε) of the matrices A and A(ε) = A + εE, with ‖xk(ε)‖₂ = ‖xk‖₂ = 1 for k = 1, ..., n, satisfy ‖xk(ε) − xk‖₂ ≤ ε‖E‖₂ / min_{j≠k} |λk − λj| + O(ε²), ∀k = 1, ..., n. Analogous to (5.11), the quantity κ(xk) = 1/min_{j≠k} |λk − λj| can be regarded as being the condition number of the eigenvector xk. Computing xk might be an ill-conditioned operation if some eigenvalues λj are &quot;very close&quot; to the eigenvalue λk associated with xk.</blockquote><div class="fresp"><b>Respalda:</b> La sensibilidad en grados por 1 % que calcula voi.estabilidad_pca, con ‖E‖ = 0,01 λk.</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> El umbral de 5 °/% y su relación con el giro medido: p5_pca.py.</div>
+</div>
+</section>
+
+<!-- C6 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C6</span> · Elemento</div><h2>Hexaedro con modos incompatibles (hex8i)</h2></div>
+    <div class="derecha"><span class="sev opc">Opción</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">Tb.Th/h bajo</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué cambia</h4><p><code>elastic.hex8_ke(..., elemento="hex8i")</code> añade al trilineal los nueve modos incompatibles de Wilson y Taylor (1 − ξ², 1 − η², 1 − ζ² en cada componente) y los condensa estáticamente. La matriz sigue siendo 24 × 24 y el número de incógnitas no cambia. El ensayo de la app y la homogeneización aceptan <code>elemento="hex8i"</code>; por omisión siguen con hex8.</p>
+      <h4>Por qué</h4><p>El trilineal no puede curvarse dentro del elemento: en flexión introduce deformaciones de corte espurias y resulta demasiado rígido (Zienkiewicz et al., §9.8, p. 343; F20)<sup class="ref">10</sup>; Reddy describe la misma raíz, el bloqueo por cortante, en vigas (§9.4, p. 467; F23)<sup class="ref">11</sup>. En cubos el jacobiano es constante, la integral de la matriz B de los modos es nula y el elemento pasa la prueba de la parcela sin corrección (Bathe, ejemplo 4.28, pp. 267-268; F22)<sup class="ref">4</sup>; al no ser conforme, la energía deja de ser una cota y la convergencia puede no ser monótona (§4.4.1, pp. 262-263; F21). En el centroide las derivadas de los modos valen cero, así que la tensión se calcula igual.</p>
+      <h4>Qué medimos</h4><p>Seis modos rígidos y prueba de la parcela exactos (10⁻¹⁶). En un voladizo de vóxeles, el error de la flecha con 1 y 2 elementos de canto pasa del −35 % y −12 % al −0,7 % y −0,6 % (Figura 8). En el espinodoide a 24³, el beneficio es menor: el error del E aparente baja del +110 % al +88 % con m = 1, el equivalente a refinar 1,24 veces sin coste. A 40³ (1,9 vóxeles por espesor trabecular) la ventaja se reduce todavía más: hex8i dio un E aparente un 5,9 % menor que hex8 con m = 1 y un 2,9 % menor con m = 2, frente al 10,5 % y 5,6 % a 24³, con tiempos similares (51 frente a 54 s con m = 1). El elemento ayuda cuando hay uno o dos vóxeles por espesor y deja de importar a medida que la resolución crece.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque">
+        <svg viewBox="0 0 200 100" width="100%" font-family="IBM Plex Sans" font-size="9">
+          <rect x="15" y="20" width="70" height="40" fill="#cde2fb" stroke="#2a78d6"/>
+          <polygon points="115,30 185,20 185,60 115,50" fill="#cde2fb" stroke="#2a78d6"/>
+          <path d="M115 30 Q150 18 185 20 M115 50 Q150 42 185 60" fill="none" stroke="#eb6834" stroke-width="1.4" stroke-dasharray="3 2"/>
+          <text x="50" y="80" text-anchor="middle" fill="#4a4945">hex8: lados rectos</text>
+          <text x="150" y="80" text-anchor="middle" fill="#4a4945">hex8i: puede curvarse</text>
+        </svg>
+        <p style="margin:2mm 0 0;font-size:7.6pt;color:#4a4945">En flexión, el trilineal solo puede inclinar sus caras; los modos 1 − ξ² le permiten curvarse.</p>
+      </div>
+      <div class="bloque"><h5>En cifras</h5>
+        <div class="kv"><span>voladizo, 1 elemento de canto</span><span>−35 % → −0,7 %</span></div>
+        <div class="kv"><span>voladizo, 2 elementos</span><span>−12 % → −0,6 %</span></div>
+        <div class="kv"><span>espinodoide 24³, m = 1</span><span>+110 % → +88 %</span></div>
+        <div class="kv"><span>incógnitas</span><span>sin cambio</span></div>
+      </div>
+    </div>
+  </div>
+  <figure><img src="figs/f_flexion.svg" alt=""><figcaption><b>Figura 8.</b> Error de la flecha de un voladizo de vóxeles (10 × 1 × 1 mm, carga transversal en el extremo) frente al número de elementos por canto, con el hexaedro trilineal y con modos incompatibles. Referencia: extrapolación de Richardson de hex8i con 6 y 8 elementos (4,0023 mm; Euler-Bernoulli, 4,0000 mm).</figcaption></figure>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Integrar como opción, sin cambiar el valor por omisión.</b> Cambia el problema discreto validado frente a FEBio; antes de hacerlo omisión hay que repetir la validación con la referencia embebida y con VOIs reales.</p><div class="meta">Esfuerzo medio · menos rigidez espuria en trabéculas finas</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F20</span> <b>Zienkiewicz et al. (2005)</b>, §9.8 «Application of the patch test to an incompatible element», p. 343</div><div class="floc">Archivo: <code>Zienkiewicz 2005, The finite element method its basis and fundamentals.pdf</code>, página 354 · párrafos 1 y 2 de §9.8</div><blockquote>In order to demonstrate the use of the patch test for a finite element formulation which violates the usually stated requirements for shape function continuity, we consider the plane strain incompatible modes first introduced by Wilson et al. and discussed by Taylor et al. The specific incompatible formulation considered uses the element displacement approximations: û = Na ũa + N1n α1 + N2n α2 (9.12) where Na (a = 1, ..., 4) are the usual conforming bilinear shape functions and the last two terms are incompatible modes of deformation defined by the hierarchical functions N1n = 1 − ξ² and N2n = 1 − η² (9.13) defined independently for each element. The shape functions used are illustrated in Fig. 9.10. The first, a set of standard bilinear type, gives a displacement pattern which, as shown in Fig. 9.10(b), introduces spurious shear strains in pure bending. The second, in which the parameters α1 and α2 are strictly associated with a specific element, therefore introduces incompatibility but assures correct bending behaviour in an individual rectangular element.</blockquote><div class="fresp"><b>Respalda:</b> Las funciones 1 − ξ², 1 − η² y el defecto que corrigen (corte espurio en flexión). La extensión a tres dimensiones con 1 − ζ² es la de spinpy.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F21</span> <b>Bathe (1996)</b>, §4.4.1 «Incompatible displacement-based models», pp. 262-263</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 275-276 · párrafo 2 de §4.4.1 («Since in finite element analysis using incompatible») y párrafo de la p. 263 («When considering displacement-based elements with incompatibilities»)</div><blockquote>Since in finite element analysis using incompatible (nonconforming) elements the requirements presented in Section 4.3.2 are not satisfied, the calculated total potential energy is not necessarily an upper bound to the exact total potential energy of the system, and consequently, monotonic convergence is not ensured. [...] When considering displacement-based elements with incompatibilities, if the patch test is passed, convergence is ensured (although convergence may not be monotonic and convergence may be slow).</blockquote><div class="fresp"><b>Respalda:</b> hex8i pasa la prueba de la parcela, luego converge, pero la energía deja de ser una cota y la convergencia puede no ser monótona.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F22</span> <b>Bathe (1996)</b>, ejemplo 4.28, pp. 267-268</div><div class="floc">Archivo: <code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, página 280-281 · tras la ecuación (a) de la p. 267 y primer párrafo de la p. 268</div><blockquote>In practice, the incompatible displacement parameters α would now be statically condensed out to obtain the element stiffness matrix corresponding to only the u degrees of freedom. [...] We can now easily check that the condition in (c) is satisfied for the square element: [...] However, we can also check that the condition is not satisfied for the general quadrilateral element.</blockquote><div class="fresp"><b>Respalda:</b> La condensación estática de los modos y que en elementos cuadrados (cubos, en la malla de vóxeles) la prueba de la parcela se cumple sin corrección.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F23</span> <b>Reddy (2002)</b>, §9.4 «Finite element models of the Timoshenko beam theory», p. 467 (texto por reconocimiento óptico)</div><div class="floc">Archivo: <code>J. N. Reddy - Energy Principles and Variational Methods in Applied Mechanics -Wiley (2002).djvu</code>, página 240 (página doble, mitad derecha) · párrafo 1 de la p. 467</div><blockquote>This is equivalent to dφ/dx = 0, which is an incorrect condition to be satisfied as it forces the curvature and hence the bending energy to zero. Thus, the finite element equations [...], in an effort to satisfy the constraints [...], will yield the trivial solution [...]. This is known in the finite element literature as shear locking.</blockquote><div class="fresp"><b>Respalda:</b> El bloqueo por cortante de elementos de bajo orden en flexión, la misma raíz que la rigidez excesiva del trilineal. El texto trata vigas, no hexaedros.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F24</span> <b>Bevill y Keaveny (2009)</b>, resumen (Bone 2009;44(4):579-84)</div><div class="floc">Archivo: <code>PubMed 19135184 (resumen)</code>, página PubMed 19135184 · frase 4 del resumen</div><blockquote>However, at a voxel size of 120 microm, the predictive ability of yield stress was slightly less than that of stiffness, likely due to the large convergence-related errors that could develop with larger element sizes.</blockquote><div class="fresp"><b>Respalda:</b> Contexto: con elementos grandes en hueso trabecular pueden aparecer errores de convergencia importantes (Sección 3).</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> Las mejoras en la viga y en el espinodoide: p6_flexion.py y p6_espinodoide.py.</div>
+</div>
+</section>
+
+<!-- C7 -->
+<section class="ficha">
+  <div class="ficha-cab">
+    <div><div class="et">Ficha <span class="codigo">C7</span> · Elemento</div><h2>Hexaedros cuadráticos (Q2) sobre la malla de vóxeles</h2></div>
+    <div class="derecha"><span class="sev exp">Experimental</span><div style="margin-top:1.5mm"><span class="chip">E aparente</span><span class="chip">memoria</span></div></div>
+  </div>
+  <div class="ficha-cuerpo">
+    <div>
+      <h4>Qué cambia</h4><p>El adaptador de NGSolve acepta <code>orden_hex=2</code> en el problema y resuelve la misma malla de vóxeles con hexaedros jerárquicos de orden 2. No hace falta superficie suavizada, tetgen ni corrección de volumen. Todavía no se usa desde <code>fem.ensayo</code>: el postproceso de tensiones de hex8 supone campo trilineal.</p>
+      <h4>Por qué</h4><p>Šolín et al. construyen elementos jerárquicos de orden arbitrario sobre el hexaedro de referencia (§2.2.4, p. 62; F25) y su condensación estática (§3.5.9, pp. 191-192; F26)<sup class="ref">12</sup>; en las pruebas de este informe no se usó la condensación. La malla suave TET10 tiene tres problemas medidos en VOIs reales: memoria a 48³, astillas y una superficie que tetgen no pudo tetraedralizar.</p>
+      <h4>Qué medimos</h4><p>En el espinodoide a 24³ con plato rígido (Figura 2b), Q2 con m = 1 (164 946 GDL, 0,7 GB) dio 359,4 MPa, prácticamente lo mismo que el trilineal con m = 3 (474 414 GDL, 1,7 GB): 2,9 veces menos incógnitas y 2,4 veces menos memoria para el mismo error (+33 % frente a E∞). A igual número de GDL que el trilineal con m = 2, Q2 tuvo un error del +33 % frente al +49 %.</p>
+    </div>
+    <div class="lado">
+      <div class="bloque"><h5>En cifras (24³, plato)</h5>
+        <div class="kv"><span>trilineal m = 1</span><span>535,5 MPa · +99 %</span></div>
+        <div class="kv"><span>trilineal m = 2</span><span>402,0 MPa · +49 %</span></div>
+        <div class="kv"><span>trilineal m = 3</span><span>357,7 MPa · +33 %</span></div>
+        <div class="kv"><span>Q2 m = 1</span><span>359,4 MPa · +33 %</span></div>
+        <div class="kv"><span>Q2 m = 2</span><span>312,1 MPa · +16 %</span></div>
+        <div class="kv"><span>E∞ (ajuste)</span><span>269,7 MPa</span></div>
+      </div>
+    </div>
+  </div>
+  <h4>Decisión propuesta</h4>
+  <div class="soluciones">
+    <div class="sol"><div class="k">1</div><div><p><b>Dejarlo como experimento hasta completar dos piezas:</b> el postproceso de tensiones para Q2 (evaluar el campo del motor en el centroide, como ya se hace con TET10) y la comparación de memoria con TET10 a 40³ y 48³ en VOIs reales.</p><div class="meta">Esfuerzo medio · alternativa a la malla suave sin tetgen</div></div></div>
+  </div>
+  <div class="fuentes">
+<h4>De dónde sale</h4>
+<div class="fuente"><div class="fcab"><span class="codigo">F25</span> <b>Šolín et al. (2004)</b>, §2.2.4 «Brick master element», p. 62</div><div class="floc">Archivo: <code>Higher-Order Finite Element Methods.pdf</code>, página 80 · párrafo 1 de §2.2.4</div><blockquote>The first three-dimensional master element of arbitrary order, K1B, will be associated with the reference brick domain [...]</blockquote><div class="fresp"><b>Respalda:</b> Elementos de orden arbitrario sobre el hexaedro de referencia, la base del Q2 de NGSolve.</div></div>
+<div class="fuente"><div class="fcab"><span class="codigo">F26</span> <b>Šolín et al. (2004)</b>, §3.5.9 «Static condensation of internal DOF», pp. 191-192</div><div class="floc">Archivo: <code>Higher-Order Finite Element Methods.pdf</code>, página 208-209 · párrafo 1 de §3.5.9 y párrafo 2 de la p. 192</div><blockquote>This procedure is a great tool for the parallelization of p and hp finite element codes for linear problems. It consists of three steps: 1. reduction of the size of the discrete problem by leaving out all bubble functions, 2. solution of the reduced linear system and 3. calculation of the remaining coefficients for the bubble functions by solving elementwise local linear problems. [...] The global degrees of freedom associated with basis functions that are nonzero within single mesh elements (bubble functions) are viewed as internal, while the remaining DOF (associated with basis functions that are nonzero within more than one mesh element) are by definition external.</blockquote><div class="fresp"><b>Respalda:</b> La condensación estática como vía para reducir el sistema global de Q2. En las pruebas de este informe NO se usó: se resolvió el sistema completo.</div></div>
+<div class="fmed"><b>Lo que sale de las medidas, no de los libros:</b> GDL, memoria y error: p7_hex_orden2.py.</div>
+</div>
+</section>
+
+<!-- ======================= SÍNTESIS ======================= -->
+<section class="salto">
+  <h2><span class="num">4</span>Síntesis</h2>
+  <div class="caja clave"><div class="tit">Lectura conjunta</div>
+    <p><b>Robusto.</b> Los dos cambios de resolución que se integran (C1, C2) se comportan como se esperaba: la misma solución donde antes la había, y solución donde antes no. El tercero (C4) es un resultado negativo útil: la cota con κ estimado no detecta el error que más importa. El cambio de material (C3) está justificado por una propiedad matemática del SVK que se ve en la solución cerrada. El aviso de PCA (C5) ordena bien los casos aunque su umbral sea provisional.</p>
+    <p><b>Menos robusto.</b> Los dos elementos (C6, C7) reducen el error a igual coste, pero con la geometría fija la convergencia es de orden 1 y el límite de la malla de vóxeles sigue lejos a la resolución de trabajo. Ese límite incluye la escalera y las uniones por arista, que no existen en el hueso, de modo que «menos error de discretización» no equivale a «más cerca del hueso». Todos los ensayos son sobre espinodoides sintéticos.</p>
+  </div>
+  <p>La medida más relevante de este informe para el uso de la aplicación es la de la Sección 3: a 1,2 vóxeles por espesor trabecular, la rigidez del ensayo de la app está al doble del límite de su propia malla. Es coherente con la recomendación del informe de VOIs reales (Tb.Th/h ≥ 4) y le pone cifra.</p>
+</section>
+
+<!-- ======================= HOJA DE RUTA ======================= -->
+<section class="salto">
+  <h2><span class="num">5</span>Hoja de ruta</h2>
+  <table class="ruta">
+    <thead><tr><th>#</th><th>Acción</th><th>Cambio</th><th>Dónde en el código</th><th>Esfuerzo</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Integrar los modos rígidos y el respaldo LU en la homogeneización</td><td>C1</td><td><code>elastic.homogeneizar</code>, <code>_espacio_nulo</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>2</td><td>Integrar el Newton globalizado</td><td>C2</td><td><code>motores/m_ngsolve.resolver</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>3</td><td>Neo-Hookeano por omisión, con nota de versión</td><td>C3</td><td><code>fem.ensayo</code>, <code>fem.analizar</code>, CLI, GUI</td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>4</td><td>Con TET10, no usar el iterativo de scikit-fem o marcarlo como no fiable (la cota de C4 se descarta)</td><td>C4</td><td><code>motores/m_skfem.resolver</code></td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>5</td><td>Aviso de ejes PCA y calibración del umbral</td><td>C5</td><td><code>voi.estabilidad_pca</code>, recorte en la GUI</td><td class="esfuerzo" style="color:var(--leve)">Bajo</td></tr>
+      <tr><td>6</td><td>hex8i como opción; validar con FEBio y la referencia embebida antes de hacerlo omisión</td><td>C6</td><td><code>elastic.hex8_ke</code>, <code>resistencia.ensayo_compresion</code></td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+      <tr><td>7</td><td>Postproceso de tensiones para Q2 y comparación de memoria con TET10</td><td>C7</td><td><code>motores/m_ngsolve</code>, <code>fem.tension_elemental</code></td><td class="esfuerzo" style="color:var(--mod)">Medio</td></tr>
+    </tbody>
+  </table>
+  <h3>Propuestas de la revisión que no se probaron aquí</h3>
+  <ul>
+    <li><b>R8.</b> Indicador de error por recuperación de tensiones (Zienkiewicz et al., cap. 13), para acompañar al p99.</li>
+    <li><b>R9.</b> Margen del núcleo a partir de la capa límite medida en cada VOI (Tartar, cap. 18).</li>
+    <li><b>R10.</b> Contacto unilateral del plato, previo diagnóstico de reacciones de tracción (Atkinson y Han, §11.5.2).</li>
+    <li><b>R11.</b> Calidad de la malla TET10 y escalado diagonal (Brenner y Scott, §9.6-9.7).</li>
+    <li><b>R12 a R17.</b> Optimización sin derivadas para el ajuste, longitud de arco, error orientado al E aparente, mecanismos por autovalores, homogeneización solo sólido y métodos inmersos.</li>
+  </ul>
+  <h2 style="margin-top:7mm"><span class="num">6</span>Limitaciones</h2>
+  <ul>
+    <li>Todos los ensayos mecánicos usan espinodoides sintéticos; los VOIs reales no viajan con el repositorio. La convergencia de C1 y C2 y el beneficio de C6 y C7 deben repetirse con hueso real.</li>
+    <li>El límite E∞ es el de la malla de vóxeles, con su escalera y sus uniones por arista; el ajuste de orden 1 con tres o cuatro mallas por serie es una estimación, no una cota.</li>
+    <li>C4 se probó solo con scikit-fem en dos mallas TET10; no se investigó qué modos concretos producen el error.</li>
+    <li>El umbral de C5 se fijó con elipsoides y ruido sintético.</li>
+    <li>Las medidas de tiempo se tomaron con varios estudios corriendo a la vez en un equipo de 4 núcleos; sirven para comparar variantes de un mismo estudio, no como tiempos absolutos.</li>
+  </ul>
+</section>
+
+<!-- ======================= APOYO ======================= -->
+<section class="salto">
+  <div class="seccion-et">Apoyo</div>
+  <h2>Glosario</h2>
+  <dl class="glosario">
+    <dt>Espacio casi nulo</dt><dd>Conjunto de vectores de energía casi nula (en elasticidad, movimientos rígidos) que el multigrid algebraico debe poder representar en sus niveles gruesos.</dd>
+    <dt>Globalización</dt><dd>Técnicas que hacen converger Newton desde lejos de la solución: búsqueda lineal y control del incremento de carga.</dd>
+    <dt>Búsqueda lineal</dt><dd>Recorte de la longitud del paso de Newton hasta que baja una medida de mérito (aquí, la energía potencial o el residuo).</dd>
+    <dt>κ (número de condición)</dt><dd>Cociente entre el mayor y el menor autovalor de una matriz simétrica definida positiva; acota cuánto puede amplificarse un residuo pequeño en error de la solución.</dd>
+    <dt>Lanczos</dt><dd>Método que construye una matriz tridiagonal cuyos autovalores aproximan los extremos de la matriz original; el CG la produce sin coste adicional.</dd>
+    <dt>Modos incompatibles</dt><dd>Funciones de forma internas a cada elemento, no continuas entre elementos, que se eliminan por condensación estática y mejoran el comportamiento en flexión.</dd>
+    <dt>Q2</dt><dd>Hexaedro de interpolación cuadrática en cada dirección.</dd>
+    <dt>Geometría fija</dt><dd>Refinamiento en el que cada vóxel se divide en m³ subvóxeles: cambia la malla, no la forma.</dd>
+    <dt>Tb.Th/h</dt><dd>Espesor trabecular medio dividido por el tamaño de vóxel: elementos por espesor de trabécula.</dd>
+  </dl>
+  <h2 style="margin-top:8mm">Reproducir</h2>
+  <p>Desde la raíz del repositorio, con <code>pip install -e ".[elastico,fem,malla,test,informe]"</code>. Tiempos en un equipo de 4 núcleos y 15 GB:</p>
+  <pre>python comparativa_motores/libros/p1_homogeneizacion.py 16      # ~15 min
+python comparativa_motores/libros/p1_homogeneizacion.py 24      # ~1,5 h
+python comparativa_motores/libros/p2_newton.py bloque espinodoide tet10   # ~1,5 h
+python comparativa_motores/libros/p3_material.py                # segundos
+python comparativa_motores/libros/p4_cota_error.py 24 32        # ~10 min
+python comparativa_motores/libros/p5_pca.py                     # ~1 min
+python comparativa_motores/libros/p6_flexion.py                 # segundos
+python comparativa_motores/libros/p6_espinodoide.py 24          # ~15 min
+P6_MS=1,2 python comparativa_motores/libros/p6_espinodoide.py 40   # ~10 min
+python comparativa_motores/libros/p7_hex_orden2.py 24           # ~2 min
+python comparativa_motores/libros/figuras_libros.py
+python -m pytest tests/test_31_revision_libros.py               # bloque 31</pre>
+</section>
+<section class="salto">
+  <h2>Referencias</h2>
+  <ol class="refs">
+    <li>Bevill G, Keaveny TM. Trabecular bone strength predictions using finite element analysis of micro-scale images at limited spatial resolution. Bone. 2009;44(4):579-84. doi:10.1016/j.bone.2008.11.020</li>
+    <li>Dolean V, Tabeart J. Advanced linear algebra with applications, Part I. Lecture notes. arXiv:2608.21234; 2026.</li>
+    <li>Brenner SC, Scott LR. The mathematical theory of finite element methods. 3rd ed. New York: Springer; 2008. doi:10.1007/978-0-387-75934-0</li>
+    <li>Bathe KJ. Finite element procedures. Englewood Cliffs: Prentice Hall; 1996.</li>
+    <li>Nocedal J, Wright SJ. Numerical optimization. 2nd ed. New York: Springer; 2006.</li>
+    <li>Kamensky D. Finite element analysis for coupled problems. Lecture notes for MAE 207. University of California San Diego; 2022.</li>
+    <li>Dacorogna B. Introduction to the calculus of variations. London: Imperial College Press; 2004.</li>
+    <li>Quarteroni A, Sacco R, Saleri F. Numerical mathematics. 2nd ed. Berlin: Springer; 2007. doi:10.1007/b98885</li>
+    <li>Modersitzki J. Numerical methods for image registration. Oxford: Oxford University Press; 2004.</li>
+    <li>Zienkiewicz OC, Taylor RL, Zhu JZ. The finite element method: its basis and fundamentals. 6th ed. Oxford: Elsevier Butterworth-Heinemann; 2005.</li>
+    <li>Reddy JN. Energy principles and variational methods in applied mechanics. 2nd ed. New York: Wiley; 2002.</li>
+    <li>Šolín P, Segeth K, Doležel I. Higher-order finite element methods. Boca Raton: Chapman &amp; Hall/CRC; 2004.</li>
+    <li>Erdemir A, Guess TM, Halloran J, Tadepalli SC, Morrison TM. Considerations for reporting finite element analysis studies in biomechanics. J Biomech. 2012;45(4):625-33. doi:10.1016/j.jbiomech.2011.11.038</li>
+  </ol>
+</section>
+<section class="salto">
+  <div class="seccion-et">Anexo A</div>
+  <h2>Matriz de trazabilidad</h2>
+  <p>Cada fila une una fuente citada en las fichas con su ubicación exacta en la biblioteca del grupo (repositorio privado <code>cgt1989/LibrosFEM</code>). La página del archivo es la del PDF o DjVu tal como lo numera el lector; la página impresa, la del libro. Los extractos completos están en el bloque «De dónde sale» de cada ficha. Los datos salen de <code>comparativa_motores/libros/fuentes_libros.py</code>.</p>
+  <div class="caja leer"><div class="tit">Cómo se citan las fuentes</div><p>Cada afirmación tomada de un libro lleva un código F1 a F26. En la ficha correspondiente, el bloque «De dónde sale» da el libro, la sección, la página impresa, la página del archivo de la biblioteca, el párrafo (por sus primeras palabras) y el extracto textual en el idioma original. Se corrigieron solo artefactos de la extracción de texto (cortes de palabra, ligaduras, numeración de ecuaciones mal leída) y las omisiones se marcan con [...]. Cuando una afirmación es inferencia de spinpy y no del texto, se dice.</p></div>
+  <table class="matriz"><thead><tr><th>Fuente</th><th>Cambio</th><th>Libro y ubicación</th><th>Archivo, página</th><th>Respalda</th></tr></thead><tbody>
+<tr><td><span class="codigo">F1</span></td><td>C1</td><td>Dolean y Tabeart (2026), §6.3.2 «Coarse-grid correction», p. 87</td><td><code>Advanced Lineal Algebra with Applications Part 1.pdf</code>, p. 93</td><td>El multigrid solo elimina el error de baja energía que su espacio grueso puede representar. Que en elasticidad esos modos sean los movimientos rígidos de cada trabécula es la aplicación de spinpy (ya documentada en resistencia.py), no una afirmación del texto.</td></tr>
+<tr><td><span class="codigo">F2</span></td><td>C1</td><td>Dolean y Tabeart (2026), §6.3.1, recuadro «Takeaways», p. 86</td><td><code>Advanced Lineal Algebra with Applications Part 1.pdf</code>, p. 92</td><td>El suavizador no elimina el error suave; esa tarea corresponde al espacio grueso.</td></tr>
+<tr><td><span class="codigo">F3</span></td><td>C2</td><td>Bathe (1996), §8.4 «Solution of nonlinear equations», p. 755</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 768</td><td>Combinar Newton, búsqueda lineal y elección automática del incremento de carga en un mismo procedimiento.</td></tr>
+<tr><td><span class="codigo">F4</span></td><td>C2</td><td>Bathe (1996), §8.4.1 «Newton-Raphson schemes», pp. 757-758</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 770-771</td><td>Newton completo diverge lejos de la solución; con la tangente exacta (la de NGSolve lo es), el remedio principal es reducir el incremento de carga.</td></tr>
+<tr><td><span class="codigo">F5</span></td><td>C2</td><td>Bathe (1996), §8.4.2 «The BFGS method», p. 761</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 774</td><td>Añadir búsqueda lineal al Newton completo para evitar la divergencia.</td></tr>
+<tr><td><span class="codigo">F6</span></td><td>C2</td><td>Nocedal y Wright (2006), §3.1 «Step length», «The Wolfe conditions», p. 33</td><td><code>Numerical Optimization by Jorge Nocedal, Stephen Wright.pdf</code>, p. 55</td><td>La condición de aceptación del paso sobre la energía potencial (f) y el valor c1 = 10⁻⁴ del código.</td></tr>
+<tr><td><span class="codigo">F7</span></td><td>C2</td><td>Nocedal y Wright (2006), §3.3 «Rate of convergence», p. 41</td><td><code>Numerical Optimization by Jorge Nocedal, Stephen Wright.pdf</code>, p. 63</td><td>El orden elegido: Newton completo primero (rápido cerca de la solución) y globalización solo si falla. La versión con búsqueda lineal siempre activa ralentizaba casos que Newton resolvía (medido).</td></tr>
+<tr><td><span class="codigo">F8</span></td><td>C2</td><td>Nocedal y Wright (2006), §3.4 «Newton&#x27;s method with Hessian modification», p. 48</td><td><code>Numerical Optimization by Jorge Nocedal, Stephen Wright.pdf</code>, p. 70</td><td>El recuento de direcciones de Newton que no son de descenso como señal de tangente no definida positiva.</td></tr>
+<tr><td><span class="codigo">F9</span></td><td>C2</td><td>Bathe (1996), §8.4.3 «Load-displacement-constraint methods», p. 762</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 775</td><td>Que la tangente deje de ser definida positiva cerca del colapso es estructural, no numérico; y que pasado el punto límite con fuerza impuesta haga falta otro método (R13).</td></tr>
+<tr><td><span class="codigo">F10</span></td><td>C2</td><td>Bathe (1996), §10.2 «Fundamental facts used in the solution of eigensystems», p. 849</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 862</td><td>Mejora pendiente: contar los pivotes negativos de la factorización LDLᵀ de la tangente (μ = 0) daría el número exacto de modos inestables. No está implementado.</td></tr>
+<tr><td><span class="codigo">F11</span></td><td>C3</td><td>Kamensky (2022), §4.3.4 (hiperelasticidad), p. 57</td><td><code>Finite_element_analysis_for_coupled_problems.pdf</code>, p. 64</td><td>Cambiar el material por omisión de SVK a neo-Hookeano.</td></tr>
+<tr><td><span class="codigo">F12</span></td><td>C3</td><td>Bathe (1996), §6.6.1 «Elastic material behavior. Generalization of Hooke&#x27;s law», p. 584</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 597</td><td>El SVK (ecuación 6.184) es adecuado con rotaciones grandes y deformaciones pequeñas.</td></tr>
+<tr><td><span class="codigo">F13</span></td><td>C3</td><td>Bathe (1996), §6.6.1, p. 589</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 602</td><td>Con deformaciones grandes, la respuesta depende de la elección de la ley; no da igual SVK que otra.</td></tr>
+<tr><td><span class="codigo">F14</span></td><td>C3</td><td>Dacorogna (2004), §3.5 «The vectorial case», observación 3.20 (tras el teorema 3.19), p. 100</td><td><code>INTRODUCTION TO THE CALCULUS OF VARIATIONS - Bernard Dacorogna.pdf</code>, p. 113</td><td>El marco de la policonvexidad. Que el neo-Hookeano compresible sea policonvexo y el SVK no es un resultado de Ball (referencia [7] del texto), no una afirmación de Dacorogna.</td></tr>
+<tr><td><span class="codigo">F15</span></td><td>C4</td><td>Quarteroni et al. (2007), §4.6.2 «A stopping test based on the residual», p. 174</td><td><code>Quarteroni, Sacco, Saleri - Numerical Mathematics (2007).pdf</code>, p. 193</td><td>La cota ε·κ y su versión con el residuo precondicionado.</td></tr>
+<tr><td><span class="codigo">F16</span></td><td>C4</td><td>Quarteroni et al. (2007), §4.4.3, observación 4.5 «The conjugate gradient method», p. 168</td><td><code>Quarteroni, Sacco, Saleri - Numerical Mathematics (2007).pdf</code>, p. 187</td><td>Que los coeficientes del CG definen la tridiagonal de Lanczos con la que se estimó κ.</td></tr>
+<tr><td><span class="codigo">F17</span></td><td>C4</td><td>Brenner y Scott (2008), §9.8 «Applications to the conjugate-gradient method», pp. 266-267</td><td><code>Susanne Brenner. The mathematical theory of finite element methods.pdf</code>, p. 277-278</td><td>La relación entre κ, iteraciones y error del CG.</td></tr>
+<tr><td><span class="codigo">F18</span></td><td>C5</td><td>Modersitzki (2004), cap. 5 «Principal axes-based registration», p. 46</td><td><code>Numerical_Methods_for_Image_Registration_Modersitzki.pdf</code>, p. 56</td><td>Los ejes PCA solo están bien definidos (salvo el signo) si las varianzas son distintas.</td></tr>
+<tr><td><span class="codigo">F19</span></td><td>C5</td><td>Quarteroni et al. (2007), §5.2.1, propiedad 5.5, p. 190</td><td><code>Quarteroni, Sacco, Saleri - Numerical Mathematics (2007).pdf</code>, p. 208</td><td>La sensibilidad en grados por 1 % que calcula voi.estabilidad_pca, con ‖E‖ = 0,01 λk.</td></tr>
+<tr><td><span class="codigo">F20</span></td><td>C6</td><td>Zienkiewicz et al. (2005), §9.8 «Application of the patch test to an incompatible element», p. 343</td><td><code>Zienkiewicz 2005, The finite element method its basis and fundamentals.pdf</code>, p. 354</td><td>Las funciones 1 − ξ², 1 − η² y el defecto que corrigen (corte espurio en flexión). La extensión a tres dimensiones con 1 − ζ² es la de spinpy.</td></tr>
+<tr><td><span class="codigo">F21</span></td><td>C6</td><td>Bathe (1996), §4.4.1 «Incompatible displacement-based models», pp. 262-263</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 275-276</td><td>hex8i pasa la prueba de la parcela, luego converge, pero la energía deja de ser una cota y la convergencia puede no ser monótona.</td></tr>
+<tr><td><span class="codigo">F22</span></td><td>C6</td><td>Bathe (1996), ejemplo 4.28, pp. 267-268</td><td><code>Klaus-Jurgen Bathe - Finite element procedures. Part 1-2-Prentice Hall (1996).djvu</code>, p. 280-281</td><td>La condensación estática de los modos y que en elementos cuadrados (cubos, en la malla de vóxeles) la prueba de la parcela se cumple sin corrección.</td></tr>
+<tr><td><span class="codigo">F23</span></td><td>C6</td><td>Reddy (2002), §9.4 «Finite element models of the Timoshenko beam theory», p. 467 (texto por reconocimiento óptico)</td><td><code>J. N. Reddy - Energy Principles and Variational Methods in Applied Mechanics -Wiley (2002).djvu</code>, p. 240 (página doble, mitad derecha)</td><td>El bloqueo por cortante de elementos de bajo orden en flexión, la misma raíz que la rigidez excesiva del trilineal. El texto trata vigas, no hexaedros.</td></tr>
+<tr><td><span class="codigo">F24</span></td><td>C6</td><td>Bevill y Keaveny (2009), resumen (Bone 2009;44(4):579-84)</td><td><code>PubMed 19135184 (resumen)</code>, p. PubMed 19135184</td><td>Contexto: con elementos grandes en hueso trabecular pueden aparecer errores de convergencia importantes (Sección 3).</td></tr>
+<tr><td><span class="codigo">F25</span></td><td>C7</td><td>Šolín et al. (2004), §2.2.4 «Brick master element», p. 62</td><td><code>Higher-Order Finite Element Methods.pdf</code>, p. 80</td><td>Elementos de orden arbitrario sobre el hexaedro de referencia, la base del Q2 de NGSolve.</td></tr>
+<tr><td><span class="codigo">F26</span></td><td>C7</td><td>Šolín et al. (2004), §3.5.9 «Static condensation of internal DOF», pp. 191-192</td><td><code>Higher-Order Finite Element Methods.pdf</code>, p. 208-209</td><td>La condensación estática como vía para reducir el sistema global de Q2. En las pruebas de este informe NO se usó: se resolvió el sistema completo.</td></tr>
+</tbody></table>
+</section>
+<section class="salto">
+  <div class="seccion-et">Anexo B</div>
+  <h2>Lista de chequeo de reporte</h2>
+  <p><b>Diseño del trabajo.</b> Estudio computacional de verificación de código y de cálculo, con comparación frente a referencias numéricas y analíticas; sin sujetos ni datos experimentales, de modo que PRISMA, CONSORT y STROBE no son aplicables. Se usa la guía específica de Erdemir et al. (2012) para estudios de elementos finitos en biomecánica<sup class="ref">13</sup>, la misma de los informes anteriores de spinpy; no consta una versión posterior que la sustituya.</p>
+  <table class="lista-chequeo">
+    <thead><tr><th>Ítem</th><th>Contenido</th><th>Estado</th><th>Modificación necesaria</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Identificación del modelo</td></tr>
+      <tr><td>1</td><td>Tipo de modelo, propósito y magnitudes de interés</td><td><span class="sev l">Cumple</span></td><td>Portada y secciones 1 y 2.</td></tr>
+      <tr><td>2</td><td>Versión del software y del código</td><td><span class="sev l">Cumple</span></td><td>Portada (commit base y rama).</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura del modelo</td></tr>
+      <tr><td>3</td><td>Geometría y su origen</td><td><span class="sev m">Parcial</span></td><td>Espinodoides sintéticos descritos por sus parámetros; falta repetir con VOIs reales.</td></tr>
+      <tr><td>4</td><td>Malla: tipo, tamaño, número de elementos</td><td><span class="sev l">Cumple</span></td><td>Sección 2 y fichas (GDL de cada ensayo).</td></tr>
+      <tr><td>5</td><td>Propiedades del material</td><td><span class="sev m">Parcial</span></td><td>E = 20 GPa y ν = 0,3, SVK y neo-Hookeano; falta justificar el módulo de tejido con bibliografía.</td></tr>
+      <tr><td>6</td><td>Condiciones de contorno y cargas</td><td><span class="sev l">Cumple</span></td><td>Sección 2 y fichas.</td></tr>
+      <tr><td>7</td><td>Interacciones y contacto</td><td><span class="sev n">No aplica</span></td><td>Sin contacto (R10 queda pendiente).</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Estructura de la simulación</td></tr>
+      <tr><td>8</td><td>Resolvedor y tolerancias</td><td><span class="sev l">Cumple</span></td><td>Fichas C1, C2 y C4.</td></tr>
+      <tr><td>9</td><td>Postproceso y definiciones</td><td><span class="sev l">Cumple</span></td><td>Sección 2 y glosario.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Verificación</td></tr>
+      <tr><td>10</td><td>Verificación del código</td><td><span class="sev l">Cumple</span></td><td>Bloque 31 de la suite: soluciones cerradas, prueba de la parcela, κ exacto.</td></tr>
+      <tr><td>11</td><td>Verificación del cálculo (convergencia)</td><td><span class="sev m">Parcial</span></td><td>Refinamiento con geometría fija en un espinodoide; la extrapolación de orden 1 es una estimación.</td></tr>
+      <tr><td>12</td><td>Sensibilidad</td><td><span class="sev m">Parcial</span></td><td>Densidad (C1), carga (C2) y separación de ejes (C5); falta la sensibilidad a la resolución base en C6 y C7.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Validación</td></tr>
+      <tr><td>13</td><td>Comparación con datos experimentales</td><td><span class="sev g">No cumple</span></td><td>Referencias numéricas y analíticas; declarado en Limitaciones.</td></tr>
+      <tr><td colspan="4" style="font-weight:600;background:var(--fondo)">Disponibilidad</td></tr>
+      <tr><td>14</td><td>Modelo, datos y código</td><td><span class="sev l">Cumple</span></td><td>Scripts y resultados en <code>comparativa_motores/libros/</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+</body>
+</html>

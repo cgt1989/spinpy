@@ -1,0 +1,110 @@
+[
+ {
+  "acortamiento": 0.01,
+  "svk": {
+   "P_MPa": -197.01000000000028,
+   "tangente_rel_E": 0.9701500000339536
+  },
+  "neohookeano": {
+   "P_MPa": -201.56259600487937,
+   "tangente_rel_E": 1.0157168662992433
+  },
+  "cociente_P": 0.9774134879431257
+ },
+ {
+  "acortamiento": 0.02,
+  "svk": {
+   "P_MPa": -388.0800000000008,
+   "tangente_rel_E": 0.9406000000126369
+  },
+  "neohookeano": {
+   "P_MPa": -406.3239291987545,
+   "tangente_rel_E": 1.0319915178101269
+  },
+  "cociente_P": 0.9551000374633863
+ },
+ {
+  "acortamiento": 0.05,
+  "svk": {
+   "P_MPa": -926.2500000000003,
+   "tangente_rel_E": 0.8537500000244336
+  },
+  "neohookeano": {
+   "P_MPa": -1040.9678425154607,
+   "tangente_rel_E": 1.084425206704509
+  },
+  "cociente_P": 0.8897969391271022
+ },
+ {
+  "acortamiento": 0.1,
+  "svk": {
+   "P_MPa": -1709.9999999999995,
+   "tangente_rel_E": 0.7150000000194723
+  },
+  "neohookeano": {
+   "P_MPa": -2174.443702726176,
+   "tangente_rel_E": 1.1856671810051012
+  },
+  "cociente_P": 0.7864080352395938
+ },
+ {
+  "acortamiento": 0.2,
+  "svk": {
+   "P_MPa": -2879.999999999999,
+   "tangente_rel_E": 0.4599999999982174
+  },
+  "neohookeano": {
+   "P_MPa": -4800.107639760458,
+   "tangente_rel_E": 1.4583435941858625
+  },
+  "cociente_P": 0.5999865453316627
+ },
+ {
+  "acortamiento": 0.3,
+  "svk": {
+   "P_MPa": -3570.0,
+   "tangente_rel_E": 0.2349999999978536
+  },
+  "neohookeano": {
+   "P_MPa": -8104.608486285987,
+   "tangente_rel_E": 1.8780172493052305
+  },
+  "cociente_P": 0.4404901243583681
+ },
+ {
+  "acortamiento": 0.42264973081037416,
+  "svk": {
+   "P_MPa": -3849.0017945975046,
+   "tangente_rel_E": 1.1368683772161603e-11
+  },
+  "neohookeano": {
+   "P_MPa": -13696.074571876838,
+   "tangente_rel_E": 2.778781028928279
+  },
+  "cociente_P": 0.2810295588270923
+ },
+ {
+  "acortamiento": 0.5,
+  "svk": {
+   "P_MPa": -3750.0,
+   "tangente_rel_E": -0.12500000000272848
+  },
+  "neohookeano": {
+   "P_MPa": -18707.04113776395,
+   "tangente_rel_E": 3.780537554939656
+  },
+  "cociente_P": 0.20045928013863537
+ },
+ {
+  "acortamiento": 0.7,
+  "svk": {
+   "P_MPa": -2730.0,
+   "tangente_rel_E": -0.364999999999327
+  },
+  "neohookeano": {
+   "P_MPa": -45599.083096134855,
+   "tangente_rel_E": 11.924718908267096
+  },
+  "cociente_P": 0.05986962488356273
+ }
+]

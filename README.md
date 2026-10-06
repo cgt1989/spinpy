@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 29 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-29%20bloques-5b6b7f">
+  <img alt="Verificación: 30 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-30%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -191,6 +191,7 @@ extras se instalan según haga falta:
 
 ```
 pip install -e ".[elastico]"   # multigrid: homogeneización y ensayo FE
+pip install -e ".[fem]"        # motores FEM internos: NGSolve y scikit-fem
 pip install -e ".[malla]"      # mallado TET10
 pip install -e ".[lote]"       # lote y estadística
 pip install -e ".[gui]"        # interfaz gráfica
@@ -200,7 +201,10 @@ pip install -e ".[todo]"       # todo
 
 `pyamg` figura como extra, pero no es opcional en la práctica: sin él, el
 solver cae a gradiente conjugado con Jacobi, que con el contraste de 10⁻⁶
-entre hueso y vacío no converge.
+entre hueso y vacío no converge. Sin `.[fem]` la aplicación funciona con su
+propio resolvedor (ladrillos, lineal), pero no puede resolver la malla suave,
+los análisis no lineales ni el plato rígido del E corregido. SfePy y FEniCSx
+no se piden: se detectan si ya están instalados.
 
 ---
 
@@ -286,10 +290,12 @@ python Test/replicar_kumar2020.py --rapido   # ~1,5 min
 python -m pytest tests/ -q
 ```
 
-29 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+30 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
-superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
+superficie de von Mises, orden de convergencia de cada motor FEM instalado
+(bloque 29), correcciones de los artefactos de borde (bloque 30) y cambios de la
+revisión de la biblioteca de métodos numéricos (bloque 31)… Un fallo aquí es un hallazgo, no un error de la
 suite. Los dos hallazgos ya documentados (la losa del bloque 04 sale un vóxel
 más gruesa y el exponente de Gibson-Ashby del bloque 05 sale ≈ 3,9) están
 marcados como `xfail` estricto: la suite queda en verde, el registro los sigue
@@ -536,7 +542,13 @@ línea de comandos:
 
 ```bash
 python -m spinpy.fem VOI.vtk --protocolo app tapia2026 --malla hex8 tet10 --motores app ngsolve
+python -m spinpy.fem VOI.vtk --analisis lineal lineal_plato --motores ngsolve   # con E y p99 corregidos
 ```
+
+En la interfaz, el análisis «Lineal con plato rígido y medida en el núcleo»
+viene marcado por omisión. Desde la línea de comandos hay que pedirlo con
+`--analisis lineal lineal_plato`; sin él, el registro trae solo los valores
+sin corregir (sección [Artefactos de borde](#artefactos-de-borde-e-y-p99-corregidos)).
 
 ### Informe: comparación de los motores
 
@@ -567,6 +579,37 @@ además dos fallos del mallado TET10 de la app (tetraedros planos sobre las
 caras del cubo que abortaban la malla, y nodos intermedios fuera del punto
 medio tras el ajuste a los planos).
 
+### Orden de convergencia frente a una solución exacta
+
+Que los motores coincidan sobre una misma malla demuestra que resuelven el
+mismo problema discreto, no que ese problema se acerque al continuo. Para
+medirlo, `comparativa_motores/convergencia.py` impone en el contorno de un
+cubo una solución cerrada de las ecuaciones de Navier (Papkovich-Neuber) y
+mide el error de discretización al refinar (V2.0.2; sección 3.8 del informe):
+
+| elemento | pendiente teórica L2 / H1 | pendiente observada L2 / H1 |
+|---|---|---|
+| hex8 | 2 / 1 | 1,99 / 1,00 |
+| TET4 | 2 / 1 | 1,98 / 0,99 |
+| TET10 | 3 / 2 | 3,00 / 1,99 |
+
+Las cifras coinciden en todos los motores hasta la cuarta cifra
+significativa. Con la malla fija y el grado creciente (NGSolve y FEniCSx), el
+error L2 baja de forma exponencial, de 4,4·10⁻² con p = 1 a 3,8·10⁻¹² con
+p = 8. El bloque 29 de la suite repite la prueba con cada motor instalado.
+
+<p align="center"><img src="comparativa_motores/figs/fig5_convergencia.png" alt="Error frente al tamaño de elemento y frente al grado del polinomio, por motor y elemento" width="90%"></p>
+
+Es una verificación del código, no del modelo: el cubo no contiene aristas,
+superficie suavizada ni elementos casi degenerados, que son los factores que
+impiden converger al pico de tensión en hueso.
+
+```
+cd comparativa_motores
+python convergencia.py h    # hex8, TET4 y TET10; n = 4 a 32
+python convergencia.py p    # grado 1 a 8 sobre una malla fija
+```
+
 ### Antecedente: malla suave (TET10) frente a ladrillos, con FEBio
 
 📄 [Informe en PDF](comparativa_febio_tet/INFORME.pdf) ·
@@ -581,12 +624,144 @@ programa, y siguen valiendo con los motores internos.
 
 ---
 
+## Artefactos de borde: E y p99 corregidos
+
+Un VOI recortado de una imagen de micro-CT tiene dos bordes que el hueso no
+tiene: el techo, donde la carga se aplica sobre trabéculas cortadas, y cuatro
+caras laterales que dejan trabéculas sin apoyo. Hasta la V2.0.2, esos bordes
+hacían que la aplicación subestimara la rigidez aparente y sobrestimara la
+tensión citada (p99 de von Mises). La serie V2.1 los diagnostica, los corrige
+y valida la corrección en tres informes:
+
+| informe | qué responde | versión |
+|---|---|---|
+| 📄 [Artefactos numéricos](comparativa_motores/INFORME_ARTEFACTOS.pdf) | qué parte del resultado se debe al recorte, la malla, la carga o el resolvedor, y no al hueso | diagnóstico sobre V2.0.2 |
+| 📄 [Correcciones](comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf) | qué corrección mejora de verdad la aplicación, con un criterio fijado antes de medir ([prerregistro](comparativa_motores/correcciones/PRERREGISTRO.md)) | V2.1.0 |
+| 📄 [VOIs reales](comparativa_motores/vois_reales/INFORME_VOIS_REALES.pdf) | si las correcciones funcionan en hueso trabecular porcino y equino de micro-CT | V2.1.1 |
+
+### Diagnóstico
+
+Sobre un mismo espinodoide se resolvieron ocho ensayos lineales (dos tipos de
+malla, tres resoluciones, dos condiciones de carga y dos de apoyo) y se
+rastreó el origen de cada valor alto de von Mises. Los motores no añaden
+artefactos propios cuando resuelven con un método directo o con BDDC; los
+importantes nacen antes del resolvedor. Con la tracción uniforme en el techo,
+la rigidez aparente era 1,6 a 2,0 veces menor que con un plato rígido, y el
+6 % del hueso más próximo al techo concentraba el 34 % de la cola de von
+Mises. La franja a menos de 0,3 mm de las caras laterales, el 21 % del hueso,
+trabajaba a la mitad de la tensión media del núcleo. Las zonas calientes, en
+cambio, son mayoritariamente reales: entre el 83 y el 97 % reaparece en el
+mismo sitio al cambiar la resolución o el tipo de elemento.
+
+### Corrección y validación
+
+La referencia es el mismo espinodoide rodeado de 1,25 mm de su propio hueso,
+ensayado con plato rígido y medido solo en la región del VOI, que así no tiene
+techo cargado ni caras cortadas. Una corrección se aceptaba si reducía el
+error de E a la mitad o menos (y al menos 5 puntos) sin empeorar el p99 más
+de 2 puntos, en 32³, 48³ y 64³:
+
+| corrección | error de E (32³ · 48³ · 64³) | decisión |
+|---|---|---|
+| ninguna: tracción, VOI completo | −55 · −43 · −43 % | línea base |
+| F1: plato rígido en el techo | −12 · −8 · −10 % | aceptada |
+| F2: medida en el núcleo, a 0,625 mm de las caras | −7 · −6 · −10 % | aceptada |
+| F1 + F2: **E corregido** | **+0,8 · +1,5 · +1,5 %** | aceptada |
+
+Con el plato rígido, el error del p99 bajó de +53 · +33 · +33 % a
++10 · +0,5 · +1 %. Con el protocolo corregido, la diferencia de rigidez entre
+malla suave y ladrillos a 48³ pasó de −27 a −5,6 %, sin tocar el mallado.
+Se probaron además dos cambios del suavizado o del decimado de la malla suave:
+uno no generó una malla válida y el otro dio una malla más blanda, y los dos
+se descartaron.
+
+En hueso real (dos VOIs porcinos de 3 mm a 16 µm y tres equinos de 5 mm a
+51,5 µm), la referencia se construyó hacia dentro: el VOI remuestreado a 96³
+hace de hueso circundante y se ensaya su cubo central de 64³. El error de la
+rigidez publicada hasta la V2.0.2 (−11 a −35 %) bajó a −3 a −10 % con plato
+rígido y a +0,4 a −4,7 % con plato y núcleo, en los tres VOIs equinos, que son
+los que admiten núcleo. El error del p99 pasó de +17 a +54 % a −5 a +9 %.
+
+<p align="center"><img src="comparativa_motores/vois_reales/informe_vois/figs/f_validacion_E.png" alt="Error del E aparente frente al mismo hueso embebido en cinco VOIs reales, antes y después de las correcciones" width="90%"></p>
+
+### Qué muestra la aplicación
+
+La tabla de resultados y el informe de publicación dan el **E corregido** y el
+**p99 corregido** junto a los valores de siempre, y declaran con qué método se
+obtuvieron:
+
+| magnitud | método | cuándo se usa |
+|---|---|---|
+| E corregido | `plato_nucleo`: plato rígido y núcleo | por omisión, con NGSolve, scikit-fem, FEniCSx o SfePy |
+| | `traccion_nucleo`: tracción y núcleo | con el motor de la app, que no resuelve el plato |
+| | `plato_voi`: plato rígido sobre el VOI completo | VOIs de menos de 2,25 mm de lado, donde el núcleo no cabe (V2.1.1) |
+| p99 corregido | `plato_voi`: plato rígido sobre el VOI completo | con un motor que resuelve el plato |
+| | `traccion_nucleo`: tracción y núcleo | con el motor de la app |
+
+El análisis con plato añade una resolución lineal por ensayo; la medida en el
+núcleo no cuesta tiempo de cálculo.
+
+### Lo que no corrige
+
+- **La tensión local de la malla suave** sigue un 25 % por encima de la de
+  los ladrillos (artefacto A4), y el mapa elemento a elemento conserva un
+  error mediano del 28 al 33 % incluso con las correcciones. El p99 corregido
+  es un estadístico; el mapa de colores no es un valor citable elemento a
+  elemento.
+- **La carga de fallo de Pistoia con plato** sube entre un 7 y un 24 % y no
+  hay referencia para validarla: debe citarse con reservas.
+- **Una resolución insuficiente.** Con los 40³ por omisión, los cinco VOIs
+  reales quedaron entre 1,3 y 2,8 vóxeles por espesor trabecular. Se
+  recomiendan al menos 4 (Tb.Th/h ≥ 4). En el
+  VOI equino proximal cúbico, con trabéculas de 1,4 vóxeles, la malla suave
+  siguió un 27 % más blanda que los ladrillos tras corregir.
+
+### Reproducir
+
+```
+cd comparativa_motores && python artefactos.py                       # diagnóstico
+cd comparativa_motores/correcciones
+python correcciones.py referencia hex8 tet10                         # referencia embebida y correcciones
+python decision.py                                                   # aplica la regla del prerregistro
+python validar_app.py                                                # el código integrado, de extremo a extremo
+cd comparativa_motores/vois_reales
+python estudio.py CARPETA_DE_VOIS validacion practico morfometria campos
+python -m pytest tests/test_30_correcciones.py                       # versión pequeña
+```
+
+Los VOIs reales no viajan con el repositorio; su huella SHA-256 queda en los
+JSON de `comparativa_motores/vois_reales/resultados/`.
+
+---
+
+## Versiones recientes
+
+Las notas completas de cada versión están en
+[`instalador/notas/`](instalador/notas/) y en la página de
+[releases](https://github.com/cgt1989/spinpy/releases), junto con el
+instalador y el zip de Windows.
+
+| versión | fecha | cambios principales |
+|---|---|---|
+| [V2.1.1](instalador/notas/v2.1.1.md) | 2026-10-05 | Validación de las correcciones de borde en cinco VOIs reales. Corrige tres defectos de la V2.1.0: el ensayo con el motor de la app ya no aparece como fallido, el E corregido existe en VOIs de menos de 2,25 mm (`plato_voi`) y la malla suave ya no se rechaza por una astilla degenerada que se invierte al ajustar los nodos a las caras. |
+| [V2.1.0](instalador/notas/v2.1.0.md) | 2026-10-05 | E y p99 corregidos de los artefactos de borde (plato rígido y medida en el núcleo), informe de artefactos y bloque 30 de la suite. |
+| [V2.0.2](instalador/notas/v2.0.2.md) | 2026-10-01 | Orden de convergencia de los cinco motores frente a una solución exacta (refinamiento h y p) y bloque 29 de la suite. |
+| [V2.0.1](instalador/notas/v2.0.1.md) | 2026-09-30 | Motores FEM internos en lugar de FEBio; instalador de Windows con NGSolve y scikit-fem y autocomprobación que exige que todos los motores coincidan. |
+
+---
+
 ## Documentación
 
-La validación mecánica frente a FEBio está en
-[`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf),
-y la comparación de los motores FEM internos en
-[`comparativa_motores/INFORME.pdf`](comparativa_motores/INFORME.pdf).
+| informe | contenido |
+|---|---|
+| [`comparativa_febio/porcino/INFORME.pdf`](comparativa_febio/porcino/INFORME.pdf) | validación mecánica de todos los análisis frente a FEBio 4.5 |
+| [`comparativa_febio/INFORME.pdf`](comparativa_febio/INFORME.pdf) | ensayo de compresión frente a FEBio en VOIs equinos de H4 |
+| [`comparativa_febio_tet/INFORME.pdf`](comparativa_febio_tet/INFORME.pdf) | malla suave (TET10) frente a ladrillos, con FEBio |
+| [`comparativa_motores/INFORME.pdf`](comparativa_motores/INFORME.pdf) | comparación de los motores FEM internos y orden de convergencia |
+| [`comparativa_motores/INFORME_ARTEFACTOS.pdf`](comparativa_motores/INFORME_ARTEFACTOS.pdf) | diagnóstico de los artefactos numéricos del ensayo |
+| [`comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf`](comparativa_motores/correcciones/INFORME_CORRECCIONES.pdf) | corrección de los artefactos de borde y su validación |
+| [`comparativa_motores/vois_reales/INFORME_VOIS_REALES.pdf`](comparativa_motores/vois_reales/INFORME_VOIS_REALES.pdf) | las correcciones en VOIs reales porcinos y equinos |
+| [`docs/validacion_literatura/Verificacion_spinpy.pdf`](docs/validacion_literatura/Verificacion_spinpy.pdf) | verificación frente a la literatura publicada y soluciones cerradas |
 
 `docs/MANUAL_spinpy.pdf` documenta cada módulo y cada función, y se genera
 del propio código (`python docs/generar_manual.py`). Los docstrings de este
@@ -608,6 +783,20 @@ medidos y las trampas que costó encontrar.
 - Por debajo de ρ ≈ 0,25 (clase isótropa) la homogeneización periódica no
   alcanza la tolerancia declarada: es una propiedad del régimen cercano al
   umbral de rigidez, y la aplicación lo reporta.
+- **La resolución por omisión (40³) puede quedarse corta.** En VOIs reales
+  deja de 1,3 a 2,8 vóxeles por espesor trabecular; conviene subirla hasta
+  Tb.Th/h ≥ 4. El ensayo de compresión todavía no avisa cuando no se cumple
+  (las simulaciones *in silico* sí, por debajo de 1,7).
+- **La malla suave a 48³ no cabe en un equipo de 15 GB** con VOIs reales
+  (7,8 a 10 GB previstos para el directo). A 32³ sale demasiado blanda en
+  hueso real, y el no lineal con fuerza impuesta no converge en esa malla.
+- **La tensión de cola depende de la malla.** El pico de von Mises no
+  converge, y el p99 que se cita cambia un 22 % de 32³ a 64³ con ladrillos:
+  hay que declararlo con su resolución. La carga de fallo de Pistoia con plato
+  rígido no está validada.
+- En un VOI equino, tetgen no pudo tetraedralizar la superficie suavizada (no
+  es una variedad). La aplicación lo comunica como fallo del ensayo, sin dar
+  un resultado erróneo; el origen no se ha investigado.
 
 ---
 

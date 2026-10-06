@@ -41,6 +41,11 @@ from scipy.sparse.linalg import LinearOperator, cg, spilu, splu
 
 VOID_SCALE = 1e-6      # rigidez relativa del vacio (valor de la app)
 UMBRAL_DIRECTO = 6000  # GDL por debajo de los cuales se resuelve directo
+# Respaldo: si el iterativo no converge y el sistema tiene hasta estos GDL, se
+# repite con el LU directo. Cerca del umbral de conectividad (rho < 0.2) ningun
+# espacio casi nulo hace converger el CG, y el LU si resuelve: a 16^3 (12 288
+# GDL) en 12 s (comparativa_motores/libros/p1_homogeneizacion.py).
+UMBRAL_RESPALDO_LU = 45000
 #
 # ELECCION DE SOLVER — medida, no heredada
 # ----------------------------------------
@@ -76,12 +81,33 @@ UMBRAL_DIRECTO = 6000  # GDL por debajo de los cuales se resuelve directo
 # Matriz de rigidez elemental
 # ---------------------------------------------------------------------------
 
-def hex8_ke(dx, dy, dz, E, nu):
+#: Elementos de la malla de voxeles. 'hex8' es el trilineal validado frente a
+#: FEBio; 'hex8i' le anade modos incompatibles (ver `hex8_ke`).
+ELEMENTOS_VOXEL = ("hex8", "hex8i")
+
+
+def hex8_ke(dx, dy, dz, E, nu, elemento="hex8"):
     """Rigidez de un hexaedro trilineal de 8 nodos, Gauss 2x2x2.
 
     Se calcula numericamente en lugar de usar una matriz precomputada: mas
     largo, pero verificable y sin riesgo de erratas de transcripcion.
+
+    elemento='hex8i' anade los nueve modos incompatibles de Wilson y Taylor
+    (1 - xi^2, 1 - eta^2, 1 - zeta^2 en cada componente) y los condensa
+    estaticamente: la matriz sigue siendo 24x24 y el numero de incognitas
+    globales no cambia. El trilineal no puede curvarse dentro del elemento y
+    en flexion pura introduce deformaciones de corte espurias, que lo hacen
+    demasiado rigido (Zienkiewicz, Taylor y Zhu 2005, sec. 9.8; Bathe 1996,
+    sec. 4.4.1). En un cubo el jacobiano es constante, la integral de la
+    matriz B de los modos incompatibles es nula y el elemento pasa la prueba
+    de la parcela sin la correccion que necesitan los elementos distorsionados
+    (Bathe 1996, ejemplo 4.28). En el centroide las derivadas de los modos
+    valen cero, asi que la tension del centroide se calcula igual que con
+    'hex8' a partir de los desplazamientos nodales. Al ser no conforme, la
+    energia ya no es una cota superior y la convergencia puede no ser monotona.
     """
+    if elemento not in ELEMENTOS_VOXEL:
+        raise ValueError(f"elemento desconocido: {elemento!r}")
     lam = E * nu / ((1 + nu) * (1 - 2 * nu))
     mu = E / (2 * (1 + nu))
 
@@ -102,7 +128,19 @@ def hex8_ke(dx, dy, dz, E, nu):
     detJ = (dx / 2) * (dy / 2) * (dz / 2)
     invJ = np.diag([2 / dx, 2 / dy, 2 / dz])
 
+    def matriz_b(dNdx, n):
+        B = np.zeros((6, 3 * n))
+        B[0, 0::3] = dNdx[0]                              # eps_xx
+        B[1, 1::3] = dNdx[1]                              # eps_yy
+        B[2, 2::3] = dNdx[2]                              # eps_zz
+        B[3, 1::3] = dNdx[2]; B[3, 2::3] = dNdx[1]        # gamma_yz
+        B[4, 0::3] = dNdx[2]; B[4, 2::3] = dNdx[0]        # gamma_xz
+        B[5, 0::3] = dNdx[1]; B[5, 1::3] = dNdx[0]        # gamma_xy
+        return B
+
     ke = np.zeros((24, 24))
+    kci = np.zeros((24, 9))
+    kii = np.zeros((9, 9))
     for xi in g:
         for eta in g:
             for zet in g:
@@ -111,21 +149,54 @@ def hex8_ke(dx, dy, dz, E, nu):
                     yn * (1 + xi * xn) * (1 + zet * zn),
                     zn * (1 + xi * xn) * (1 + eta * yn),
                 ])
-                dNdx = invJ @ dNdxi              # 3x8
-
-                B = np.zeros((6, 24))
-                B[0, 0::3] = dNdx[0]                              # eps_xx
-                B[1, 1::3] = dNdx[1]                              # eps_yy
-                B[2, 2::3] = dNdx[2]                              # eps_zz
-                B[3, 1::3] = dNdx[2]; B[3, 2::3] = dNdx[1]        # gamma_yz
-                B[4, 0::3] = dNdx[2]; B[4, 2::3] = dNdx[0]        # gamma_xz
-                B[5, 0::3] = dNdx[1]; B[5, 1::3] = dNdx[0]        # gamma_xy
-
+                B = matriz_b(invJ @ dNdxi, 8)
                 ke += B.T @ D @ B * detJ
+                if elemento == "hex8i":
+                    # modos P1 = 1 - xi^2, P2 = 1 - eta^2, P3 = 1 - zeta^2
+                    Bi = matriz_b(invJ @ np.diag([-2 * xi, -2 * eta,
+                                                  -2 * zet]), 3)
+                    kci += B.T @ D @ Bi * detJ
+                    kii += Bi.T @ D @ Bi * detJ
+    if elemento == "hex8i":
+        ke = ke - kci @ np.linalg.solve(kii, kci.T)
     return (ke + ke.T) / 2
 
 
 # ---------------------------------------------------------------------------
+
+def _espacio_nulo(tipo, nx, ny, nz, dx, dy, dz):
+    """Espacio casi nulo del multigrid de la homogeneizacion, (ndof, k).
+
+    Los modos de energia mas baja de una pieza trabecular poco conectada son
+    movimientos casi rigidos de cada trabecula. El multigrid los elimina solo
+    si el espacio grueso puede representarlos; si no, el suavizador no los
+    reduce y el CG se estanca (Dolean y Tabeart 2026, sec. 6.3; Brenner y
+    Scott 2008, cap. 6). El ensayo de compresion ya lo documento: sin los
+    modos rigidos el residuo empeoraba al refinar (`resistencia.py`). En el
+    problema periodico las rotaciones globales no son admisibles, pero el
+    espacio casi nulo actua por agregados, y ahi si son modos de baja energia.
+    """
+    if tipo == "escalar":
+        return None
+    if tipo not in ("traslaciones", "rigidos"):
+        raise ValueError(f"espacio_nulo desconocido: {tipo!r}")
+    ix, iy, iz = np.meshgrid(np.arange(nx), np.arange(ny), np.arange(nz),
+                             indexing="ij")
+    # mismo orden de nodos que `_edof_periodico`: nodo = i + nx j + nx ny k
+    x = ix.ravel(order="F") * dx
+    y = iy.ravel(order="F") * dy
+    z = iz.ravel(order="F") * dz
+    n = nx * ny * nz
+    B = np.zeros((3 * n, 6 if tipo == "rigidos" else 3))
+    B[0::3, 0] = 1.0
+    B[1::3, 1] = 1.0
+    B[2::3, 2] = 1.0
+    if tipo == "rigidos":
+        B[0::3, 3] = -y; B[1::3, 3] = x
+        B[1::3, 4] = -z; B[2::3, 4] = y
+        B[0::3, 5] = z;  B[2::3, 5] = -x
+    return B
+
 
 def _edof_periodico(nx, ny, nz):
     """Grados de libertad por elemento, con conectividad periodica.
@@ -199,7 +270,8 @@ def _ensamblar(keS, edof, escala, ndof, bloques=8):
 # ---------------------------------------------------------------------------
 
 def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
-                 escala_vacio=VOID_SCALE, verbose=False):
+                 escala_vacio=VOID_SCALE, verbose=False, elemento="hex8",
+                 espacio_nulo="rigidos"):
     """Tensor de rigidez homogeneizado C_h (6x6) en orden de Voigt.
 
     Devuelve (Ch, info). Si algo impide resolver, Ch es NaN e `info['msg']`
@@ -211,6 +283,13 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
         Backus con dos fases reales: con vacio a 1e-6 casi todas las entradas
         del tensor exacto valen ~0 y la comparacion no distingue una
         implementacion correcta de una equivocada.
+    elemento : 'hex8' o 'hex8i' (ver `hex8_ke`).
+    espacio_nulo : espacio casi nulo del multigrid. 'rigidos' (por omision):
+        las tres traslaciones y las tres rotaciones de cada nodo, como en el
+        ensayo de compresion (`resistencia._modos_rigidos`). 'traslaciones':
+        solo las tres primeras. 'escalar': el vector constante que pyamg toma
+        si no se le da nada, que es el de un problema de tipo Poisson y era el
+        comportamiento hasta la V2.1.1. Se conserva para poder comparar.
     """
     BW = np.asarray(BW, dtype=bool)
     vox = np.atleast_1d(np.asarray(vox_size, dtype=float)).ravel()
@@ -230,7 +309,7 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
         info["msg"] = "La estructura no contiene material solido."
         return Ch, info
 
-    keS = hex8_ke(dx, dy, dz, E_s, nu_s)
+    keS = hex8_ke(dx, dy, dz, E_s, nu_s, elemento)
     edof = _edof_periodico(nx, ny, nz)
 
     escala = np.full(nel, float(escala_vacio))
@@ -270,8 +349,11 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
         ml = None
         try:
             import pyamg
-            ml = pyamg.smoothed_aggregation_solver(Kff_csr, max_coarse=500)
-            nombre = "AMG (agregacion suavizada) + CG"
+            B = _espacio_nulo(espacio_nulo, nx, ny, nz, dx, dy, dz)
+            B = None if B is None else B[libres]
+            ml = pyamg.smoothed_aggregation_solver(Kff_csr, B=B,
+                                                   max_coarse=500)
+            nombre = f"AMG (agregacion suavizada, {espacio_nulo}) + CG"
         except ImportError:
             ml = None
         except Exception:
@@ -279,9 +361,13 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
 
         peor = 0.0
         if ml is not None:
+            iters = []
             for c in range(6):
                 b = Fmat[libres, c]
-                x = ml.solve(b, tol=tol, maxiter=500, accel="cg")
+                hist = []
+                x = ml.solve(b, tol=tol, maxiter=500, accel="cg",
+                             residuals=hist)
+                iters.append(len(hist) - 1)
                 chi[libres, c] = x
                 nb = np.linalg.norm(b)
                 peor = max(peor, np.linalg.norm(b - Kff_csr @ x) /
@@ -315,15 +401,29 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
 
         info["solver"] = nombre
         info["residuo_rel"] = float(peor)
+        if ml is not None:
+            info["iteraciones"] = [int(i) for i in iters]
 
         # F10: hay que COMPROBAR el residuo. Un solver iterativo no lanza error
         # al no converger: devuelve el mejor iterado, que pasa cualquier
         # comprobacion de isfinite y da por bueno un tensor equivocado.
         if not np.isfinite(peor) or peor > max(1e-6, 100 * tol):
-            info["msg"] = (f"El solver iterativo no convergio (residuo relativo "
-                           f"peor = {peor:.1e}). El tensor no es fiable; prueba "
-                           f"una resolucion menor.")
-            return Ch, info
+            if ndof <= UMBRAL_RESPALDO_LU:
+                try:
+                    lu = splu(Kff)
+                    for c in range(6):
+                        chi[libres, c] = lu.solve(Fmat[libres, c])
+                    info["solver"] = (f"LU directo (respaldo: {nombre} se "
+                                      f"detuvo en {peor:.1e})")
+                    info["residuo_rel"] = None
+                    peor = 0.0
+                except Exception:
+                    pass
+            if peor > 0 or not np.isfinite(peor):
+                info["msg"] = (f"El solver iterativo no convergio (residuo "
+                               f"relativo peor = {peor:.1e}). El tensor no es "
+                               f"fiable; prueba una resolucion menor.")
+                return Ch, info
         resuelto = np.all(np.isfinite(chi))
 
     if not resuelto:
