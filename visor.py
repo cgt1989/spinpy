@@ -5121,7 +5121,8 @@ class Visor(QtWidgets.QMainWindow):
         if self.VOI is None:
             return
 
-        from spinpy.voi import marco_pca, centros_por_tercios, extraer_cubo
+        from spinpy.voi import (marco_pca, centros_por_tercios, extraer_cubo,
+                                estabilidad_pca)
 
         mask, spc = self.VOI, self.VOI_spacing
         # Lado por defecto: 5 mm es el del banco de este proyecto, pero si el
@@ -5150,7 +5151,8 @@ class Visor(QtWidgets.QMainWindow):
             # Pila reducida para la figura 0: aqui, en el hilo de trabajo,
             # porque tras el recorte la pila completa se suelta.
             reducido = figura_metodo.reducir(mask)
-            return ({"ejes": ejes, "centro": centro, "proy": proy}, tercios,
+            return ({"ejes": ejes, "centro": centro, "proy": proy,
+                     "estabilidad": estabilidad_pca(proy)}, tercios,
                     reducido)
 
         def listo(r):
@@ -5164,6 +5166,14 @@ class Visor(QtWidgets.QMainWindow):
             if e["fuera"] > 0.005:
                 nota = _("{p:.1f} % del cubo cae fuera del volumen: el BV/TV "
                          "esta subestimado.").format(p=100 * e["fuera"])
+            est = marco.get("estabilidad") or {}
+            if est.get("aviso"):
+                nota = (nota + " " if nota else "") + _(
+                    "Ejes PCA poco definidos (eje {k}: {g:.0f} grados por 1 % "
+                    "de cambio de la covarianza): la orientacion del recorte "
+                    "depende de la segmentacion.").format(
+                        k=est["eje_inestable"][0],
+                        g=est["grados_por_pct"][est["eje_inestable"][0] - 1])
             nombre = f"{self.VOI_nombre} · {dlg.etiqueta} {e['lado_vox']}³"
             lado_elegido = float(dlg.sp_lado.value())
             pila = self._pila_param
