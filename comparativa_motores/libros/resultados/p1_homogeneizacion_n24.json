@@ -34,6 +34,21 @@
    "t_s": 448.2527603620001,
    "C11": null,
    "msg": "El solver iterativo no convergio (residuo relativo peor = 6.0e-05). El tensor no es fiable; prueba una resolucion menor."
+  },
+  "rigidos": {
+   "ok": false,
+   "residuo": 3.916519319387633e-05,
+   "iteraciones": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+   ],
+   "t_s": 514.5008155859996,
+   "C11": null,
+   "msg": "El solver iterativo no convergio (residuo relativo peor = 3.9e-05). El tensor no es fiable; prueba una resolucion menor."
   }
  }
 }
