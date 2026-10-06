@@ -576,5 +576,10 @@
   },
   "t_s": 568.5151378809996,
   "A_bruta": 25.0
+ },
+ "esp_tet10_24_svk_10MPa_v211": {
+  "ok": false,
+  "msg": "Newton no convergio en la carga 61.1774 (ultima carga alcanzada 0)",
+  "t_s": 100.86797447199933
  }
 }
