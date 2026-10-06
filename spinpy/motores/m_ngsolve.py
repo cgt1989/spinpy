@@ -278,20 +278,52 @@ def resolver(p):
         dd = gfu.vec.CreateVector()
         Kdd = gfu.vec.CreateVector()
         fint = gfu.vec.CreateVector()
+        prueba = gfu.vec.CreateVector()
+        guardado = gfu.vec.CreateVector()
         F, iters = [], []
-        t("solucion")
-        for c in m["cargas"]:
+        # GLOBALIZACION (V2.2). Orden: Newton completo; si diverge, el mismo
+        # incremento con busqueda lineal; si tampoco, mitad de carga. La
+        # busqueda lineal siempre activa ralentizaba casos que Newton completo
+        # resolvia (TET10 a 20^3: 119 iteraciones frente a 19, p2_newton.py).
+        # Newton completo converge solo si el iterado
+        # esta cerca de la solucion; si no, puede divergir (Bathe 1996, sec.
+        # 8.4.1). Dos remedios clasicos: (a) busqueda lineal de Armijo sobre
+        # la energia potencial total, que es lo que Newton minimiza (Nocedal y
+        # Wright 2006, cap. 3; Bathe 1996, sec. 8.4.2: "la busqueda lineal
+        # puede evitar la divergencia"); (b) reducir el incremento de carga
+        # cuando Newton no converge, "el procedimiento principal para alcanzar
+        # la convergencia" con la tangente exacta (Bathe 1996, p. 758). Si la
+        # direccion de Newton no es de descenso, la tangente no es definida
+        # positiva: se cuenta, porque senala inestabilidad (pandeo local) mas
+        # que un fallo numerico. globalizar=False reproduce la V2.1.1.
+        globalizar = m.get("globalizar", True)
+        max_cortes = m.get("max_cortes", 10)
+        diag = {"incrementos": 0, "con_busqueda": 0, "cortes_carga": 0,
+                "pasos_recortados": 0, "tangente_no_definida": 0}
+        nombre = ""
+
+        def newton(c, buscar):
+            nonlocal nombre
             dd[:] = 0.0
             if plato:
                 dd.FV().NumPy()[techo_z] = -c * m["H"] - \
                     gfu.vec.FV().NumPy()[techo_z]
             else:
                 carga.Set(c)
+            nr_ini = None
             for k in range(m.get("max_iter", 30)):
                 a.Apply(gfu.vec, res)
                 r = res.FV().NumPy()
+                if not np.all(np.isfinite(r[L])):
+                    return False, k, r
+                nr = np.linalg.norm(r[L])
+                if k == 1:
+                    nr_ini = nr
+                elif k > 1 and nr > 1e6 * nr_ini:
+                    return False, k, r          # diverge: no agotar max_iter
                 a.AssembleLinearization(gfu.vec)
-                if k == 0 and plato:
+                predictor = k == 0 and plato
+                if predictor:
                     Kdd.data = a.mat * dd
                     res.data += Kdd
                     gfu.vec.data += dd
@@ -301,13 +333,75 @@ def resolver(p):
                               1e-300)
                     if k > 0 and np.linalg.norm(r[L]) / ref < \
                             m.get("tol_newton", 1e-10):
-                        break
+                        return True, k, r
                 inv, nombre = _inversa(ng, a.mat, libres)
                 du.data = inv * res
-                gfu.vec.data -= du
-            else:
-                raise ErrorMotor(f"Newton no convergio en la carga {c:g}")
-            iters.append(k)
+                if not buscar or predictor:
+                    gfu.vec.data -= du
+                    continue
+                pend = float(np.dot(res.FV().NumPy()[L], du.FV().NumPy()[L]))
+                if not pend > 0:
+                    diag["tangente_no_definida"] += 1
+                E0 = a.Energy(gfu.vec)
+                nr0 = np.linalg.norm(r[L])
+                s = 1.0
+                for _ in range(m.get("max_busqueda", 12)):
+                    prueba.data = gfu.vec - s * du
+                    Ep = a.Energy(prueba)
+                    if not np.isfinite(Ep):
+                        s *= 0.5            # elementos invertidos (J <= 0)
+                        continue
+                    # Se acepta el paso si baja la energia (Armijo) o, si no,
+                    # si baja el residuo: la busqueda solo sobre la energia
+                    # recortaba pasos de Newton que convergian (medido con
+                    # SVK en p2_newton.py).
+                    if Ep <= E0 - 1e-4 * s * max(pend, 0):
+                        break
+                    a.Apply(prueba, res)
+                    nrp = np.linalg.norm(res.FV().NumPy()[L])
+                    if np.isfinite(nrp) and nrp < nr0:
+                        break
+                    s *= 0.5
+                else:
+                    return False, k, r
+                if s < 1.0:
+                    diag["pasos_recortados"] += 1
+                gfu.vec.data = prueba
+            return False, k, r
+
+        t("solucion")
+        c_act = 0.0
+        for c in m["cargas"]:
+            paso = c - c_act
+            it_total = 0
+            while True:
+                c_try = c if abs(c - c_act) <= abs(paso) * (1 + 1e-12) \
+                    else c_act + paso
+                guardado.data = gfu.vec
+                # primero Newton completo; si diverge, el mismo incremento con
+                # busqueda lineal; si tampoco, se corta la carga
+                ok, k, r = newton(c_try, False)
+                diag["incrementos"] += 1
+                it_total += k
+                if not ok and globalizar:
+                    gfu.vec.data = guardado
+                    diag["con_busqueda"] += 1
+                    ok, k, r = newton(c_try, True)
+                    it_total += k
+                if ok:
+                    c_act = c_try
+                    if c_act == c:
+                        break
+                    if k <= 4:
+                        paso *= 2.0
+                    continue
+                if not globalizar or diag["cortes_carga"] >= max_cortes:
+                    raise ErrorMotor(f"Newton no convergio en la carga {c:g}"
+                                     f" (ultima carga alcanzada {c_act:g})")
+                gfu.vec.data = guardado
+                paso *= 0.5
+                diag["cortes_carga"] += 1
+            iters.append(it_total)
             if plato:
                 F.append(float(-r[techo_z].sum()))
             else:
@@ -317,6 +411,7 @@ def resolver(p):
                 carga.Set(c)
                 F.append(float(-fint.FV().NumPy()[techo_z].sum()))
         info["solver"] = "Newton (propio) + " + nombre
+        info["newton"] = dict(diag, globalizado=bool(globalizar))
     t("post")
     uu = _a_spinpy(ng, p, gfu, mesh, esq)
     tiempos = t.fin()
