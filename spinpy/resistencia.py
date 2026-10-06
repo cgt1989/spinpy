@@ -406,8 +406,11 @@ def ensayo_compresion(BW, spacing, E_s=E_S_DEF, nu_s=NU_S_DEF,
                       sigma0=SIGMA0_DEF, apoyo="deslizante",
                       escala_vacio=None, tol=1e-8, solo_portante=True,
                       carga_N=None, unidad="mm", progreso=None,
-                      modulo_rel=None):
+                      modulo_rel=None, elemento="hex8"):
     """Compresion axial en z. Devuelve campos y magnitudes aparentes.
+
+    `elemento`: 'hex8' (trilineal, el validado frente a FEBio) o 'hex8i'
+    (con modos incompatibles; ver `elastic.hex8_ke`).
 
     `modulo_rel` (opcional, misma forma que BW): rigidez relativa de cada
     voxel de hueso, en (0, 1]. Con None —el valor por omision— todo el hueso
@@ -497,7 +500,7 @@ def ensayo_compresion(BW, spacing, E_s=E_S_DEF, nu_s=NU_S_DEF,
         return out
 
     pr(0.05, "Ensamblando…")
-    keS = hex8_ke(dx, dy, dz, E_s, nu_s)
+    keS = hex8_ke(dx, dy, dz, E_s, nu_s, elemento)
 
     BW_res = _solo_portante(BW) if solo_portante else BW
     out["frac_portante"] = float(BW_res.sum() / max(BW.sum(), 1))

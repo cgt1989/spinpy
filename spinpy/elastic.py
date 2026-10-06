@@ -76,12 +76,33 @@ UMBRAL_DIRECTO = 6000  # GDL por debajo de los cuales se resuelve directo
 # Matriz de rigidez elemental
 # ---------------------------------------------------------------------------
 
-def hex8_ke(dx, dy, dz, E, nu):
+#: Elementos de la malla de voxeles. 'hex8' es el trilineal validado frente a
+#: FEBio; 'hex8i' le anade modos incompatibles (ver `hex8_ke`).
+ELEMENTOS_VOXEL = ("hex8", "hex8i")
+
+
+def hex8_ke(dx, dy, dz, E, nu, elemento="hex8"):
     """Rigidez de un hexaedro trilineal de 8 nodos, Gauss 2x2x2.
 
     Se calcula numericamente en lugar de usar una matriz precomputada: mas
     largo, pero verificable y sin riesgo de erratas de transcripcion.
+
+    elemento='hex8i' anade los nueve modos incompatibles de Wilson y Taylor
+    (1 - xi^2, 1 - eta^2, 1 - zeta^2 en cada componente) y los condensa
+    estaticamente: la matriz sigue siendo 24x24 y el numero de incognitas
+    globales no cambia. El trilineal no puede curvarse dentro del elemento y
+    en flexion pura introduce deformaciones de corte espurias, que lo hacen
+    demasiado rigido (Zienkiewicz, Taylor y Zhu 2005, sec. 9.8; Bathe 1996,
+    sec. 4.4.1). En un cubo el jacobiano es constante, la integral de la
+    matriz B de los modos incompatibles es nula y el elemento pasa la prueba
+    de la parcela sin la correccion que necesitan los elementos distorsionados
+    (Bathe 1996, ejemplo 4.28). En el centroide las derivadas de los modos
+    valen cero, asi que la tension del centroide se calcula igual que con
+    'hex8' a partir de los desplazamientos nodales. Al ser no conforme, la
+    energia ya no es una cota superior y la convergencia puede no ser monotona.
     """
+    if elemento not in ELEMENTOS_VOXEL:
+        raise ValueError(f"elemento desconocido: {elemento!r}")
     lam = E * nu / ((1 + nu) * (1 - 2 * nu))
     mu = E / (2 * (1 + nu))
 
@@ -102,7 +123,19 @@ def hex8_ke(dx, dy, dz, E, nu):
     detJ = (dx / 2) * (dy / 2) * (dz / 2)
     invJ = np.diag([2 / dx, 2 / dy, 2 / dz])
 
+    def matriz_b(dNdx, n):
+        B = np.zeros((6, 3 * n))
+        B[0, 0::3] = dNdx[0]                              # eps_xx
+        B[1, 1::3] = dNdx[1]                              # eps_yy
+        B[2, 2::3] = dNdx[2]                              # eps_zz
+        B[3, 1::3] = dNdx[2]; B[3, 2::3] = dNdx[1]        # gamma_yz
+        B[4, 0::3] = dNdx[2]; B[4, 2::3] = dNdx[0]        # gamma_xz
+        B[5, 0::3] = dNdx[1]; B[5, 1::3] = dNdx[0]        # gamma_xy
+        return B
+
     ke = np.zeros((24, 24))
+    kci = np.zeros((24, 9))
+    kii = np.zeros((9, 9))
     for xi in g:
         for eta in g:
             for zet in g:
@@ -111,17 +144,16 @@ def hex8_ke(dx, dy, dz, E, nu):
                     yn * (1 + xi * xn) * (1 + zet * zn),
                     zn * (1 + xi * xn) * (1 + eta * yn),
                 ])
-                dNdx = invJ @ dNdxi              # 3x8
-
-                B = np.zeros((6, 24))
-                B[0, 0::3] = dNdx[0]                              # eps_xx
-                B[1, 1::3] = dNdx[1]                              # eps_yy
-                B[2, 2::3] = dNdx[2]                              # eps_zz
-                B[3, 1::3] = dNdx[2]; B[3, 2::3] = dNdx[1]        # gamma_yz
-                B[4, 0::3] = dNdx[2]; B[4, 2::3] = dNdx[0]        # gamma_xz
-                B[5, 0::3] = dNdx[1]; B[5, 1::3] = dNdx[0]        # gamma_xy
-
+                B = matriz_b(invJ @ dNdxi, 8)
                 ke += B.T @ D @ B * detJ
+                if elemento == "hex8i":
+                    # modos P1 = 1 - xi^2, P2 = 1 - eta^2, P3 = 1 - zeta^2
+                    Bi = matriz_b(invJ @ np.diag([-2 * xi, -2 * eta,
+                                                  -2 * zet]), 3)
+                    kci += B.T @ D @ Bi * detJ
+                    kii += Bi.T @ D @ Bi * detJ
+    if elemento == "hex8i":
+        ke = ke - kci @ np.linalg.solve(kii, kci.T)
     return (ke + ke.T) / 2
 
 
@@ -199,7 +231,7 @@ def _ensamblar(keS, edof, escala, ndof, bloques=8):
 # ---------------------------------------------------------------------------
 
 def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
-                 escala_vacio=VOID_SCALE, verbose=False):
+                 escala_vacio=VOID_SCALE, verbose=False, elemento="hex8"):
     """Tensor de rigidez homogeneizado C_h (6x6) en orden de Voigt.
 
     Devuelve (Ch, info). Si algo impide resolver, Ch es NaN e `info['msg']`
@@ -211,6 +243,7 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
         Backus con dos fases reales: con vacio a 1e-6 casi todas las entradas
         del tensor exacto valen ~0 y la comparacion no distingue una
         implementacion correcta de una equivocada.
+    elemento : 'hex8' o 'hex8i' (ver `hex8_ke`).
     """
     BW = np.asarray(BW, dtype=bool)
     vox = np.atleast_1d(np.asarray(vox_size, dtype=float)).ravel()
@@ -230,7 +263,7 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
         info["msg"] = "La estructura no contiene material solido."
         return Ch, info
 
-    keS = hex8_ke(dx, dy, dz, E_s, nu_s)
+    keS = hex8_ke(dx, dy, dz, E_s, nu_s, elemento)
     edof = _edof_periodico(nx, ny, nz)
 
     escala = np.full(nel, float(escala_vacio))
