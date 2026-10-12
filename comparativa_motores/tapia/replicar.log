@@ -1,0 +1,36 @@
+C2 voi           app           10.0 s E_app 3219.6 MPa  vm_p99 91.23
+C2 voi           ngsolve        7.5 s E_app 3219.6 MPa  vm_p99 91.23
+C2 voi           skfem         26.4 s E_app 3219.6 MPa  vm_p99 91.23
+install jax and jaxlib to use terms_jax.py!
+C2 voi           sfepy         11.9 s E_app 3219.6 MPa  vm_p99 91.23
+C2 voi           referencia     7.6 s E_app 3219.6 MPa  vm_p99 91.23
+C2 spinodoide    app           12.6 s E_app 1361.4 MPa  vm_p99 162.62
+C2 spinodoide    ngsolve        3.7 s E_app 1361.4 MPa  vm_p99 162.62
+C2 spinodoide    skfem         29.9 s E_app 1361.4 MPa  vm_p99 162.62
+install jax and jaxlib to use terms_jax.py!
+C2 spinodoide    sfepy         16.4 s E_app 1361.4 MPa  vm_p99 162.62
+C2 spinodoide    referencia     3.6 s E_app 1361.4 MPa  vm_p99 162.62
+C2 dual-lattice  app           12.4 s E_app 2571.0 MPa  vm_p99 109.07
+C2 dual-lattice  ngsolve        4.3 s E_app 2571.0 MPa  vm_p99 109.07
+C2 dual-lattice  skfem         29.9 s E_app 2571.0 MPa  vm_p99 109.07
+install jax and jaxlib to use terms_jax.py!
+C2 dual-lattice  sfepy         13.5 s E_app 2571.0 MPa  vm_p99 109.07
+C2 dual-lattice  referencia     4.1 s E_app 2571.0 MPa  vm_p99 109.07
+C4 voi           app            9.1 s E_app 3017.6 MPa  vm_p99 94.59
+C4 voi           ngsolve        5.3 s E_app 3017.6 MPa  vm_p99 94.59
+C4 voi           skfem         24.5 s E_app 3017.6 MPa  vm_p99 94.59
+install jax and jaxlib to use terms_jax.py!
+C4 voi           sfepy         11.3 s E_app 3017.6 MPa  vm_p99 94.59
+C4 voi           referencia     5.2 s E_app 3017.6 MPa  vm_p99 94.59
+C4 spinodoide    app           13.2 s E_app 857.6 MPa  vm_p99 231.90
+C4 spinodoide    ngsolve        2.7 s E_app 857.6 MPa  vm_p99 231.90
+C4 spinodoide    skfem         28.7 s E_app 857.6 MPa  vm_p99 231.90
+install jax and jaxlib to use terms_jax.py!
+C4 spinodoide    sfepy         14.6 s E_app 857.6 MPa  vm_p99 231.90
+C4 spinodoide    referencia     2.5 s E_app 857.6 MPa  vm_p99 231.90
+C4 dual-lattice  app            9.6 s E_app 2392.6 MPa  vm_p99 117.29
+C4 dual-lattice  ngsolve        3.7 s E_app 2392.6 MPa  vm_p99 117.29
+C4 dual-lattice  skfem         22.7 s E_app 2392.6 MPa  vm_p99 117.29
+install jax and jaxlib to use terms_jax.py!
+C4 dual-lattice  sfepy         10.9 s E_app 2392.6 MPa  vm_p99 117.29
+C4 dual-lattice  referencia     3.7 s E_app 2392.6 MPa  vm_p99 117.29

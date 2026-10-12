@@ -104,8 +104,8 @@ def _referencia(corridas):
 
 
 def campana(nombre_grupo, lista, motores, solvers, py_fx, tiempo_max,
-            rss_max_MB, hilos):
-    res = AQUI / "resultados" / f"{nombre_grupo}.jsonl"
+            rss_max_MB, hilos, salida=None):
+    res = Path(salida or AQUI / "resultados") / f"{nombre_grupo}.jsonl"
     res.parent.mkdir(exist_ok=True)
     entorno = dict(os.environ, OMP_NUM_THREADS=str(hilos),
                    MKL_NUM_THREADS=str(hilos),
@@ -241,13 +241,15 @@ def main():
     ap.add_argument("--hilos", type=int, default=os.cpu_count())
     ap.add_argument("--tiempo-max", type=float, default=3600.0)
     ap.add_argument("--rss-max", type=float, default=13.0, help="GB")
+    ap.add_argument("--salida", default=None,
+                    help="carpeta de los .jsonl (por omision resultados/)")
     ap.add_argument("--python-fenicsx", default=os.environ.get(
         "FENICSX_PYTHON", "/tmp/claude-0/mm/fx/bin/python"))
     a = ap.parse_args()
     g = grupos(a)
     for nombre in a.grupos:
         campana(nombre, g[nombre], a.motores, a.solvers, a.python_fenicsx,
-                a.tiempo_max, a.rss_max * 1024, a.hilos)
+                a.tiempo_max, a.rss_max * 1024, a.hilos, a.salida)
 
 
 if __name__ == "__main__":
