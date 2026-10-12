@@ -1,0 +1,34 @@
+spinpy para macOS (Apple Silicon): VERSION DE PRUEBA
+=====================================================
+
+Esta version es experimental. Se construye y supera la autocomprobacion en un
+equipo Apple Silicon (arm64) de GitHub Actions, pero la interfaz grafica NO se
+ha probado a mano en un Mac con pantalla. Si algo falla, el informe de errores
+es util: abra una incidencia en el repositorio.
+
+Requisitos
+  - Mac con chip Apple Silicon (M1 o posterior) y macOS 11 o superior.
+  - No hay version para Mac con procesador Intel.
+
+Instalacion
+  1. Descomprima el zip. Mueva spinpy.app a la carpeta Aplicaciones, o
+     ejecutela desde donde este.
+  2. La primera vez, macOS dira que no puede verificar al desarrollador, porque
+     la aplicacion no esta firmada ni notarizada por Apple. Para abrirla:
+       - clic derecho (o Control + clic) sobre spinpy.app, "Abrir", y de nuevo
+         "Abrir" en el aviso; o
+       - en Terminal:  xattr -dr com.apple.quarantine /ruta/a/spinpy.app
+  3. Si se abre y se cierra de inmediato, ejecute desde Terminal para ver el
+     error:  /ruta/a/spinpy.app/Contents/MacOS/spinpy
+
+Autocomprobacion (comprueba que los modulos y los calculos funcionan):
+     /ruta/a/spinpy.app/Contents/MacOS/spinpy --autocomprobacion
+
+Diferencias con la version de Windows
+  - La version de Qt es la 5.15.17 (la 5.15.2 de Windows no existe para
+    Apple Silicon); no se ha validado la interfaz con ella.
+  - Mismos motores FEM internos: la aplicacion, NGSolve y scikit-fem.
+  - Sin instalador (.dmg) ni firma.
+
+Licencia: igual que la version de Windows, el binario incluye PyQt5 (GPL v3) y
+se distribuye bajo GPL-3.0. Ver LICENCIA_BINARIO.txt.

@@ -26,12 +26,18 @@ on:
         description: "Adjuntar el instalador a la release (desmarcar para solo probar la construccion)"
         type: boolean
         default: true
+      plataforma:
+        description: "Que construir"
+        type: choice
+        options: [todas, windows, macos]
+        default: todas
 
 permissions:
   contents: write
 
 jobs:
   construir:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.plataforma != 'macos' }}
     runs-on: windows-latest
     timeout-minutes: 120
     env:
@@ -87,4 +93,63 @@ jobs:
           gh release upload $env:ETIQUETA `
             "instalador\salida\spinpy-V$env:VERSION-instalador.exe" `
             "$env:RUNNER_TEMP\spinpy_build\spinpy-V$env:VERSION-windows.zip" `
+            --clobber
+
+  # VERSION DE PRUEBA para macOS (Apple Silicon). Corre DESPUES del trabajo de
+  # Windows para no competir por crear la release: si Windows la crea, aqui ya
+  # existe; si se lanza solo `macos`, se crea aqui. Su fallo no afecta al
+  # instalador de Windows, que ya esta adjunto. Sin firma ni notarizacion:
+  # instalador/LEEME_MAC.txt.
+  construir-mac:
+    needs: construir
+    if: ${{ !cancelled() && (needs.construir.result == 'success' || needs.construir.result == 'skipped') && (github.event_name != 'workflow_dispatch' || inputs.plataforma != 'windows') }}
+    runs-on: macos-14
+    timeout-minutes: 120
+    env:
+      ETIQUETA: ${{ github.event.release.tag_name || inputs.etiqueta }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Version de la etiqueta frente a la del paquete
+        run: |
+          v="${ETIQUETA#[vV]}"
+          paquete="$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' pyproject.toml | head -1)"
+          if [ "$v" != "$paquete" ]; then
+            echo "La etiqueta $ETIQUETA no coincide con la version del paquete ($paquete)"
+            exit 1
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+
+      - name: Construir
+        run: bash instalador/construir_mac.sh "$RUNNER_TEMP/spinpy_build" "$VERSION"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spinpy-macos-arm64-PRUEBA
+          path: ${{ runner.temp }}/spinpy_build/spinpy-V${{ env.VERSION }}-macos-arm64-PRUEBA.zip
+          retention-days: 14
+
+      - name: Crear la release si no existe
+        if: github.event_name == 'workflow_dispatch' && inputs.adjuntar
+        run: |
+          if gh release view "$ETIQUETA" >/dev/null 2>&1; then
+            echo "La release $ETIQUETA ya existe"; exit 0
+          fi
+          notas="instalador/notas/${ETIQUETA}.md"
+          if [ -f "$notas" ]; then
+            gh release create "$ETIQUETA" --target "$GITHUB_SHA" --title "spinpy V$VERSION" --notes-file "$notas"
+          else
+            gh release create "$ETIQUETA" --target "$GITHUB_SHA" --title "spinpy V$VERSION" --generate-notes
+          fi
+
+      - name: Adjuntar a la release
+        if: github.event_name == 'release' || inputs.adjuntar
+        run: |
+          gh release upload "$ETIQUETA" \
+            "$RUNNER_TEMP/spinpy_build/spinpy-V$VERSION-macos-arm64-PRUEBA.zip" \
             --clobber
