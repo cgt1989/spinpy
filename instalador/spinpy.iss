@@ -17,14 +17,14 @@
 ;   del asistente lo dice antes de instalar nada.
 ;
 ; Compilar:
-;   ISCC.exe /DFUENTE="C:\...\dist\spinpy" /DVERSION=2.1.3 spinpy.iss
+;   ISCC.exe /DFUENTE="C:\...\dist\spinpy" /DVERSION=2.1.4 spinpy.iss
 ; ---------------------------------------------------------------------------
 
 #ifndef FUENTE
   #define FUENTE "..\..\..\..\spinpy_build\dist\spinpy"
 #endif
 #ifndef VERSION
-  #define VERSION "2.1.3"
+  #define VERSION "2.1.4"
 #endif
 
 #define NOMBRE "spinpy"
