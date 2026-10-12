@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="version V2.1.2" src="https://img.shields.io/badge/version-V2.1.2-e8a33d">
+  <img alt="version V2.1.3" src="https://img.shields.io/badge/version-V2.1.3-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
@@ -177,6 +177,20 @@ spinpy.exe --autocomprobacion
 To rebuild it, `instalador/construir.ps1` runs the whole process, and
 `instalador/LEEME_DESARROLLO.md` explains the packaging pitfalls (in
 Spanish).
+
+### macOS test build (Apple Silicon)
+
+Since V2.1.3 each release also attaches `spinpy-V*-macos-arm64-PRUEBA.zip`
+with `spinpy.app`, for Macs with an Apple Silicon chip (M1 or later). **It is a
+test build:** it builds and passes the `.app` self-test on a GitHub Actions
+Apple Silicon runner (including the three built-in FE engines), but the
+graphical interface has not been tried by hand on a Mac with a screen. It is
+neither signed nor notarised: the first time, right-click `spinpy.app` and
+choose "Open" (or `xattr -dr com.apple.quarantine spinpy.app`). It uses Qt
+5.15.17 instead of the 5.15.2 used on Windows, which does not exist for Apple
+Silicon. There is no build for Intel Macs. Instructions are in
+`instalador/LEEME_MAC.txt` (in Spanish); to rebuild it, use
+`instalador/construir_mac.sh`.
 
 ### With Python: as a library
 
