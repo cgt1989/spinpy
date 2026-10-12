@@ -72,13 +72,29 @@ for _mod in ("netgen", "ngsolve", "netgen_occt"):
             binarios += [(str(_f), str(_rel)) for _f in _dir.glob("*.dylib")]
             print(f"[spinpy] bibliotecas de {_mod}: {_dir}")
 
-# OpenCASCADE (paquete netgen-occt): NO viaja. Sus bibliotecas viven en
-# `<entorno>/lib`, fuera de site-packages, y ningun binario de netgen ni de
-# NGSolve enlaza con ellas (comprobado leyendo las ruedas de macOS arm64):
-# `netgen/__init__.py` solo las carga en tiempo de ejecucion si encuentra los
-# metadatos de `netgen-occt`. spinpy no usa geometria OCC (malla desde sus
-# propios datos), asi que se quitan tambien los metadatos (filtro tras
-# `Analysis`) y netgen arranca sin ellas.
+# OpenCASCADE (paquete netgen-occt): `netgen/libngpy.so` enlaza con sus
+# bibliotecas (`@rpath/libTKOffset.7.8.1.dylib`...) y el enlazador las busca
+# en la raiz de `Frameworks` (medido en la construccion de CI: "tried:
+# .../Frameworks/netgen/../libTKOffset.7.8.1.dylib"). En un entorno normal
+# viven en `<entorno>/lib`, fuera de site-packages, asi que PyInstaller no las
+# ve: se recogen de los archivos que declara la distribucion y van a la RAIZ.
+# Sus metadatos NO viajan (filtro tras `Analysis`): sin ellos
+# `netgen/__init__.py` no intenta precargarlas por ruta absoluta.
+from importlib import metadata as _md  # noqa: E402
+_occt = []
+try:
+    for _f in _md.files("netgen-occt") or []:
+        if _f.name.endswith(".dylib"):
+            _p = Path(_f.locate()).resolve()
+            if _p.is_file():
+                _occt.append((str(_p), "."))
+except _md.PackageNotFoundError:
+    pass
+if sys.platform == "darwin" and not _occt:
+    raise SystemExit("[spinpy] No se encontraron las bibliotecas de netgen-occt "
+                     "(libTK*.dylib): NGSolve no funcionaria en el .app.")
+print(f"[spinpy] bibliotecas de OpenCASCADE para netgen: {len(_occt)}")
+binarios += list(dict.fromkeys(_occt))
 datos += collect_data_files("ngsolve") + collect_data_files("netgen")
 
 datos += collect_data_files("pyvista")
@@ -107,7 +123,7 @@ a = Analysis(                                        # noqa: F821
     optimize=0,
 )
 
-# Sin los metadatos de netgen-occt (ver arriba).
+# Sin los metadatos de netgen-occt (ver arriba, junto a las bibliotecas OCC).
 a.datas = [d for d in a.datas
            if not d[0].replace("\\", "/").lower().startswith("netgen_occt-")]
 
