@@ -1,0 +1,122 @@
+== bloque_hex: 768 elementos, 3159 GDL (0.0 s)
+   app      propio        0.20 s      103 MB  res 0.0e+00
+   skfem    iterativo     0.86 s      119 MB  res 7.0e-11
+   skfem    directo       0.84 s      128 MB  res 2.8e-14
+   sfepy    iterativo     0.72 s      163 MB  res 0.0e+00
+   sfepy    directo       0.74 s      163 MB  res 0.0e+00
+   ngsolve  iterativo     0.33 s      198 MB  res 3.8e-11
+   ngsolve  directo       0.32 s      189 MB  res 3.4e-14
+   fenicsx  iterativo     0.13 s      173 MB  res 9.1e-11
+   fenicsx  directo       0.10 s      191 MB  res 1.8e-14
+/usr/local/lib/python3.13/dist-packages/pymeshfix/meshfix.py:165: PyVistaDeprecationWarning: `PolyData._connectivity_array` is deprecated. Use `PolyData.face_connectivity` instead, which returns a read-only array.
+  f = mesh._connectivity_array.reshape(-1, 3).astype(np.int32, copy=False)
+/usr/local/lib/python3.13/dist-packages/tetgen/pytetgen.py:193: PyVistaDeprecationWarning: `PolyData._connectivity_array` is deprecated. Use `PolyData.face_connectivity` instead, which returns a read-only array.
+  faces = mesh._connectivity_array.reshape(-1, 3).astype(np.int32, copy=False)
+== bloque_tet: 2221 elementos, 13446 GDL (0.1 s)
+   skfem    iterativo     1.89 s      204 MB  res 9.4e-11
+   skfem    directo       1.80 s      276 MB  res 1.3e-13
+   sfepy    iterativo     1.54 s      204 MB  res 0.0e+00
+   sfepy    directo       2.75 s      269 MB  res 0.0e+00
+   ngsolve  iterativo     0.51 s      217 MB  res 3.7e-14
+   ngsolve  directo       0.42 s      207 MB  res 3.4e-14
+   fenicsx  iterativo     0.73 s      189 MB  res 9.9e-11
+   fenicsx  directo       0.24 s      223 MB  res 7.8e-14
+== cavidad_hex_n32: 31680 elementos, 105558 GDL (0.0 s)
+   app      propio        7.59 s      556 MB  res 2.8e-09
+   skfem    iterativo    28.15 s     1297 MB  res 1.7e-11
+   skfem    directo     316.72 s     7302 MB  res 2.5e-13
+   sfepy    iterativo     7.50 s      653 MB  res 0.0e+00
+   sfepy    directo     590.96 s     6992 MB  res 0.0e+00
+   ngsolve  iterativo     5.96 s      915 MB  res 9.3e-11
+   ngsolve  directo      26.66 s     3940 MB  res 9.6e-13
+   fenicsx  iterativo     5.72 s      359 MB  res 5.7e-11
+   fenicsx  directo       4.48 s     1538 MB  res 1.2e-13
+== cavidad_tet_esfera64: 43690 elementos, 206142 GDL (1.0 s)
+   skfem    iterativo    46.29 s     2447 MB  res 7.6e-11
+   sfepy    iterativo    35.55 s     1066 MB  res 0.0e+00
+   ngsolve  iterativo    31.59 s     3739 MB  res 2.0e-13
+   ngsolve  directo      27.29 s     3614 MB  res 1.3e-13
+   fenicsx  iterativo    25.39 s      554 MB  res 8.2e-11
+   fenicsx  directo       7.11 s     2400 MB  res 9.6e-14
+== bloque_hex_nl_svk: 96 elementos, 525 GDL (0.0 s)
+   skfem    directo       2.38 s       89 MB  res 8.9e-16
+   sfepy    directo       1.61 s      144 MB  res 0.0e+00
+   ngsolve  directo       0.31 s      172 MB  res 0.0e+00
+   fenicsx  directo       2.20 s      183 MB  res 0.0e+00
+== bloque_hex_nl_neohookeano: 96 elementos, 525 GDL (0.0 s)
+   skfem    directo       4.68 s       89 MB  res 1.1e-15
+   ngsolve  directo       0.33 s      172 MB  res 0.0e+00
+   fenicsx  directo       1.88 s      183 MB  res 0.0e+00
+== espinodoide_hex_n24_nl_svk: 4003 elementos, 30672 GDL (0.4 s)
+   skfem    directo     110.35 s      396 MB  res 3.8e-15
+   sfepy    directo   FALLO: spinpy.motores._comun.ErrorMotor: Newton de SfePy no convergio en la carga 0.02 (30 iteraciones)
+   ngsolve  directo       6.26 s      261 MB  res 0.0e+00
+   fenicsx  directo       2.61 s      305 MB  res 0.0e+00
+== espinodoide_hex_n24_nl_neohookeano: 4003 elementos, 30672 GDL (0.3 s)
+   skfem    directo     175.00 s      396 MB  res 1.6e-15
+   ngsolve  directo       7.56 s      247 MB  res 0.0e+00
+   fenicsx  directo       3.15 s      305 MB  res 0.0e+00
+== espinodoide_hex_n24: 4003 elementos, 30672 GDL (0.4 s)
+   app      propio        2.39 s      181 MB  res 9.6e-09
+   skfem    iterativo     5.87 s      236 MB  res 8.3e-11
+   skfem    directo       4.93 s      345 MB  res 6.2e-13
+   sfepy    iterativo     2.93 s      240 MB  res 0.0e+00
+   sfepy    directo       3.83 s      341 MB  res 0.0e+00
+   ngsolve  iterativo     3.78 s      316 MB  res 9.5e-11
+   ngsolve  directo       0.68 s      219 MB  res 7.0e-13
+   fenicsx  iterativo     1.84 s      208 MB  res 7.7e-11
+   fenicsx  directo       0.50 s      245 MB  res 5.0e-13
+== espinodoide_hex_n32: 9735 elementos, 62595 GDL (0.8 s)
+   app      propio        5.33 s      309 MB  res 8.9e-09
+   skfem    iterativo    12.51 s      443 MB  res 9.0e-11
+   skfem    directo      11.26 s      714 MB  res 1.4e-12
+   sfepy    iterativo     6.44 s      353 MB  res 0.0e+00
+   sfepy    directo       9.86 s      621 MB  res 0.0e+00
+   ngsolve  iterativo     6.60 s      487 MB  res 8.3e-11
+   ngsolve  directo       1.01 s      299 MB  res 1.7e-12
+   fenicsx  iterativo     4.58 s      255 MB  res 8.2e-11
+   fenicsx  directo       1.08 s      344 MB  res 1.0e-12
+== espinodoide_hex_n48: 33219 elementos, 173484 GDL (2.1 s)
+   app      propio       24.92 s      681 MB  res 7.6e-09
+   skfem    iterativo    61.80 s     1253 MB  res 9.9e-11
+   sfepy    iterativo    32.25 s      764 MB  res 0.0e+00
+   ngsolve  iterativo    32.01 s     1110 MB  res 8.3e-11
+   ngsolve  directo       3.79 s      669 MB  res 3.9e-12
+   fenicsx  iterativo    20.81 s      422 MB  res 7.0e-11
+   fenicsx  directo       3.72 s      794 MB  res 2.3e-12
+== espinodoide_hex_n64: 78874 elementos, 365655 GDL (5.1 s)
+   app      propio       47.49 s     1410 MB  res 8.0e-09
+   skfem    iterativo   129.98 s     3029 MB  res 9.4e-11
+   sfepy    iterativo    54.77 s     1558 MB  res 0.0e+00
+   ngsolve  iterativo    50.89 s     2243 MB  res 8.6e-11
+   ngsolve  directo       9.16 s     1551 MB  res 9.1e-12
+   fenicsx  iterativo    42.70 s      734 MB  res 8.2e-11
+   fenicsx  directo       9.22 s     1729 MB  res 4.1e-12
+== espinodoide_hex_n80: 154199 elementos, 661965 GDL (9.8 s)
+   app      propio      102.30 s     2577 MB  res 7.6e-09
+   skfem    iterativo   291.84 s     5781 MB  res 8.8e-11
+   sfepy    iterativo   115.10 s     2784 MB  res 0.0e+00
+   ngsolve  iterativo   107.23 s     4068 MB  res 8.1e-11
+   fenicsx  iterativo    78.22 s     1217 MB  res 7.8e-11
+/usr/local/lib/python3.13/dist-packages/pymeshfix/meshfix.py:165: PyVistaDeprecationWarning: `PolyData._connectivity_array` is deprecated. Use `PolyData.face_connectivity` instead, which returns a read-only array.
+  f = mesh._connectivity_array.reshape(-1, 3).astype(np.int32, copy=False)
+/usr/local/lib/python3.13/dist-packages/tetgen/pytetgen.py:193: PyVistaDeprecationWarning: `PolyData._connectivity_array` is deprecated. Use `PolyData.face_connectivity` instead, which returns a read-only array.
+  faces = mesh._connectivity_array.reshape(-1, 3).astype(np.int32, copy=False)
+== espinodoide_tet_n32: 54741 elementos, 314880 GDL (3.0 s)
+   skfem    iterativo   194.38 s     3009 MB  res 9.7e-11
+   sfepy    iterativo   184.58 s     1404 MB  res 0.0e+00
+   ngsolve  iterativo    11.52 s     1292 MB  res 6.7e-12
+   ngsolve  directo       8.69 s     1024 MB  res 6.5e-12
+   fenicsx  iterativo FALLO: spinpy.motores._comun.ErrorMotor: PETSc KSP no convergio (-8)
+   fenicsx  directo       5.06 s     1448 MB  res 1.7e-11
+/usr/local/lib/python3.13/dist-packages/pymeshfix/meshfix.py:165: PyVistaDeprecationWarning: `PolyData._connectivity_array` is deprecated. Use `PolyData.face_connectivity` instead, which returns a read-only array.
+  f = mesh._connectivity_array.reshape(-1, 3).astype(np.int32, copy=False)
+/usr/local/lib/python3.13/dist-packages/tetgen/pytetgen.py:193: PyVistaDeprecationWarning: `PolyData._connectivity_array` is deprecated. Use `PolyData.face_connectivity` instead, which returns a read-only array.
+  faces = mesh._connectivity_array.reshape(-1, 3).astype(np.int32, copy=False)
+== espinodoide_tet_n48: 143208 elementos, 790599 GDL (9.0 s)
+   skfem    iterativo   672.67 s     7011 MB  res 9.4e-11
+   sfepy    iterativo   805.62 s     3258 MB  res 0.0e+00
+   ngsolve  iterativo    42.96 s     3843 MB  res 9.0e-12
+   ngsolve  directo      31.89 s     3226 MB  res 9.2e-12
+   fenicsx  iterativo   224.24 s     1506 MB  res 1.1e-10
+   fenicsx  directo      17.81 s     3707 MB  res 2.1e-11
