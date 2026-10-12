@@ -18,7 +18,6 @@ que el ejecutable de Windows. Ver `LICENCIA_BINARIO.txt`.
 
 import os
 import sys
-from importlib import metadata as _md
 from pathlib import Path
 
 from PyInstaller.utils.hooks import (collect_data_files, collect_dynamic_libs,
@@ -73,19 +72,13 @@ for _mod in ("netgen", "ngsolve", "netgen_occt"):
             binarios += [(str(_f), str(_rel)) for _f in _dir.glob("*.dylib")]
             print(f"[spinpy] bibliotecas de {_mod}: {_dir}")
 
-# OpenCASCADE (paquete netgen-occt): se recogen sus bibliotecas dinamicas
-# desde los archivos que declara la distribucion.
-_occt = []
-try:
-    for _f in _md.files("netgen-occt") or []:
-        if _f.name.endswith((".dylib", ".so")):
-            _p = Path(_f.locate()).resolve()
-            if _p.is_file():
-                _occt.append((str(_p), str(Path(_f).parent)))
-except _md.PackageNotFoundError:
-    pass
-print(f"[spinpy] bibliotecas de OpenCASCADE para netgen: {len(_occt)}")
-binarios += _occt
+# OpenCASCADE (paquete netgen-occt): NO viaja. Sus bibliotecas viven en
+# `<entorno>/lib`, fuera de site-packages, y ningun binario de netgen ni de
+# NGSolve enlaza con ellas (comprobado leyendo las ruedas de macOS arm64):
+# `netgen/__init__.py` solo las carga en tiempo de ejecucion si encuentra los
+# metadatos de `netgen-occt`. spinpy no usa geometria OCC (malla desde sus
+# propios datos), asi que se quitan tambien los metadatos (filtro tras
+# `Analysis`) y netgen arranca sin ellas.
 datos += collect_data_files("ngsolve") + collect_data_files("netgen")
 
 datos += collect_data_files("pyvista")
@@ -113,6 +106,10 @@ a = Analysis(                                        # noqa: F821
     noarchive=False,
     optimize=0,
 )
+
+# Sin los metadatos de netgen-occt (ver arriba).
+a.datas = [d for d in a.datas
+           if not d[0].replace("\\", "/").lower().startswith("netgen_occt-")]
 
 pyz = PYZ(a.pure)                                    # noqa: F821
 
