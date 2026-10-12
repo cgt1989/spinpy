@@ -52,7 +52,8 @@ COLOR = {"app": "#52514e", "ngsolve": "#2a78d6", "fenicsx": "#eb6834",
 MARCA = {"app": "o", "ngsolve": "s", "fenicsx": "^", "skfem": "D", "sfepy": "v"}
 MAG = {"vm": ("σ von Mises [MPa]", "inferno"),
        "u": ("Deformación total |u| [mm]", "viridis")}
-PISO = -16.0                 # log10 de la diferencia por debajo del cual se trunca
+PISO = -14.0                 # log10 de la diferencia por debajo del cual se trunca
+TECHO = -7.0                 # extremo superior de la escala de las diferencias
 
 
 def cargar(v, est):
@@ -179,7 +180,7 @@ def fig_dif(m, datos):
             ax.set_axis_off()
             if k in d["campos"] and "referencia" in d["campos"]:
                 r = render(malla3d(d["geo"], diferencia(d["campos"], k, m)),
-                           sp, (PISO, -2.0), "cividis",
+                           sp, (PISO, TECHO), "cividis",
                            REND / f"d{m}_{v}_{e}_{k}.png")
                 ax.imshow(imread(r))
             if i == 0:
@@ -190,7 +191,7 @@ def fig_dif(m, datos):
                         va="center", fontsize=8, color=F.COLOR[e],
                         fontweight="bold")
     cax = fig.add_axes([0.25, 0.035, 0.5, 0.012])
-    b = fig.colorbar(cm.ScalarMappable(norm=Normalize(PISO, -2.0),
+    b = fig.colorbar(cm.ScalarMappable(norm=Normalize(PISO, TECHO),
                                        cmap="cividis"), cax=cax,
                      orientation="horizontal")
     b.set_label("log₁₀ ( |motor − referencia| / p99 de la referencia )",
