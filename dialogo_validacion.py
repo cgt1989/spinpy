@@ -54,6 +54,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from spinpy.idioma import _                                   # noqa: E402
+from spinpy.pantalla import DialogoAjustable  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Las replicas disponibles
@@ -469,7 +470,7 @@ class PanelReplica(QtWidgets.QWidget):
             QtCore.QUrl.fromLocalFile(str(self.ruta)))
 
 
-class DialogoValidacion(QtWidgets.QDialog):
+class DialogoValidacion(DialogoAjustable):
     """Una pestana por articulo replicado."""
 
     def __init__(self, parent=None, clave=None):

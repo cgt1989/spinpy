@@ -33,6 +33,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from spinpy.idioma import _                                 # noqa: E402
+from spinpy.pantalla import DialogoAjustable  # noqa: E402
 from spinpy.metodos import (COMPARADAS, REGISTRO,  # noqa: E402
                             comparar_resultados, generar_replicas,
                             gobierna_de)
@@ -63,7 +64,7 @@ class HiloMetodo(QtCore.QThread):
             self.fallo.emit(self.clave, traceback.format_exc())
 
 
-class DialogoMetodos(QtWidgets.QDialog):
+class DialogoMetodos(DialogoAjustable):
     """Ventana de ajuste comparado. Devuelve el resultado elegido."""
 
     def __init__(self, VOI, spacing, m_voi, parent=None, semilla=20260720,
@@ -368,7 +369,7 @@ class DialogoMetodos(QtWidgets.QDialog):
         super().closeEvent(ev)
 
 
-class DialogoReplicas(QtWidgets.QDialog):
+class DialogoReplicas(DialogoAjustable):
     """Cuantas replicas, y si varian en algo.
 
     LA DISTINCION QUE ESTA VENTANA TIENE QUE DEJAR CLARA. Replicas identicas

@@ -229,6 +229,7 @@ from spinpy.metodos import comparar_resultados            # noqa: E402
 # descartes se usa `_x`.
 from spinpy.idioma import (IDIOMAS, _, aplicar, capturar,  # noqa: E402
                            fijar_idioma)
+from spinpy.pantalla import DialogoAjustable, area_util  # noqa: E402
 from spinpy.idioma import idioma as idioma_actual             # noqa: E402
 from spinpy.espesor import (espesor_local, muestrear_en_puntos,  # noqa: E402
                             estadisticas as estadisticas_esp)
@@ -719,7 +720,7 @@ class Trabajador(QtCore.QThread):
             self.fallo.emit(traceback.format_exc())
 
 
-class DialogoPilaTiff(QtWidgets.QDialog):
+class DialogoPilaTiff(DialogoAjustable):
     """Carga de una pila TIFF de micro-CT, con su escala fisica.
 
     POR QUE UN DIALOGO Y NO UN `getOpenFileName` A SECAS. Un .vtk trae dentro
@@ -924,7 +925,7 @@ def _pixmap_secciones(cubo, alto=104):
         alto, QtCore.Qt.SmoothTransformation)
 
 
-class DialogoRecorte(QtWidgets.QDialog):
+class DialogoRecorte(DialogoAjustable):
     """Recorte del VOI cubico sobre el volumen cargado, con vista previa.
 
     POR QUE ESTE PASO NECESITA INTERFAZ. Una pila de escaner no es un VOI:
@@ -1172,7 +1173,7 @@ def malla_de_mascara(BW, spacing):
 # Dialogos de figura: espesor, convergencia de malla y campos del ensayo
 # ---------------------------------------------------------------------------
 
-class DialogoFigura(QtWidgets.QDialog):
+class DialogoFigura(DialogoAjustable):
     """Base de los dialogos que muestran una figura con su lectura al pie.
 
     Todos comparten la misma estructura —lienzo de matplotlib, tabla o nota en
@@ -2111,7 +2112,7 @@ def _version_spinpy():
         return "?"
 
 
-class DialogoBienvenida(QtWidgets.QDialog):
+class DialogoBienvenida(DialogoAjustable):
     """Portada: que es esto, quien lo firma y por donde se entra.
 
     Se abre ANTES de construir la ventana principal, no despues. Construir el
@@ -2362,7 +2363,7 @@ class DialogoBienvenida(QtWidgets.QDialog):
             cls.CLAVE, "si")).lower() != "no"
 
 
-class DialogoInformeAuto(QtWidgets.QDialog):
+class DialogoInformeAuto(DialogoAjustable):
     """Que etapas corre el informe automatico, cuanto tardara y que figuras.
 
     Las resoluciones y casillas NO son copias propias: salen de los controles
@@ -2964,7 +2965,9 @@ class Visor(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("spinpy — visor de spinodoides y VOIs")
-        self.resize(1500, 900)
+        _r = area_util()
+        self.resize(min(1500, int(_r.width() * 0.96)),
+                    min(900, int(_r.height() * 0.94)))
         _ico = _ruta_icono()
         if _ico is not None:
             self.setWindowIcon(QtGui.QIcon(str(_ico)))
