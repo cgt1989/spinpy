@@ -294,8 +294,8 @@ def tablas(datos):
     for v, e in [f for f in filas() if f in datos]:
         md.append(f"\n### {v} · {NOM_E[e]}\n")
         md.append("| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM "
-                  "(MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) |"
-                  " máx Δσ | máx Δ|u| |")
+                  "(MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) |"
+                  " máx Δσ | máx Δ‖u‖ |")
         md.append("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|")
         for k in MOT + ("referencia",):
             f = ult.get((v, e, k))

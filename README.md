@@ -579,6 +579,78 @@ hueso real a 32³ los puntales de dos vóxeles salen demasiado blandos: la
 comparación útil es a 48³ o más. Esas conclusiones son de la malla, no del
 programa, y siguen valiendo con los motores internos.
 
+## Tiempos de cómputo y protocolo de Tapia en cada motor
+
+📄 **[Informe completo en PDF](comparativa_motores/INFORME_TIEMPOS_Y_TAPIA.pdf)** ·
+[tiempos (Markdown)](comparativa_motores/tiempos_sesion/INFORME_TIEMPOS.md) ·
+[protocolo de Tapia (Markdown)](comparativa_motores/tapia/INFORME_TAPIA_SOLVERS.md) ·
+[datos de tiempos](comparativa_motores/tiempos_sesion/) ·
+[datos del protocolo de Tapia](comparativa_motores/tapia/resultados/tapia.jsonl)
+
+### Tiempo de ejecución de cada motor
+
+Se repitió la campaña de la comparativa de motores (95 corridas, 4 hilos, un
+proceso hijo por corrida, una sola repetición por combinación) en un Xeon a
+2,10 GHz de 4 CPU y 15 GB. Tiempo total del motor, en segundos:
+
+| problema | GDL | App | NGSolve | FEniCSx | scikit-fem | SfePy |
+|---|---:|---:|---:|---:|---:|---:|
+| espinodoide hex8 64³, directo | 365 655 | 47,5 (CG + AMG) | 9,2 | 9,9 | n/d | n/d |
+| espinodoide hex8 64³, iterativo | 365 655 | 47,5 | 50,9 | 43,3 | 130,0 | 55,1 |
+| espinodoide TET10 48³, directo | 790 599 | n/d | 32,0 | 18,5 | n/d | n/d |
+| espinodoide TET10 48³, iterativo | 790 599 | n/d | 43,1 | 225,0 | 672,7 | 806,1 |
+| espinodoide 24³ no lineal (SVK) | 30 672 | n/d | 6,3 | 3,2 | 110,4 | fallo |
+
+n/d: no ejecutado o no resuelto por ese motor (la app no resuelve TET10; los
+directos de scikit-fem y SfePy no se ejecutaron por encima de 1,5·10⁵ GDL).
+La ordenación entre motores coincide con la de la campaña publicada; los
+tiempos de esta sesión fueron menores (mediana 0,73 veces los publicados,
+n = 46 pares). NGSolve usó su Cholesky propio, no PARDISO, porque la versión de
+PyPI ya no incluye MKL.
+
+<p align="center"><img src="comparativa_motores/tiempos_sesion/t_escala_hex.png" alt="Tiempo frente a grados de libertad en el espinodoide con hexaedros, por motor y resolvedor" width="90%"></p>
+
+### Protocolo de Tapia et al. (2026) resuelto con cada motor
+
+Se aplicó el protocolo (malla de ladrillos a 40³, base empotrada, E_s = 18 GPa,
+ν = 0,3, 100 N axiales, elasticidad lineal) a dos VOI porcinos reales de
+micro-TC (C2 y C4) y a su spinodoide y su dual-lattice ajustados, seis
+estructuras en total, con los cinco motores. Lo que se replica es el protocolo
+de ensayo y el tipo de salida, no el estudio original (vértebras de cérvidos,
+tetraedros de 0,05 mm en ANSYS): los valores absolutos no son comparables con
+los publicados, y sí lo son entre motores.
+
+| estructura | E_app (MPa) | p99 von Mises (MPa) | máx. von Mises (MPa) | ‖u‖ máx. (mm) |
+|---|---:|---:|---:|---:|
+| C2 · VOI | 3219,6 | 91,2 | 203,1 | 0,0272 |
+| C2 · spinodoide | 1361,4 | 162,6 | 874,7 | 0,1214 |
+| C2 · dual-lattice | 2571,0 | 109,1 | 509,9 | 0,1453 |
+| C4 · VOI | 3017,6 | 94,6 | 275,4 | 0,0408 |
+| C4 · spinodoide | 857,6 | 231,9 | 482,9 | 0,1260 |
+| C4 · dual-lattice | 2392,6 | 117,3 | 270,8 | 0,0323 |
+
+Los cinco motores dieron estas mismas cifras. Elemento a elemento, la mayor
+diferencia de von Mises frente a NGSolve con resolvedor directo (como fracción
+del p99) fue de 3,7·10⁻⁹ a 9,1·10⁻⁹ con la app, de 3,7·10⁻¹¹ a 1,4·10⁻¹⁰ con
+scikit-fem y SfePy, de 2,8·10⁻¹² a 2,2·10⁻¹¹ con FEniCSx y de 4,3·10⁻¹⁴ a
+1,5·10⁻¹³ con NGSolve (que usa el mismo algoritmo que la referencia, así que
+solo mide redondeo). El orden coincide con el de las tolerancias de los
+resolvedores. La deformación total da diferencias de magnitud similar. Los
+mapas de los cinco motores son indistinguibles a simple vista.
+
+<p align="center"><img src="comparativa_motores/tapia/figs/mapa_vm_solvers.png" alt="Tensión de von Mises de cada motor en las seis estructuras, protocolo de Tapia" width="100%"></p>
+
+<p align="center"><img src="comparativa_motores/tapia/figs/mapa_u_solvers.png" alt="Deformación total de cada motor en las seis estructuras, protocolo de Tapia" width="100%"></p>
+
+<p align="center"><img src="comparativa_motores/tapia/figs/resumen_diferencias.png" alt="Mayor diferencia por elemento de cada motor frente a NGSolve directo" width="100%"></p>
+
+Con una malla común y resolvedores convergidos, la elección del motor no
+cambia los campos del protocolo; las diferencias entre estructuras superan en
+varios órdenes de magnitud a las diferencias entre motores. Límites: dos VOI de
+cuatro, un ajuste y una semilla por VOI y familia, solo hexaedros a 40³, sin
+no linealidad ni convergencia de malla, y tolerancias de resolvedor sin igualar.
+Los VOI no se distribuyen con el repositorio.
+
 ---
 
 ## Documentación

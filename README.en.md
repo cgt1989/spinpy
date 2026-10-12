@@ -578,6 +578,77 @@ that on real bone at 32³ two-voxel struts come out too soft: the useful
 comparison is at 48³ or finer. Those conclusions concern the mesh, not the
 program, and still hold with the built-in engines.
 
+## Compute times and the Tapia protocol in every engine
+
+📄 **[Full report (PDF, in Spanish)](comparativa_motores/INFORME_TIEMPOS_Y_TAPIA.pdf)** ·
+[timings (Markdown, in Spanish)](comparativa_motores/tiempos_sesion/INFORME_TIEMPOS.md) ·
+[Tapia protocol (Markdown, in Spanish)](comparativa_motores/tapia/INFORME_TAPIA_SOLVERS.md) ·
+[timing data](comparativa_motores/tiempos_sesion/) ·
+[Tapia protocol data](comparativa_motores/tapia/resultados/tapia.jsonl)
+
+### Run time of each engine
+
+The engine-comparison campaign was repeated (95 runs, 4 threads, one child
+process per run, a single repetition per combination) on a 2.10 GHz Xeon with
+4 CPUs and 15 GB. Total engine time, in seconds:
+
+| problem | DOF | App | NGSolve | FEniCSx | scikit-fem | SfePy |
+|---|---:|---:|---:|---:|---:|---:|
+| spinodoid hex8 64³, direct | 365,655 | 47.5 (CG + AMG) | 9.2 | 9.9 | n/a | n/a |
+| spinodoid hex8 64³, iterative | 365,655 | 47.5 | 50.9 | 43.3 | 130.0 | 55.1 |
+| spinodoid TET10 48³, direct | 790,599 | n/a | 32.0 | 18.5 | n/a | n/a |
+| spinodoid TET10 48³, iterative | 790,599 | n/a | 43.1 | 225.0 | 672.7 | 806.1 |
+| spinodoid 24³ nonlinear (SVK) | 30,672 | n/a | 6.3 | 3.2 | 110.4 | failed |
+
+n/a: not run, or not solved by that engine (the app does not solve TET10; the
+direct solvers of scikit-fem and SfePy were not run above 1.5·10⁵ DOF). The
+ranking of the engines matches the published campaign; this session's times
+were lower (median 0.73 times the published ones, n = 46 pairs). NGSolve used
+its own Cholesky, not PARDISO, because the PyPI build no longer ships MKL.
+
+<p align="center"><img src="comparativa_motores/tiempos_sesion/t_escala_hex.png" alt="Time against degrees of freedom for the brick-mesh spinodoid, by engine and solver" width="90%"></p>
+
+### Tapia et al. (2026) protocol solved with every engine
+
+The protocol (brick mesh at 40³, fixed base, E_s = 18 GPa, ν = 0.3, 100 N axial
+load, linear elasticity) was applied to two real porcine micro-CT VOIs (C2 and
+C4) and to their fitted spinodoid and dual-lattice, six structures in all, with
+the five engines. What is replicated is the test protocol and the type of
+output, not the original study (cervid vertebrae, 0.05 mm tetrahedra in
+ANSYS): absolute values are not comparable with the published ones, but they
+are comparable between engines.
+
+| structure | E_app (MPa) | p99 von Mises (MPa) | max. von Mises (MPa) | max. ‖u‖ (mm) |
+|---|---:|---:|---:|---:|
+| C2 · VOI | 3219.6 | 91.2 | 203.1 | 0.0272 |
+| C2 · spinodoid | 1361.4 | 162.6 | 874.7 | 0.1214 |
+| C2 · dual-lattice | 2571.0 | 109.1 | 509.9 | 0.1453 |
+| C4 · VOI | 3017.6 | 94.6 | 275.4 | 0.0408 |
+| C4 · spinodoid | 857.6 | 231.9 | 482.9 | 0.1260 |
+| C4 · dual-lattice | 2392.6 | 117.3 | 270.8 | 0.0323 |
+
+The five engines gave these same figures. Element by element, the largest von
+Mises difference against NGSolve with a direct solver (as a fraction of the
+p99) was 3.7·10⁻⁹ to 9.1·10⁻⁹ with the app, 3.7·10⁻¹¹ to 1.4·10⁻¹⁰ with
+scikit-fem and SfePy, 2.8·10⁻¹² to 2.2·10⁻¹¹ with FEniCSx and 4.3·10⁻¹⁴ to
+1.5·10⁻¹³ with NGSolve (which uses the same algorithm as the reference, so it
+only measures round-off). The ordering matches that of the solver tolerances.
+Total deformation gives differences of similar size. The maps from the five
+engines are indistinguishable by eye.
+
+<p align="center"><img src="comparativa_motores/tapia/figs/mapa_vm_solvers.png" alt="Von Mises stress from each engine in the six structures, Tapia protocol" width="100%"></p>
+
+<p align="center"><img src="comparativa_motores/tapia/figs/mapa_u_solvers.png" alt="Total deformation from each engine in the six structures, Tapia protocol" width="100%"></p>
+
+<p align="center"><img src="comparativa_motores/tapia/figs/resumen_diferencias.png" alt="Largest per-element difference of each engine against direct NGSolve" width="100%"></p>
+
+With a common mesh and converged solvers, the choice of engine does not change
+the fields of the protocol; the differences between structures exceed those
+between engines by several orders of magnitude. Limits: two VOIs out of four,
+one fit and one seed per VOI and family, brick meshes at 40³ only, no
+nonlinearity or mesh-convergence study, and solver tolerances not equalised.
+The VOIs are not distributed with the repository.
+
 ---
 
 ## Documentation

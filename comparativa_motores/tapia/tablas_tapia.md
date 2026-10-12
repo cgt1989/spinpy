@@ -3,7 +3,7 @@
 
 ### C2 · VOI
 
-| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ|u| |
+| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ‖u‖ |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | App (spinpy) | AMG (con modos rigidos) + CG | 3219.601 | 91.233 | 203.07 | 0.02722 | 9.3 | 0.55 | 5.9e-09 | 5.8e-09 |
 | NGSolve | sparsecholesky (NGSolve) | 3219.601 | 91.233 | 203.07 | 0.02722 | 6.9 | 1.30 | 9.4e-14 | 1.2e-13 |
@@ -14,7 +14,7 @@
 
 ### C2 · Spinodoide
 
-| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ|u| |
+| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ‖u‖ |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | App (spinpy) | AMG (con modos rigidos) + CG | 1361.423 | 162.621 | 874.71 | 0.12137 | 12.1 | 0.55 | 7.2e-09 | 2.1e-09 |
 | NGSolve | sparsecholesky (NGSolve) | 1361.423 | 162.621 | 874.71 | 0.12137 | 3.1 | 0.71 | 1.5e-13 | 1.0e-13 |
@@ -25,7 +25,7 @@
 
 ### C2 · Dual-lattice
 
-| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ|u| |
+| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ‖u‖ |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | App (spinpy) | AMG (con modos rigidos) + CG | 2570.985 | 109.065 | 509.93 | 0.14528 | 11.8 | 0.55 | 9.1e-09 | 3.7e-09 |
 | NGSolve | sparsecholesky (NGSolve) | 2570.985 | 109.065 | 509.93 | 0.14528 | 3.7 | 0.89 | 9.0e-14 | 5.0e-14 |
@@ -36,7 +36,7 @@
 
 ### C4 · VOI
 
-| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ|u| |
+| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ‖u‖ |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | App (spinpy) | AMG (con modos rigidos) + CG | 3017.587 | 94.585 | 275.38 | 0.04079 | 8.6 | 0.53 | 5.1e-09 | 2.1e-09 |
 | NGSolve | sparsecholesky (NGSolve) | 3017.587 | 94.585 | 275.38 | 0.04079 | 4.8 | 1.10 | 5.8e-14 | 1.7e-14 |
@@ -47,7 +47,7 @@
 
 ### C4 · Spinodoide
 
-| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ|u| |
+| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ‖u‖ |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | App (spinpy) | AMG (con modos rigidos) + CG | 857.553 | 231.901 | 482.88 | 0.12603 | 12.7 | 0.51 | 3.7e-09 | 3.9e-09 |
 | NGSolve | sparsecholesky (NGSolve) | 857.553 | 231.901 | 482.88 | 0.12603 | 2.1 | 0.44 | 1.2e-13 | 1.4e-13 |
@@ -58,7 +58,7 @@
 
 ### C4 · Dual-lattice
 
-| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | |u| máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ|u| |
+| Motor | Resolvedor | E_app (MPa) | p99 vM (MPa) | máx vM (MPa) | ‖u‖ máx (mm) | Tiempo motor (s) | Memoria (GB) | máx Δσ | máx Δ‖u‖ |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | App (spinpy) | AMG (con modos rigidos) + CG | 2392.614 | 117.291 | 270.78 | 0.03232 | 9.0 | 0.52 | 5.2e-09 | 2.1e-09 |
 | NGSolve | sparsecholesky (NGSolve) | 2392.614 | 117.291 | 270.78 | 0.03232 | 3.1 | 0.75 | 4.3e-14 | 3.7e-14 |

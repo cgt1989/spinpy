@@ -68,7 +68,7 @@ La referencia es NGSolve con el resolvedor directo. **NGSolve con resolvedor aut
 
 Valores idénticos en los cinco motores (referencia de NGSolve).
 
-| VOI | Estructura | E_app (MPa) | p99 von Mises (MPa) | Máx. von Mises (MPa) | |u| máx. (mm) |
+| VOI | Estructura | E_app (MPa) | p99 von Mises (MPa) | Máx. von Mises (MPa) | ‖u‖ máx. (mm) |
 |---|---|---:|---:|---:|---:|
 | C2 | VOI | 3219,6 | 91,2 | 203,1 | 0,0272 |
 | C2 | Spinodoide | 1361,4 | 162,6 | 874,7 | 0,1214 |
