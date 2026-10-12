@@ -158,3 +158,28 @@ los motores internos (`spinpy.motores`). Viajan NGSolve y scikit-fem, los unicos
 autocomprobacion resuelve el mismo ensayo con todos los motores presentes y
 exige que coincidan (prueba «Motores FEM»). Se construye con el CPython
 oficial, asi que `dlls_conda.py` no interviene.
+
+## Version de prueba para macOS (Apple Silicon)
+
+Desde la V2.1.3 el workflow tiene un segundo trabajo, `construir-mac`
+(`macos-14`, arm64), que corre despues del de Windows y adjunta
+`spinpy-V<v>-macos-arm64-PRUEBA.zip`. Para construir solo macOS (sin tocar la
+release): Actions -> «Instalador de Windows» -> *Run workflow*, `plataforma =
+macos`, `adjuntar` desmarcado; el zip queda como artefacto de la ejecucion.
+
+Receta: `spinpy_mac.spec` (PyInstaller, `BUNDLE`), `construir_mac.sh`
+(entorno, autocomprobacion desde el codigo, empaquetado, autocomprobacion DEL
+`.app`, zip) y `requisitos_build_mac.txt` (las versiones de Windows salvo
+PyQt5-Qt5 5.15.17, la primera con rueda arm64). Dos trampas medidas en CI:
+
+1. Las bibliotecas de OpenCASCADE (`libTK*.dylib`, paquete `netgen-occt`)
+   viven en `<entorno>/lib`, fuera de site-packages: PyInstaller las rechaza
+   con destino `../..` y `netgen/libngpy.so` las busca en la raiz de
+   `Frameworks`. Se recogen de `importlib.metadata.files("netgen-occt")` y
+   van a la raiz; los metadatos de `netgen-occt` no viajan.
+2. Para saber que enlaza una rueda de macOS no basta `lief.parse` sobre un
+   binario universal2 (devuelve un FatBinary y un `try/except` lo oculta):
+   la primera lectura dio "sin dependencias de OpenCASCADE" y era falso.
+
+No esta firmada ni notarizada (ver `LEEME_MAC.txt`); la interfaz grafica no se
+ha probado a mano en un Mac con pantalla.
