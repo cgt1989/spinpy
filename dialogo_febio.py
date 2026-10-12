@@ -36,6 +36,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from spinpy import fem as febio
 from spinpy import motores, tiempos
 from spinpy.idioma import _
+from spinpy.pantalla import DialogoAjustable  # noqa: E402
 
 NARANJA = "#b06000"
 AJUSTES = ("spinpy", "visor")
@@ -93,7 +94,7 @@ def factores_febio():
 # Parametros de un protocolo
 # ---------------------------------------------------------------------------
 
-class DialogoParametrosProtocolo(QtWidgets.QDialog):
+class DialogoParametrosProtocolo(DialogoAjustable):
     """Valores editables de un protocolo. En naranja los que difieren del
     publicado: si se cambia alguno del de Tapia, el registro deja de llamarse
     «Tapia» y pasa a «Tapia (modificado)» (`febio.protocolo`)."""
@@ -189,7 +190,7 @@ class DialogoParametrosProtocolo(QtWidgets.QDialog):
 # Piezas comunes de las dos ventanas
 # ---------------------------------------------------------------------------
 
-class _BaseFEBio(QtWidgets.QDialog):
+class _BaseFEBio(DialogoAjustable):
     """Malla, analisis, material y solver: lo que comparten las dos puertas."""
 
     def _construir_malla(self, v, n_hex_def):
@@ -1187,7 +1188,7 @@ def tabla_motores_html(registros):
     return "".join(t)
 
 
-class DialogoResultadosFEBio(QtWidgets.QDialog):
+class DialogoResultadosFEBio(DialogoAjustable):
     def __init__(self, v, registros, carpeta, pendiente=False, mapas=None,
                  figura=None):
         super().__init__(v)
@@ -1294,7 +1295,7 @@ def escribir_csv(registros, ruta):
             w.writerow(fila)
 
 
-class DialogoMapasFEBio(QtWidgets.QDialog):
+class DialogoMapasFEBio(DialogoAjustable):
     """von Mises por elemento (lineal, a la carga del protocolo), con UNA
     escala de color para todos los paneles; la de p99 del conjunto, porque el
     maximo no converge y aplastaria el resto."""
