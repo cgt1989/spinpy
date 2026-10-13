@@ -249,6 +249,92 @@ def prisma():
                r[nom]["E_app"], TOL_LIN)
 
 
+def columnas():
+    """Estructura HETEROGENEA con respuesta exacta: columnas aisladas paralelas
+    al eje de carga (modelo de Voigt). El cubo y el prisma macizos tienen
+    A_osea = A_bruta y nada que filtrar; aqui el techo es poroso, la tension se
+    escala por A_bruta/A_osea y, con fragmentos, el filtro 'solo portante'
+    trabaja. Con apoyo deslizante cada columna es uniaxial e independiente:
+      phi = A_osea / A_bruta,  E_app = phi E_s,  von Mises = sigma / phi,
+      uz(techo) = -(sigma / phi) Lz / E_s.
+    """
+    g = "columnas aisladas 16x16x20 (techo poroso)"
+    print(f"\n== {g}", flush=True)
+    h = 0.1
+    nx, ny, nz = 16, 16, 20
+    BW = np.zeros((nx, ny, nz), bool)
+    for x0 in (1, 9):
+        for y0 in (1, 9):
+            BW[x0:x0 + 4, y0:y0 + 4, :] = True
+    phi = BW[:, :, 0].mean()
+    A_br = nx * ny * h * h
+    sig = 1e6 * F_N / A_br
+    Lz = nz * h
+    for motor in ("app", "ngsolve"):
+        malla = fem.mallar(BW, np.full(3, h), "hex8")
+        prot = fem.protocolo("tapia2026", apoyo="deslizante")
+        reg = fem.ensayo(malla, prot, analisis=("lineal",), motor=motor,
+                         solver="auto" if motor == "app" else "directo",
+                         aislado=False, BW=BW if motor == "app" else None)
+        u, s_, vm = campos(malla, reg)
+        nod = malla["nodos"]
+        techo = nod[:, 2] >= nod[:, 2].max() - 1e-9
+        gg = f"{g} {motor}"
+        anotar(gg, "phi = A_osea / A_bruta = 0,25", 0.25, phi, 1e-12)
+        anotar(gg, "equilibrio: reaccion = fuerza aplicada", F_N,
+               reg["lineal"]["F_reac_N"], TOL_LIN)
+        anotar(gg, "E_app = phi E_s (Voigt)", phi * E_S,
+               reg["lineal"]["E_app"], TOL_LIN)
+        anotar(gg, "von Mises = sigma / phi en TODO el solido", sig / phi * 1e-6,
+               vm.mean() * 1e-6, TOL_LIN)
+        anotar(gg, "dispersion de von Mises (max-min)/valor", 0.0,
+               (vm.max() - vm.min()) / vm.mean(), TOL_LIN)
+        ut = u[techo & (nod[:, 0] >= 0.1 - 1e-9) & (nod[:, 0] <= 0.5 + 1e-9)
+               & (nod[:, 1] >= 0.1 - 1e-9) & (nod[:, 1] <= 0.5 + 1e-9), 2]
+        anotar(gg, "uz de la cima de una columna = -(sigma/phi) Lz / E",
+               -(sig / phi) / E_S * Lz, ut.mean(), TOL_LIN)
+    # fragmentos: uno flotante (no toca ni la base ni el techo) y uno colgado
+    # del techo (no llega a la base). El filtro de la app los excluye; no
+    # deben cambiar E_app, y frac_portante debe valer 1 sobre los portantes.
+    BWf = BW.copy()
+    BWf[6:8, 6:8, 8:12] = True            # flotante, en el hueco central
+    BWf[6:8, 14:16, 16:20] = True         # colgado del techo (z = 16..19)
+    from spinpy.resistencia import ensayo_compresion
+    r = ensayo_compresion(BWf, np.full(3, h), E_s=E_S, nu_s=NU, carga_N=F_N,
+                          apoyo="deslizante")
+    gg = f"{g} con fragmento flotante y colgado (app)"
+    anotar(gg, "E_app = phi E_s: los fragmentos no cargan", phi * E_S,
+           r["E_app"], TOL_LIN)
+    n_col = int(BW.sum())
+    anotar(gg, "frac_portante = columnas / (columnas + fragmentos)",
+           n_col / BWf.sum(), r["frac_portante"], 1e-12)
+
+
+def ejes_no_cubicos():
+    """Columnas paralelas a cada eje en una malla NO cubica (24 x 16 x 20): si
+    `_PERM`, el area o la altura se confundieran entre ejes, fallaria."""
+    g = "columnas en malla 24x16x20, carga en X, Y y Z (app)"
+    print(f"\n== {g}", flush=True)
+    from spinpy.resistencia import ensayo_compresion_eje
+    h = 0.1
+    forma = (24, 16, 20)
+    for ax, nom in enumerate("XYZ"):
+        BW = np.zeros(forma, bool)
+        otros = [a for a in range(3) if a != ax]
+        for i0 in (1, 9):
+            for j0 in (1, 11 if forma[otros[1]] >= 20 else 9):
+                sl = [slice(None)] * 3
+                sl[otros[0]] = slice(i0, i0 + 4)
+                sl[otros[1]] = slice(j0, j0 + 4)
+                BW[tuple(sl)] = True
+        sec = np.prod([forma[a] for a in otros])
+        phi = BW.sum() / BW.shape[ax] / sec
+        r = ensayo_compresion_eje(BW, np.full(3, h), eje=ax, E_s=E_S, nu_s=NU,
+                                  carga_N=F_N, apoyo="deslizante")
+        anotar(g, f"columnas paralelas a {nom}: E_app = phi E_s (phi = "
+               f"{phi:.4f})", phi * E_S, r["E_app"], TOL_LIN)
+
+
 def triaxial_y_convergencia():
     g = "app: triaxial y convergencia"
     print(f"\n== {g}", flush=True)
@@ -296,6 +382,8 @@ def main():
     homogeneizacion()
     triaxial_y_convergencia()
     prisma()
+    columnas()
+    ejes_no_cubicos()
     ok = [f for f in FILAS if f["ok"] is True]
     mal = [f for f in FILAS if f["ok"] is False]
     print(f"\nRESUMEN: {len(ok)} pruebas OK, {len(mal)} fallan, "

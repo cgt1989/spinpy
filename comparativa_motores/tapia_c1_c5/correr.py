@@ -5,7 +5,8 @@ sus dual-lattice (15 estructuras).
     python correr.py [C1 C2 C3 C4 C5]
 
 Malla de ladrillos a 40^3, base EMPOTRADA (ux = uy = uz = 0), cara superior con
-x e y libres y 100 N repartidos en cargas nodales iguales en -z, E_s = 18 GPa,
+x e y libres y 100 N como traccion uniforme en -z sobre las caras oseas del
+techo (fuerza igual por cara, equivalente nodal consistente), E_s = 18 GPa,
 nu = 0,3, elasticidad lineal (`fem.PROTOCOLOS_FEM["tapia2026"]`). Se resuelve
 con la app y con NGSolve (resolvedor directo, la referencia).
 

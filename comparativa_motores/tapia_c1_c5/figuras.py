@@ -101,7 +101,7 @@ def fig_bloque():
             "u_tot_max_mm": float(np.linalg.norm(u, axis=1).max()),
             "sigma_MPa": float(sig)}
     fig, ejes = plt.subplots(2, 2, figsize=(6.6, 6.4), facecolor="white")
-    clim_v = (0.95, 1.30)
+    clim_v = (0.9, 1.8)
     umax = max(np.nanmax(datos[a][1]) for a in datos) * 1e3
     clim_u = (0.0, umax)
     for j, apoyo in enumerate(("deslizante", "empotrado")):
@@ -127,8 +127,8 @@ def fig_bloque():
             for ax, mm, tit in ((a, im, "von Mises / σ"),
                                 (b, im2, "|u| [µm]")):
                 cb = fig.colorbar(mm, ax=ax, fraction=0.046, pad=0.03)
-                cb.ax.tick_params(labelsize=7)
-                cb.set_label(tit, fontsize=8)
+                cb.ax.tick_params(labelsize=10)
+                cb.set_label(tit, fontsize=10)
     fig.suptitle("Cubo macizo de 3,008 mm, 100 N, E = 18 GPa. Corte en y = L/2",
                  fontsize=10, color=TINTA)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
@@ -180,8 +180,8 @@ def fig_mapas(m):
                             ejes[2, j].get_position().width - 0.02, 0.014])
         cb = fig.colorbar(cm.ScalarMappable(norm=Normalize(*clim), cmap=cmap),
                           cax=cax, orientation="horizontal")
-        cb.ax.tick_params(labelsize=8, colors=TINTA2)
-        cb.set_label(etiq if j == 2 else "", fontsize=9, color=TINTA)
+        cb.ax.tick_params(labelsize=11, colors=TINTA2)
+        cb.set_label(etiq if j == 2 else "", fontsize=12, color=TINTA)
     fig.subplots_adjust(left=0.05, right=0.995, top=0.95, bottom=0.09,
                         wspace=0.02, hspace=0.04)
     guardar(fig, f"mapa_{m}")
@@ -198,7 +198,7 @@ def resumen():
            if f["clave"] == "referencia" and "E_app_MPa" in f}
     app = {(f["voi"], f["estructura"]): f for f in filas
            if f["clave"] == "app" and "E_app_MPa" in f}
-    tabla, dif = [], []
+    tabla, dif, difv = [], [], []
     for v in VOIS:
         for e in ESTR:
             r = ref.get((v, e))
@@ -210,12 +210,24 @@ def resumen():
                  "vm_max_MPa": r["vm_max_MPa"],
                  "u_tot_max_mm": r["u_tot_max_mm"],
                  "uz_max_mm": r["uz_max_mm"]}
+            z = np.load(CAMPOS / f"{v}_{e}.npz")
+            um = z["u_referencia"]
+            k = z["ijk"][:, 2]
+            nz = int(z["forma"][2])
+            d["u_p99_mm"] = float(np.percentile(um, 99))
+            d["capa_del_max_u"] = int(k[int(np.argmax(um))])
+            d["n_capas"] = nz
+            d["caras_cima"] = int((k == nz - 1).sum())
+            d["frac_cima"] = d["caras_cima"] / float(nz * nz)
+            d["uz_medio_cima_mm"] = float(
+                (F_N / L_MM ** 2) / (r["E_app_MPa"]) * L_MM)
             if a:
                 d["dif_E_app_app_vs_ngsolve"] = abs(
                     a["E_app_MPa"] / r["E_app_MPa"] - 1)
                 d["dif_vm_max_app_vs_ngsolve"] = abs(
                     a["vm_max_MPa"] / r["vm_max_MPa"] - 1)
                 dif.append(d["dif_E_app_app_vs_ngsolve"])
+                difv.append(d["dif_vm_max_app_vs_ngsolve"])
             tabla.append(d)
     ajustes = []
     for v in VOIS:
@@ -229,7 +241,8 @@ def resumen():
                                 "BVTV_voi": j["BVTV_voi"],
                                 "tiempo_s": j["tiempo_ajuste_s"]})
     json.dump({"tabla": tabla, "ajustes": ajustes,
-               "dif_max_app_vs_ngsolve": max(dif) if dif else None},
+               "dif_max_app_vs_ngsolve": max(dif) if dif else None,
+               "dif_max_vm_max_app_vs_ngsolve": max(difv) if difv else None},
               open(AQUI / "figs" / "resumen.json", "w", encoding="utf-8"),
               indent=1, default=float)
     print(f"{len(tabla)} estructuras en la tabla; {len(ajustes)} ajustes")
