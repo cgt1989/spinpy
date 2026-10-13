@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="versión V2.1.5" src="https://img.shields.io/badge/versi%C3%B3n-V2.1.5-e8a33d">
+  <img alt="versión V2.2.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.2.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 29 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-29%20bloques-5b6b7f">
+  <img alt="Verificación: 31 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-31%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -261,7 +261,29 @@ print(r["parametros"], r["error"])
 ```
 spinpy-lote carpeta_con_VOIs --replicas 20 --salida resultados
 spinpy-informe resultados_sesion.json        # rehace el informe desde un JSON
+spinpy-validar-exp predicciones.csv          # contraste con ensayos físicos
 ```
+
+### Inicio rápido con datos abiertos
+
+El repositorio incluye diez VOIs de hueso subcondral porcino en
+[`datos/porcino_koria2020/`](datos/porcino_koria2020/) (C1 a C5 y V1 a V5; cubo
+de 3,0 mm, 188³ vóxeles de 16 µm; Koria, Mengoni y Brockett 2020,
+[doi:10.5518/787](https://doi.org/10.5518/787), CC BY 4.0). Con ellos se
+comprueba la instalación sin datos propios. Cada archivo tiene su huella en
+`SHA256SUMS.txt`.
+
+```
+python ejemplos/inicio_rapido.py                    # VOI_V1, cubo central de 64³
+python ejemplos/inicio_rapido.py --voi C3 --lado 96
+python ejemplos/inicio_rapido.py --voi V1 --lado 187   # VOI completo
+```
+
+El guion verifica la huella del archivo, mide la morfometría y ensaya a
+compresión en z (apoyo deslizante, E_s = 20 GPa, 1 MPa), y reporta el módulo
+aparente y la carga de fallo de Pistoia. Con el cubo de 40³ (`--rapido`) tarda
+unos segundos. El recorte central sirve para aprender el flujo y verificar la
+instalación; para citar valores debe usarse el VOI completo.
 
 ---
 
@@ -299,7 +321,13 @@ python Test/replicar_kumar2020.py --rapido   # ~1,5 min
 python -m pytest tests/ -q
 ```
 
-29 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+La suite se ejecuta en cada pull request y en cada cambio a `main`
+(`.github/workflows/pruebas.yml`: Linux con Python 3.11 y 3.13, Windows y
+macOS con 3.13), y la construcción del instalador exige que pase. Cada
+ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
+(`pip freeze`) con que se midió.
+
+31 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
@@ -680,8 +708,50 @@ medidos y las trampas que costó encontrar.
 
 ---
 
+## Validación experimental: estado y procedimiento
+
+**Estado actual.** Los valores mecánicos absolutos de spinpy (módulo aparente,
+carga de fallo, tensiones) son resultados de simulación verificados
+numéricamente frente a soluciones analíticas, FEBio y cinco motores de
+elementos finitos. **No han sido contrastados con ensayos mecánicos del hueso
+al que corresponden los VOIs.** Hasta que exista ese contraste, deben leerse
+como comparaciones relativas entre estructuras bajo una misma condición de
+carga, y no como predicciones de la resistencia o la rigidez de un espécimen
+real. La morfometría, en cambio, está contrastada con soluciones
+manufacturadas y con BoneJ (sección anterior).
+
+**Procedimiento disponible.** `spinpy.validacion_exp` (y la orden
+`spinpy-validar-exp`) compara lo predicho con lo medido para una o varias
+magnitudes y calcula: error cuadrático medio, error relativo medio absoluto y
+sesgo; coeficiente de concordancia de Lin; regresión con intervalos de
+confianza de pendiente e intercepto; Bland-Altman en escala logarítmica (la
+razón medido/predicho, porque el error de la mecánica trabecular es
+multiplicativo); correlación de Spearman; y calibración del módulo del tejido
+E_s con validación cruzada dejando uno fuera, que separa un error de escala
+(E_s mal supuesto, corregible) de un error de forma (la geometría no explica
+las diferencias entre especímenes).
+
+```
+python ejemplos/predecir_para_ensayo.py --salida predicciones.csv   # columna 'medido' vacía
+# se completa 'medido' con el ensayo físico del mismo espécimen
+spinpy-validar-exp predicciones.csv --ccc-min 0.9 --mape-max 0.25 --json contraste.json
+```
+
+Tres reglas de uso. Los criterios de aceptación se declaran **antes** de ver
+los datos medidos; sin criterios el veredicto es «no evaluado». Las
+condiciones del ensayo (módulo del tejido, apoyo, región ensayada) deben
+reproducirse en la predicción. Con varios VOIs por animal los pares no son
+independientes y los intervalos salen demasiado estrechos: conviene una pareja
+por animal o un modelo mixto. Con menos de 8 parejas el módulo avisa de que
+los intervalos no permiten concluir equivalencia. La plantilla está en
+[`datos/porcino_koria2020/ensayos_experimentales_PLANTILLA.csv`](datos/porcino_koria2020/ensayos_experimentales_PLANTILLA.csv).
+
+---
+
 ## Limitaciones que conviene conocer
 
+- **Sin validación experimental de los valores mecánicos absolutos** (ver la
+  sección anterior).
 - **La segmentación es un umbral global.** Es la mayor fuente de
   incertidumbre de todo el proceso, y por eso la aplicación declara cuál se
   aplicó en vez de esconderlo.

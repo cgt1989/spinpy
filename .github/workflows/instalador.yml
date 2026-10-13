@@ -36,7 +36,15 @@ permissions:
   contents: write
 
 jobs:
+  # Requisito previo: la suite de verificacion tiene que pasar. Si falla, no se
+  # construye ni se adjunta nada a la release.
+  verificar:
+    uses: ./.github/workflows/pruebas.yml
+    with:
+      solo_linux: true
+
   construir:
+    needs: verificar
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.plataforma != 'macos' }}
     runs-on: windows-latest
     timeout-minutes: 120
@@ -101,8 +109,8 @@ jobs:
   # instalador de Windows, que ya esta adjunto. Sin firma ni notarizacion:
   # instalador/LEEME_MAC.txt.
   construir-mac:
-    needs: construir
-    if: ${{ !cancelled() && (needs.construir.result == 'success' || needs.construir.result == 'skipped') && (github.event_name != 'workflow_dispatch' || inputs.plataforma != 'windows') }}
+    needs: [verificar, construir]
+    if: ${{ !cancelled() && needs.verificar.result == 'success' && (needs.construir.result == 'success' || needs.construir.result == 'skipped') && (github.event_name != 'workflow_dispatch' || inputs.plataforma != 'windows') }}
     runs-on: macos-14
     timeout-minutes: 120
     env:

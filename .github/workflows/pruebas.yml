@@ -1,0 +1,99 @@
+# Ejecuta la suite de verificacion (tests/) en cada cambio.
+#
+# Los 29+ bloques de tests/ tienen tolerancias declaradas antes de medir; este
+# flujo las hace cumplir en cada pull request y en cada push a main, en vez de
+# depender de que alguien las lance a mano. Tambien lo invoca el flujo del
+# instalador como requisito previo: no se construye ninguna release si la
+# verificacion no pasa.
+#
+# La suite escribe `resultados/validacion_literatura.json`; se sube como
+# artefacto para poder auditar que tolerancia se midio en cada plataforma.
+
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      solo_linux:
+        description: "Solo Linux (para usarlo como requisito del instalador)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pruebas-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pruebas:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.11" }
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: windows-latest, python: "3.13", completa: true }
+          - { os: macos-14, python: "3.13", completa: true }
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYVISTA_OFF_SCREEN: "true"
+      PYTHONUTF8: "1"
+    steps:
+      - name: Omitir plataformas cuando solo se pide Linux
+        id: salto
+        shell: bash
+        run: |
+          if [ "${{ inputs.solo_linux }}" = "true" ] && [ "${{ matrix.os }}" != "ubuntu-latest" ]; then
+            echo "omitir=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.solo_linux }}" = "true" ] && [ "${{ matrix.python }}" != "3.13" ]; then
+            echo "omitir=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "omitir=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.salto.outputs.omitir == 'false'
+
+      - uses: actions/setup-python@v5
+        if: steps.salto.outputs.omitir == 'false'
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Instalar
+        if: steps.salto.outputs.omitir == 'false'
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[elastico,fem,malla,lote,test,informe]" tifffile
+          pip freeze > entorno_congelado.txt
+
+      - name: Suite de verificacion
+        if: steps.salto.outputs.omitir == 'false'
+        shell: bash
+        run: python -m pytest tests/ -q -ra --durations=15
+
+      - name: Datos de ejemplo e inicio rapido
+        if: steps.salto.outputs.omitir == 'false'
+        shell: bash
+        run: python ejemplos/inicio_rapido.py --rapido
+
+      - name: Guardar registro de verificacion y entorno
+        if: always() && steps.salto.outputs.omitir == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verificacion-${{ matrix.os }}-py${{ matrix.python }}
+          path: |
+            resultados/validacion_literatura.json
+            entorno_congelado.txt
+          if-no-files-found: ignore
