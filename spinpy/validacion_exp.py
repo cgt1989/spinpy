@@ -148,6 +148,14 @@ def ccc_ic(p, m, alfa=0.05):
 
 def _regresion(p, m, alfa):
     n = p.size
+    if np.ptp(p) == 0:
+        # Predicho constante: la pendiente no esta definida. Segun la version
+        # de SciPy, linregress devuelve NaN o lanza ValueError; aqui se trata
+        # igual en todas.
+        nan = float("nan")
+        return {"pendiente": nan, "pendiente_ic": [nan, nan],
+                "intercepto": nan, "intercepto_ic": [nan, nan],
+                "r": nan, "r2": nan, "pearson_p": nan}
     r = stats.linregress(p, m)
     t = stats.t.ppf(1 - alfa / 2, n - 2)
     # intercept_stderr existe desde scipy 1.6
@@ -268,7 +276,12 @@ def acuerdo(pred, med, ids=None, alfa=0.05, criterios=None, magnitud=""):
         rel = np.full(n, np.nan)
         avisos.append("Hay valores medidos <= 0: el error relativo (MAPE, "
                       "sesgo relativo) no esta definido y queda en NaN.")
-    rho = stats.spearmanr(p, m)
+    if np.ptp(p) == 0 or np.ptp(m) == 0:
+        rho = None
+        avisos.append("Una de las series es constante: la regresion y la "
+                      "correlacion de Spearman no estan definidas.")
+    else:
+        rho = stats.spearmanr(p, m)
     ic_ccc = ccc_ic(p, m, alfa)
     res = {
         "magnitud": magnitud,
@@ -281,8 +294,8 @@ def acuerdo(pred, med, ids=None, alfa=0.05, criterios=None, magnitud=""):
         "sesgo_rel": float(np.mean(rel)),
         "ccc": ccc_lin(p, m),
         "ccc_ic": list(ic_ccc) if ic_ccc else None,
-        "spearman": float(rho.statistic),
-        "spearman_p": float(rho.pvalue),
+        "spearman": float(rho.statistic) if rho else float("nan"),
+        "spearman_p": float(rho.pvalue) if rho else float("nan"),
         "regresion": _regresion(p, m, alfa),
         "bland_altman_log": _bland_altman_log(p, m, alfa),
         "avisos": avisos,

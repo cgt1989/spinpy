@@ -263,3 +263,17 @@ def test_json_sin_nan(tmp_path):
     assert ve.main([str(f), "--json", str(salida)]) == 0
     json.loads(salida.read_text(encoding="utf-8"),
                parse_constant=lambda c: pytest.fail(f"JSON invalido: {c}"))
+
+
+def test_predicho_constante_no_depende_de_la_version_de_scipy(monkeypatch):
+    """Con predicho constante, SciPy antiguo lanza ValueError en linregress
+    (visto en Python 3.11 de la CI); el modulo debe tratarlo igual en todas."""
+    def _lanza(*a, **k):
+        raise ValueError("Cannot calculate a linear regression if all x "
+                         "values are identical")
+    monkeypatch.setattr(ve.stats, "linregress", _lanza)
+    r = ve.acuerdo([1.0, 1.0, 1.0], [1.0, 2.0, 4.0])
+    assert math.isnan(r["regresion"]["pendiente"])
+    assert math.isnan(r["spearman"])
+    assert any("constante" in a for a in r["avisos"])
+    assert r["bland_altman_log"]["factor_sesgo"] == pytest.approx(2.0)
