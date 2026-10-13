@@ -78,6 +78,48 @@ def test_esfera_area_y_volumen(registro):
     assert m["estanca"] and m["BS_tapas"] == 0.0
 
 
+def _diagnostico_tapas(BW):
+    """Texto para el mensaje de fallo: por que la clasificacion de tapas difiere.
+
+    Se anadio al ver esta prueba fallar solo en macOS arm64 (BS +2,3 % frente
+    al 1 % declarado; en Linux y Windows pasa). Mide, en los centros de los
+    triangulos de la malla recortada, la distancia al plano de la caja mas
+    cercano: si hay una zona entre la tolerancia de clasificacion y 1e-3, la
+    clasificacion de tapas es ambigua y el fallo es de la clasificacion; si
+    no la hay, el fallo es de la propia malla.
+    """
+    import platform
+    import pyvista as pv
+    import pymeshfix
+    import vtk
+    centros = {}
+    original = pv.PolyData.cell_centers
+
+    def espia(self, *a, **k):
+        r = original(self, *a, **k)
+        centros["c"] = np.asarray(r.points, float)
+        return r
+
+    pv.PolyData.cell_centers = espia
+    try:
+        m = morfometria_malla(BW, [1.0] * 3)
+    finally:
+        pv.PolyData.cell_centers = original
+    c = centros["c"]
+    hi = BW.shape[0] - 1.0
+    d = np.minimum.reduce([np.abs(c[:, ax] - v) for ax in range(3)
+                           for v in (0.0, hi)])
+    tol = 1e-6
+    ambig = (d >= tol) & (d < 1e-3)
+    return ("%s %s | VTK %s | pymeshfix %s | triangulos %d | en tapa %d | "
+            "ambiguos (tol <= d < 1e-3) %d, d max %.3g | BS_tapas %.1f"
+            % (platform.system(), platform.machine(), vtk.vtkVersion.
+               GetVTKVersion(), getattr(pymeshfix, "__version__", "?"),
+               len(d), int((d < tol).sum()), int(ambig.sum()),
+               float(d[ambig].max()) if ambig.any() else 0.0,
+               m["BS_tapas"]))
+
+
 def test_losa_tapas_excluidas(registro):
     n, t = 32, 10
     BW = losa(n=n, espesor=t)
@@ -91,7 +133,9 @@ def test_losa_tapas_excluidas(registro):
                     nota="tapas excluidas: %.1f" % m["BS_tapas"])
     registro.anotar(BLOQUE, "losa t=10: BV = L^2 t", REF, V_ex, m["BV"], "1 %",
                     "relativo", abs(eV) <= 0.01)
-    assert abs(eA) <= 0.01, (m["BS"], A_ex, m["BS_tapas"])
+    if abs(eA) > 0.01:
+        pytest.fail("BS %.1f frente a %.1f exacto (%+.2f %%). Diagnostico: %s"
+                    % (m["BS"], A_ex, 100 * eA, _diagnostico_tapas(BW)))
     assert abs(eV) <= 0.01, (m["BV"], V_ex)
     assert m["BS_tapas"] > 0          # las cuatro caras laterales SON tapas
 
