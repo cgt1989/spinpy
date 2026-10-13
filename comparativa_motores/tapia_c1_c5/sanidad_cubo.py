@@ -14,6 +14,8 @@ TOLERANCIAS DECLARADAS ANTES DE MEDIR
   no lineal (Newton, SVK)          1e-6  relativa frente a la solucion cerrada
   homogeneizacion periodica        1e-8  relativa
   convergencia entre resoluciones  1e-6  relativa
+  prisma de lados distintos        1e-8 (un cubo no detecta que se confundan
+                                   ejes, areas o alturas)
   rigidizacion por base empotrada  se REPORTA, no se juzga: no hay solucion
                                    cerrada; solo se exigen equilibrio y el
                                    acuerdo entre motores (1e-8)
@@ -199,6 +201,54 @@ def homogeneizacion():
     anotar(g, "C12 = lambda", lam, Ch[0, 1], TOL_HOM)
 
 
+def prisma():
+    """Prisma de lados distintos: un cubo es simetrico y NO detecta que se
+    confundan ejes, areas o alturas (A = Lx Ly, H = Lz). Exacto con apoyo
+    deslizante; con base empotrada solo equilibrio."""
+    g = "prisma 12x16x24 (lados distintos)"
+    print(f"\n== {g}", flush=True)
+    h = 0.1
+    nx, ny, nz = 12, 16, 24
+    Lx, Ly, Lz = nx * h, ny * h, nz * h
+    BW = np.ones((nx, ny, nz), bool)
+    sig = 1e6 * F_N / (Lx * Ly)                          # Pa
+    eps = sig / E_S
+    for apoyo in ("deslizante", "empotrado"):
+        malla = fem.mallar(BW, np.full(3, h), "hex8")
+        prot = fem.protocolo("tapia2026", apoyo=apoyo)
+        reg = fem.ensayo(malla, prot, analisis=("lineal",), motor="ngsolve",
+                         solver="directo", aislado=False)
+        u, s, vm = campos(malla, reg)
+        nod = malla["nodos"]
+        techo = nod[:, 2] >= nod[:, 2].max() - 1e-9
+        lin = reg["lineal"]
+        gg = f"{g} {apoyo}"
+        anotar(gg, "equilibrio: reaccion = fuerza aplicada", F_N,
+               lin["F_reac_N"], TOL_LIN)
+        if apoyo == "deslizante":
+            anotar(gg, "E_app = E_s (area Lx Ly, altura Lz)", E_S,
+                   lin["E_app"], TOL_LIN)
+            anotar(gg, "uz del techo = -sigma Lz / E", -eps * Lz,
+                   u[techo, 2].mean(), TOL_LIN)
+            anotar(gg, "von Mises = sigma = F/(Lx Ly)", sig * 1e-6,
+                   vm.mean() * 1e-6, TOL_LIN)
+            ex = np.sqrt((NU * eps * Lx) ** 2 + (NU * eps * Ly) ** 2
+                         + (eps * Lz) ** 2)
+            anotar(gg, "|u| maxima en la esquina superior lejana", ex,
+                   np.linalg.norm(u, axis=1).max(), TOL_LIN)
+        else:
+            anotar(gg, "base: ejes fijos (|u| = 0)", 0.0,
+                   np.abs(u[nod[:, 2] <= nod[:, 2].min() + 1e-9]).max(), 1e-12)
+            anotar(gg, "rigidizacion E_app / E_s - 1", 0.0,
+                   lin["E_app"] / E_S - 1.0, None, "se reporta")
+    # compresion en los tres ejes sobre el prisma (area y altura propias)
+    r = ensayo_triaxial(BW, np.full(3, h), E_s=E_S, nu_s=NU,
+                        apoyo="deslizante", carga_N=100.0)
+    for nom in "XYZ":
+        anotar(g, f"compresion en {nom}: E_app = E_s", E_S,
+               r[nom]["E_app"], TOL_LIN)
+
+
 def triaxial_y_convergencia():
     g = "app: triaxial y convergencia"
     print(f"\n== {g}", flush=True)
@@ -245,6 +295,7 @@ def main():
                    TOL_LIN)
     homogeneizacion()
     triaxial_y_convergencia()
+    prisma()
     ok = [f for f in FILAS if f["ok"] is True]
     mal = [f for f in FILAS if f["ok"] is False]
     print(f"\nRESUMEN: {len(ok)} pruebas OK, {len(mal)} fallan, "
