@@ -82,42 +82,50 @@ def _diagnostico_tapas(BW):
     """Texto para el mensaje de fallo: por que la clasificacion de tapas difiere.
 
     Se anadio al ver esta prueba fallar solo en macOS arm64 (BS +2,3 % frente
-    al 1 % declarado; en Linux y Windows pasa). Mide, en los centros de los
-    triangulos de la malla recortada, la distancia al plano de la caja mas
-    cercano: si hay una zona entre la tolerancia de clasificacion y 1e-3, la
-    clasificacion de tapas es ambigua y el fallo es de la clasificacion; si
-    no la hay, el fallo es de la propia malla.
+    al 1 % declarado; en Linux y Windows pasa). Primera ronda: en macOS no hay
+    triangulos ambiguos (a menos de 1e-3 del plano) y el area total de la malla
+    es la misma que en Linux, pero unos 36 triangulos (~45 de area) dejan de
+    contarse como tapa. Esta segunda ronda reparte las tapas por plano y busca
+    triangulos paralelos a un plano de la caja que NO estan en el plano.
     """
     import platform
     import pyvista as pv
-    import pymeshfix
     import vtk
-    centros = {}
+    capturada = {}
     original = pv.PolyData.cell_centers
 
     def espia(self, *a, **k):
-        r = original(self, *a, **k)
-        centros["c"] = np.asarray(r.points, float)
-        return r
+        capturada["malla"] = self
+        return original(self, *a, **k)
 
     pv.PolyData.cell_centers = espia
     try:
         m = morfometria_malla(BW, [1.0] * 3)
     finally:
         pv.PolyData.cell_centers = original
-    c = centros["c"]
-    hi = BW.shape[0] - 1.0
-    d = np.minimum.reduce([np.abs(c[:, ax] - v) for ax in range(3)
-                           for v in (0.0, hi)])
-    tol = 1e-6
-    ambig = (d >= tol) & (d < 1e-3)
-    return ("%s %s | VTK %s | pymeshfix %s | triangulos %d | en tapa %d | "
-            "ambiguos (tol <= d < 1e-3) %d, d max %.3g | BS_tapas %.1f"
-            % (platform.system(), platform.machine(), vtk.vtkVersion.
-               GetVTKVersion(), getattr(pymeshfix, "__version__", "?"),
-               len(d), int((d < tol).sum()), int(ambig.sum()),
-               float(d[ambig].max()) if ambig.any() else 0.0,
-               m["BS_tapas"]))
+    s = capturada["malla"]
+    c = np.asarray(s.cell_centers().points, float)
+    areas = np.abs(np.asarray(s.compute_cell_sizes(
+        length=False, area=True, volume=False).cell_data["Area"], float))
+    nrm = np.asarray(s.compute_normals(cell_normals=True, point_normals=False,
+                                       auto_orient_normals=False)
+                     .cell_data["Normals"], float)
+    hi, tol = BW.shape[0] - 1.0, 1e-6
+    partes = []
+    for ax, nom in enumerate("xyz"):
+        for v, lado in ((0.0, "lo"), (hi, "hi")):
+            d = np.abs(c[:, ax] - v)
+            en = d < tol
+            para = (np.abs(nrm[:, ax]) > 0.9) & ~en & (d < 0.6)
+            partes.append("%s%s:%d tri/%.1f" % (nom, lado[0], int(en.sum()),
+                                                areas[en].sum())
+                          + ("+%d fuera/%.1f d~%.2f" % (
+                              int(para.sum()), areas[para].sum(),
+                              float(np.median(d[para]))) if para.any() else ""))
+    return ("%s %s | VTK %s | triangulos %d | BS_tapas %.1f | por plano: %s"
+            % (platform.system(), platform.machine(),
+               vtk.vtkVersion.GetVTKVersion(), s.n_cells, m["BS_tapas"],
+               "; ".join(partes)))
 
 
 def test_losa_tapas_excluidas(registro):
