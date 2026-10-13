@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="version V2.2.0" src="https://img.shields.io/badge/version-V2.2.0-e8a33d">
+  <img alt="version V2.2.1" src="https://img.shields.io/badge/version-V2.2.1-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 31 blocks" src="https://img.shields.io/badge/verification-31%20blocks-5b6b7f">
+  <img alt="Verification: 32 blocks" src="https://img.shields.io/badge/verification-32%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -192,6 +192,15 @@ Silicon. There is no build for Intel Macs. Instructions are in
 `instalador/LEEME_MAC.txt` (in Spanish); to rebuild it, use
 `instalador/construir_mac.sh`.
 
+### Linux test build (x86_64)
+
+Since V2.2.1 each release also attaches `spinpy-V*-linux-x86_64.tar.gz`: a
+self-contained folder with the `spinpy` executable, no installer. **It is a test
+build:** it is built and passes `--autocomprobacion` on a GitHub Actions Ubuntu
+runner, but the interface has not been tried by hand on a Linux desktop. Qt
+needs a few system libraries (list in `instalador/LEEME_LINUX.txt`, in
+Spanish); to rebuild it, use `instalador/construir_linux.sh`.
+
 ### With Python: as a library
 
 ```
@@ -330,7 +339,7 @@ macOS with 3.13), and building the installer requires it to pass. Each run
 stores as an artifact the tolerance log and the exact environment
 (`pip freeze`) it was measured with.
 
-31 blocks with tolerances **declared before measuring**: topology, SMI,
+32 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.

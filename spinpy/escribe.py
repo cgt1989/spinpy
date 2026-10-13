@@ -23,7 +23,9 @@ TIPOS DE ELEMENTO
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+from xml.sax.saxutils import quoteattr
 
 import numpy as np
 import pyvista as pv
@@ -252,7 +254,7 @@ def escribir_febio(nodos, elems, ruta, E_s=20e9, nu_s=0.30, sigma_app=1e6,
 
     with open(ruta, "w", encoding="utf-8") as fh:
         w = fh.write
-        w('<?xml version="1.0" encoding="ISO-8859-1"?>\n')
+        w('<?xml version="1.0" encoding="UTF-8"?>\n')
         w("<!-- Ensayo de compresion en z generado por spinpy/escribe.py.\n")
         w("     Unidades mm-N-MPa. E = %g MPa, nu = %g, sigma_app = %g MPa,\n"
           % (E_MPa, nu_s, float(sigma_app) / 1e6))
@@ -332,9 +334,9 @@ def escribir_febio(nodos, elems, ruta, E_s=20e9, nu_s=0.30, sigma_app=1e6,
         if datos:
             w("\t\t<logfile>\n")
             w(f'\t\t\t<node_data data="ux;uy;uz" delim=" " '
-              f'file="{stem}_u.txt"/>\n')
+              f'file={quoteattr(stem + "_u.txt")}/>\n')
             w(f'\t\t\t<element_data data="sx;sy;sz;syz;sxz;sxy" delim=" " '
-              f'file="{stem}_s.txt"/>\n')
+              f'file={quoteattr(stem + "_s.txt")}/>\n')
             w("\t\t</logfile>\n")
         w("\t</Output>\n</febio_spec>\n")
 
@@ -468,12 +470,12 @@ def escribir_febio_ensayo(nodos, elems, ruta, E_s=20e9, nu_s=0.30,
 
     with open(ruta, "w", encoding="utf-8") as fh:
         w = fh.write
-        w('<?xml version="1.0" encoding="ISO-8859-1"?>\n')
+        w('<?xml version="1.0" encoding="UTF-8"?>\n')
         w("<!-- Ensayo de compresion en z generado por spinpy/escribe.py\n")
         w(f"     (escribir_febio_ensayo, {tipo}, material {material}, "
           f"{pasos} paso(s)).\n")
         if comentario:
-            w("     " + str(comentario).replace("--", "- -") + "\n")
+            w("     " + re.sub(r"-(?=-)", "- ", str(comentario)) + "\n")
         w("     Unidades mm-N-MPa. E = %g MPa, nu = %g, sigma_app = %g MPa,\n"
           % (E_MPa, nu_s, float(sigma_app) / 1e6))
         w("     A_bruta = %.9g mm2, F = %.9g N, apoyo %s. -->\n"
@@ -563,9 +565,9 @@ def escribir_febio_ensayo(nodos, elems, ruta, E_s=20e9, nu_s=0.30,
         if datos:
             w("\t\t<logfile>\n")
             w(f'\t\t\t<node_data data="ux;uy;uz" delim=" " '
-              f'file="{stem}_u.txt"/>\n')
+              f'file={quoteattr(stem + "_u.txt")}/>\n')
             w(f'\t\t\t<element_data data="sx;sy;sz;syz;sxz;sxy" delim=" " '
-              f'file="{stem}_s.txt"/>\n')
+              f'file={quoteattr(stem + "_s.txt")}/>\n')
             w("\t\t</logfile>\n")
         w("\t</Output>\n</febio_spec>\n")
 

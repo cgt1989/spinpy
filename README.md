@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="versión V2.2.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.2.0-e8a33d">
+  <img alt="versión V2.2.1" src="https://img.shields.io/badge/versi%C3%B3n-V2.2.1-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 31 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-31%20bloques-5b6b7f">
+  <img alt="Verificación: 32 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-32%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -193,6 +193,15 @@ Qt 5.15.17 en lugar de la 5.15.2 de Windows, que no existe para Apple Silicon.
 No hay versión para Mac con procesador Intel. Instrucciones en
 `instalador/LEEME_MAC.txt`; para reconstruirla, `instalador/construir_mac.sh`.
 
+### Versión de prueba para Linux (x86_64)
+
+Desde la V2.2.1 cada release adjunta también `spinpy-V*-linux-x86_64.tar.gz`:
+una carpeta autónoma con el ejecutable `spinpy`, sin instalador. **Es una
+versión de prueba:** se construye y supera `--autocomprobacion` en un equipo
+Ubuntu de GitHub Actions, pero la interfaz no se ha probado a mano en un
+escritorio Linux. Necesita algunas bibliotecas del sistema para Qt (lista en
+`instalador/LEEME_LINUX.txt`); para reconstruirla, `instalador/construir_linux.sh`.
+
 ### Con Python: como biblioteca
 
 ```
@@ -327,7 +336,7 @@ macOS con 3.13), y la construcción del instalador exige que pase. Cada
 ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
 (`pip freeze`) con que se midió.
 
-31 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+32 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la

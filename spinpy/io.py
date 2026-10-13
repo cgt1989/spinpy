@@ -21,9 +21,32 @@ por defecto transpone el volumen en silencio.
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 
 import numpy as np
+
+
+def _validar_spacing(spacing, nombre):
+    """El espaciado de vóxel tiene que ser finito y estrictamente positivo.
+
+    Un valor nulo, negativo o no finito no produce un error aguas abajo: da
+    volúmenes negativos, NaN o una escala equivocada en toda la morfometría y
+    la rigidez. Se corta aquí, en la puerta de entrada.
+    """
+    sp = np.asarray(spacing, dtype=float).ravel()
+    if sp.size != 3 or not np.all(np.isfinite(sp)) or np.any(sp <= 0):
+        raise ValueError(f"{nombre}: espaciado de voxel invalido {sp.tolist()}; "
+                         f"debe ser finito y mayor que 0 en los tres ejes.")
+    return sp
+
+
+def _sin_espaciado(nombre):
+    warnings.warn(
+        f"{nombre}: el archivo no declara el espaciado del voxel; se usa 1.0 "
+        f"en los tres ejes, de modo que TODAS las magnitudes quedan en unidades "
+        f"de voxel y no en mm. Indica la escala real antes de interpretar "
+        f"morfometria o rigidez.", UserWarning, stacklevel=3)
 
 
 def leer_vtk_voi(ruta, binarizar=True, umbral=0):
@@ -42,18 +65,31 @@ def leer_vtk_voi(ruta, binarizar=True, umbral=0):
         m = re.search(patron, texto, re.IGNORECASE)
         if not m:
             return None
-        return [float(m.group(i + 1)) for i in range(n)]
+        try:
+            return [float(m.group(i + 1)) for i in range(n)]
+        except ValueError:
+            raise ValueError(f"{ruta.name}: valores no numericos en "
+                             f"{m.group(0).split()[0]}") from None
 
     dims = _busca(r"DIMENSIONS\s+(\d+)\s+(\d+)\s+(\d+)", 3)
     if dims is None:
         raise ValueError(f"No se encontro DIMENSIONS en {ruta.name}")
     nx, ny, nz = (int(v) for v in dims)
+    if min(nx, ny, nz) < 1:
+        raise ValueError(f"{ruta.name}: DIMENSIONS {nx} {ny} {nz} no es un "
+                         f"volumen valido.")
 
-    esp = _busca(r"SPACING\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)", 3)
+    # \S+ y no una clase numerica: "nan" o "inf" tienen que LEERSE para poder
+    # rechazarlos, no saltarse en silencio y caer al valor por defecto.
+    esp = _busca(r"SPACING\s+(\S+)\s+(\S+)\s+(\S+)", 3)
     if esp is None:
         # Formatos antiguos usan ASPECT_RATIO en lugar de SPACING
-        esp = _busca(r"ASPECT_RATIO\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)", 3)
-    spacing = np.array(esp if esp else [1.0, 1.0, 1.0], dtype=float)
+        esp = _busca(r"ASPECT_RATIO\s+(\S+)\s+(\S+)\s+(\S+)", 3)
+    if esp:
+        spacing = _validar_spacing(esp, ruta.name)
+    else:
+        _sin_espaciado(ruta.name)
+        spacing = np.ones(3)
 
     m = re.search(r"POINT_DATA\s+(\d+)", texto, re.IGNORECASE)
     if not m:
@@ -73,6 +109,9 @@ def leer_vtk_voi(ruta, binarizar=True, umbral=0):
             f"{datos.size} ({100*datos.size/npts:.0f}%). Esta incompleto o "
             f"truncado; vuelve a exportar el VOI.")
     datos = datos[:npts]
+    if not np.all(np.isfinite(datos)):
+        raise ValueError(f"{ruta.name}: contiene valores NaN o infinitos; "
+                         f"se rechaza en vez de tratarlos como vacio.")
     if npts != nx * ny * nz:
         raise ValueError(f"{ruta.name}: POINT_DATA={npts} no cuadra con "
                          f"{nx}x{ny}x{nz}={nx*ny*nz}")
@@ -106,10 +145,12 @@ def leer_mat_voi(ruta, binarizar=True, umbral=0):
 
     if "spacing" in d:
         spacing = np.asarray(d["spacing"], dtype=float).ravel()[:3]
+        if spacing.size == 1:
+            spacing = np.repeat(spacing, 3)
+        spacing = _validar_spacing(spacing, Path(ruta).name)
     else:
+        _sin_espaciado(Path(ruta).name)
         spacing = np.ones(3)
-    if spacing.size != 3:
-        spacing = np.repeat(spacing.ravel()[0], 3)
 
     if binarizar:
         VOI = VOI > umbral
