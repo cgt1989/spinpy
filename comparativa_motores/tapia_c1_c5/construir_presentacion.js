@@ -63,6 +63,23 @@ const exp = (x) => {
   return m.replace(".", ",") + " × 10" + String(+e).split("").map((c) => SUP[c]).join("");
 };
 const dl = B.deslizante, em = B.empotrado;
+const leer = (f) => fs.readFileSync(path.join(AQUI, f), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+const CONV = leer("resultados/convergencia.jsonl").filter((r) => r.E_app_MPa !== undefined);
+const BASE = leer("resultados/tapia_c1_c5.jsonl").filter((r) => r.clave === "referencia" && r.E_app_MPa !== undefined);
+const SENS = leer("resultados/sensibilidad.jsonl").filter((r) => r.E_app_plato_MPa !== undefined);
+// serie por (voi, estructura, n)
+const MAL = {};
+BASE.forEach((r) => (MAL[r.voi + "|" + r.estructura + "|40"] = r));
+CONV.forEach((r) => (MAL[r.voi + "|" + r.estructura + "|" + r.n] = r));
+const NS = [40, ...[...new Set(CONV.map((r) => r.n))].sort((a, b) => a - b)]
+  .filter((n) => VOIS.every((v) => ESTR.every((e) => MAL[v + "|" + e + "|" + n])));
+const mal = (v, e, n, k) => MAL[v + "|" + e + "|" + n][k];
+const SEN = {};
+SENS.forEach((r) => (SEN[r.voi + "|" + r.estructura] = r));
+const cocientes = (num, den) => VOIS.map((v) => num(v) / den(v));
+const rg = (a) => f0(Math.min(...a)) + " a " + f0(Math.max(...a));
+const f0 = (x) => (100 * x).toFixed(0);
+const SIGMA = dl.sigma_MPa, LIM_PISTOIA = 0.007 * 18000;
 
 // ---------------------------------------------------------------- layouts
 const PIE = (s) => s;
@@ -113,7 +130,7 @@ pres.addSection({ title: "Experimento y método" });
     txt(s, st[0], { x: x + 0.3, y: 1.7, w: 3.2, h: 0.95, fontFace: "Cambria", fontSize: 48, bold: true, color: i === 2 ? "C8553D" : "2E7D7A", valign: "middle" });
     txt(s, st[1], { x: x + 0.3, y: 2.65, w: 3.3, h: 0.7, fontSize: 16, color: "1B2A33" });
   });
-  const pasos = ["VOI de micro-CT\n16 µm, cubo de 3,0 mm", "Ajuste del spinodoide\ny del dual-lattice", "Malla de ladrillos\n40³ elementos", "Compresión axial\nbase empotrada, 100 N", "Campos |u|\ny von Mises"];
+  const pasos = ["VOI de micro-CT\n16 µm, cubo de 3,0 mm", "Ajuste del spinodoide\ny del dual-lattice", "Malla de ladrillos\n40³ elementos", "Compresión axial\nbase adherida, 100 N", "Campos |u|\ny von Mises"];
   pasos.forEach((p, i) => {
     const x = 0.6 + i * 2.5;
     s.addShape(pres.shapes.OVAL, { objectName: "num " + i, x: x, y: 4.1, w: 0.5, h: 0.5, fill: { color: "1F3A44" }, line: { color: "1F3A44" } });
@@ -145,12 +162,12 @@ pres.addSection({ title: "Experimento y método" });
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "salida u", x: 7.7, y: 2.1, w: 5.0, h: 2.1, fill: { color: "FFFFFF" }, line: { color: "8FB8B5", width: 1.5 }, rectRadius: 0.08 });
   txt(s, "Deformación total", { x: 7.95, y: 2.2, w: 4.5, h: 0.4, fontSize: 18, bold: true });
   txt(s, "|u| = √(ux² + uy² + uz²)", { x: 7.95, y: 2.65, w: 4.5, h: 0.5, fontFace: "Cambria", fontSize: 20 });
-  txt(s, "Es un desplazamiento, no una deformación unitaria. Mide la rigidez global.", { x: 7.95, y: 3.25, w: 4.5, h: 0.85, fontSize: 14, color: "5B6573" });
+  txt(s, "Es un desplazamiento, no una deformación unitaria. Su máximo es local; la rigidez global sale del desplazamiento medio de la cima.", { x: 7.95, y: 3.25, w: 4.5, h: 0.85, fontSize: 14, color: "5B6573" });
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "salida vm", x: 7.7, y: 4.4, w: 5.0, h: 2.1, fill: { color: "FFFFFF" }, line: { color: "E8A18F", width: 1.5 }, rectRadius: 0.08 });
   txt(s, "Tensión de von Mises", { x: 7.95, y: 4.5, w: 4.5, h: 0.4, fontSize: 18, bold: true });
   txt(s, [{ text: "σ" }, { text: "vm", options: { subscript: true } }, { text: " = √(3/2 · s : s),   s = σ − ⅓ tr(σ) I" }], { x: 7.95, y: 4.95, w: 4.7, h: 0.5, fontFace: "Cambria", fontSize: 18 });
   txt(s, "Solo la parte desviadora. Localiza dónde se concentra la tensión.", { x: 7.95, y: 5.55, w: 4.5, h: 0.85, fontSize: 14, color: "5B6573" });
-  notas(s, "El campo de von Mises y el de deformación total no se reescalan entre sí: la deformación total acumula todo lo que se movió la probeta y su máximo está siempre en la cara cargada; von Mises localiza los nudos trabeculares. En un estado uniaxial von Mises vale exactamente la tensión axial.");
+  notas(s, "El campo de von Mises y el de deformación total no se reescalan entre sí: la deformación total acumula lo que se movió la probeta, y su máximo se ubica en la capa superior en la mayoría de los casos; von Mises localiza los nudos trabeculares. La rigidez aparente no usa el máximo de |u|, sino el desplazamiento medio de la cima ponderado por área. En un estado uniaxial von Mises vale exactamente la tensión axial.");
 }
 
 // ---------------------------------------------------------------- 4 ejes
@@ -165,7 +182,7 @@ pres.addSection({ title: "Experimento y método" });
   for (let i = 0; i < 9; i++) s.addShape(pres.shapes.LINE, { objectName: "rayado " + i, x: x0 - 0.3 + i * 0.4, y: y0 + h + 0.3, w: -0.22, h: 0.26, line: { color: "5B6573", width: 1.5 } });
   txt(s, "Base: ux = uy = uz = 0", { x: x0 - 0.6, y: y0 + h + 0.65, w: w + 1.2, h: 0.4, fontSize: 14, bold: true, align: "center" });
   for (let i = 0; i < 5; i++) s.addShape(pres.shapes.LINE, { objectName: "carga " + i, x: x0 + 0.3 + i * 0.55, y: y0 - 0.85, w: 0, h: 0.75, line: { color: "C8553D", width: 2.5, endArrowType: "triangle" } });
-  txt(s, "100 N en −z, cargas nodales iguales", { x: x0 - 0.6, y: y0 - 1.35, w: w + 1.2, h: 0.4, fontSize: 14, bold: true, color: "C8553D", align: "center" });
+  txt(s, "100 N en −z sobre las caras óseas", { x: x0 - 0.6, y: y0 - 1.35, w: w + 1.2, h: 0.4, fontSize: 14, bold: true, color: "C8553D", align: "center" });
   s.addShape(pres.shapes.LINE, { objectName: "libre izq", x: x0 - 0.85, y: y0 + 0.1, w: 0.7, h: 0, line: { color: "2E7D7A", width: 2, beginArrowType: "triangle", endArrowType: "triangle" } });
   s.addShape(pres.shapes.LINE, { objectName: "libre der", x: x0 + w + 0.15, y: y0 + 0.1, w: 0.7, h: 0, line: { color: "2E7D7A", width: 2, beginArrowType: "triangle", endArrowType: "triangle" } });
   txt(s, "x, y libres", { x: x0 + w + 0.15, y: y0 + 0.2, w: 1.5, h: 0.3, fontSize: 12, color: "2E7D7A", bold: true });
@@ -177,15 +194,16 @@ pres.addSection({ title: "Experimento y método" });
   s.addTable([
     [hd("Superficie"), hd("ux"), hd("uy"), hd("uz"), hd("Carga")],
     [cell("Base (z = 0)", { bold: true }), fx, fx, fx, cell("ninguna")],
-    [cell("Cara superior", { bold: true }), lb, lb, lb, cell("100 N repartidos, sin plato rígido")],
+    [cell("Cara superior", { bold: true }), lb, lb, lb, cell("100 N como presión uniforme sobre las caras óseas, sin plato")],
     [cell("Caras laterales", { bold: true }), lb, lb, lb, cell("ninguna")],
   ], { x: 5.4, y: 1.6, w: 7.3, colW: [1.9, 0.8, 0.8, 0.8, 3.0], rowH: 0.55, border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle" });
   txt(s, [
-    { text: "Base empotrada: es la condición del protocolo de Tapia y reproduce la fricción con los platos.", options: { bullet: true, breakLine: true } },
-    { text: "Contraste, apoyo deslizante (el de la app): uz = 0 en la base y solo lo mínimo contra el movimiento rígido.", options: { bullet: true, breakLine: true } },
-    { text: "Malla de 40³ hexaedros; NGSolve con solver directo y la app como control independiente.", options: { bullet: true } },
-  ], { x: 5.4, y: 4.1, w: 7.3, h: 2.5, fontSize: 16, paraSpaceAfter: 8 });
-  notas(s, "Revisión de la formulación en el código: en el protocolo de Tapia la base queda con los tres ejes fijos. La cara superior no es un plato rígido: recibe fuerzas nodales iguales en menos z y sus ejes x e y quedan libres, igual que las caras laterales. El apoyo deslizante fija solo uz en la base más los anclajes mínimos contra el movimiento de sólido rígido.");
+    { text: "Base empotrada: adherida, con fricción infinita contra el plato. Es la condición del protocolo de Tapia aquí replicado.", options: { bullet: true, breakLine: true } },
+    { text: "Carga: presión uniforme σ·A_bruta/A_ósea sobre las caras óseas de la cima, no un plato rígido. Con un plato la rigidez sube (ver sensibilidad).", options: { bullet: true, breakLine: true } },
+    { text: "Contraste, apoyo deslizante: uz = 0 en la base y solo anclajes contra el movimiento rígido.", options: { bullet: true, breakLine: true } },
+    { text: "Malla de 40³ hexaedros (h = 75 µm); NGSolve con solver directo. La app solo actúa como control del solver. Tapia usa otro elemento y 50 µm.", options: { bullet: true } },
+  ], { x: 5.4, y: 4.0, w: 7.3, h: 2.9, fontSize: 14, paraSpaceAfter: 5 });
+  notas(s, "Revisión de la formulación en el código: en el protocolo de Tapia la base queda con los tres ejes fijos. La cara superior no es un plato rígido: recibe una presión uniforme sobre las caras óseas (fuerza igual por cara de elemento) y sus ejes x e y quedan libres, igual que las caras laterales. El VOI de 188 elementos por lado se lleva a 40 por vecino más próximo y los candidatos sintéticos de 96 a 40. El apoyo deslizante fija solo uz en la base más los anclajes mínimos contra el movimiento de sólido rígido.");
 }
 
 // ---------------------------------------------------------------- 5 cubo
@@ -196,7 +214,7 @@ pres.addSection({ title: "Chequeo con el cubo macizo" });
   s.addImage({ path: path.join(AQUI, "figs/bloque.png"), objectName: "figura cubo", x: 0.6, y: 1.4, w: 5.5, h: 5.5 * 1277 / 1263 });
   const cajas = [
     ["Apoyo deslizante: exacto", `E aparente / E del tejido = 1,000000000002. Von Mises = σ = ${f2(dl.sigma_MPa)} MPa en todo el cubo. Desplazamientos exactos a 10⁻⁹.`, "2E7D7A"],
-    ["Base empotrada: no es uniaxial", `E_app es ${f1(100 * (em.E_app_sobre_E_s - 1))} % mayor. Von Mises máximo = ${f2(em.vm_max_sobre_sigma)} σ en las esquinas de la base. El borde superior se expande ${pct(em.ux_borde_techo_mm / em.ux_borde_exacto_libre_mm)} % de lo libre.`, "C8553D"],
+    ["Base empotrada: no es uniaxial", `E_app es ${f1(100 * (em.E_app_sobre_E_s - 1))} % mayor. Von Mises máximo = ${f2(em.vm_max_sobre_sigma)} σ en las esquinas de la base (a 40³; con 16³ era 1,27 σ: crece al refinar). El borde superior se expande ${pct(em.ux_borde_techo_mm / em.ux_borde_exacto_libre_mm)} % de lo libre.`, "C8553D"],
     ["Lectura", "La base fija impide que el material se dilate lateralmente: rigidiza y concentra tensión. La cara superior sí tiene x e y libres.", "1F3A44"],
   ];
   cajas.forEach((c, i) => {
@@ -218,26 +236,28 @@ pres.addSection({ title: "Chequeo con el cubo macizo" });
   const hom = sum((g) => g.indexOf("homogeneizacion") >= 0);
   const tri = sum((g) => g.indexOf("triaxial") >= 0);
   const pri = sum((g) => g.indexOf("prisma") >= 0);
+  const col = sum((g) => g.indexOf("columnas") >= 0);
   const H = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: "1F3A44" }, fontSize: 13, align: "center" } });
   const c = (t, a) => ({ text: t, options: { fontSize: 13, align: a || "left" } });
   s.addTable([
-    [H("Análisis, comparado con la solución exacta del cubo"), H("Pruebas"), H("Error máx.")],
+    [H("Análisis (solución exacta o equilibrio)"), H("Pruebas"), H("Error máx. frente a lo exacto")],
     [c("Compresión lineal con apoyo deslizante: E_app, von Mises, |u|, equilibrio, plato rígido, E corregido, no lineal (SVK), Pistoia; app, NGSolve, scikit-fem; hex8 y TET10"), c(String(dlz.n), "center"), c(exp(dlz.max), "center")],
     [c("Compresión lineal con base empotrada: equilibrio, ejes fijos"), c(String(emp.n), "center"), c(exp(emp.max), "center")],
     [c("Acuerdo entre motores con base empotrada (E_app, von Mises, |u|)"), c(String(acu.n), "center"), c(exp(acu.max), "center")],
     [c("Homogeneización periódica: C₁₁, C₁₂, E, G, ν"), c(String(hom.n), "center"), c(exp(hom.max), "center")],
     [c("Compresión en X, Y, Z y convergencia con la malla (app)"), c(String(tri.n), "center"), c(exp(tri.max), "center")],
     [c("Prisma de lados distintos 12 × 16 × 24: área, altura y ejes correctos"), c(String(pri.n), "center"), c(exp(pri.max), "center")],
-  ], { x: 0.6, y: 1.45, w: 12.1, colW: [8.9, 1.5, 1.7], border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle", rowH: [0.42, 0.8, 0.45, 0.45, 0.45, 0.45, 0.45] });
-  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "resumen sanidad", x: 0.6, y: 5.25, w: 5.6, h: 1.55, fill: { color: "EEF2F3" }, line: { color: "EEF2F3" }, rectRadius: 0.08 });
-  txt(s, `${e_ok} de ${e_ok + e_mal}`, { x: 0.85, y: 5.35, w: 5.1, h: 0.75, fontFace: "Cambria", fontSize: 40, bold: true, color: "2E7D7A", valign: "middle" });
-  txt(s, `pruebas con respuesta exacta pasan. Otras ${e_info} son informativas (sin solución cerrada) y se reportan.`, { x: 0.85, y: 6.1, w: 5.1, h: 0.65, fontSize: 14 });
+    [c("Columnas aisladas (E_app = φ·E del tejido) y malla 24 × 16 × 20 cargada en X, Y y Z; fragmentos flotantes"), c(String(col.n), "center"), c(exp(col.max), "center")],
+  ], { x: 0.6, y: 1.4, w: 12.1, colW: [8.7, 1.4, 2.0], border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle", rowH: [0.42, 0.75, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4] });
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "resumen sanidad", x: 0.6, y: 5.3, w: 5.6, h: 1.55, fill: { color: "EEF2F3" }, line: { color: "EEF2F3" }, rectRadius: 0.08 });
+  txt(s, `${e_ok} de ${e_ok + e_mal}`, { x: 0.85, y: 5.38, w: 5.1, h: 0.75, fontFace: "Cambria", fontSize: 40, bold: true, color: "2E7D7A", valign: "middle" });
+  txt(s, `pruebas con respuesta exacta pasan. Otras ${e_info} son informativas (sin solución cerrada) y se reportan.`, { x: 0.85, y: 6.13, w: 5.1, h: 0.65, fontSize: 14 });
   txt(s, [
     { text: "Tolerancias declaradas antes de medir: 10⁻⁸ en lineal, 10⁻⁶ en no lineal.", options: { bullet: true, breakLine: true } },
     { text: "La primera versión tuvo 2 fallos: eran un defecto de mi prueba (tetraedros agrupados por centroide). Se acotó a hexaedros y queda documentado.", options: { bullet: true, breakLine: true } },
     { text: "Un cubo es simétrico y no detecta ejes, áreas o alturas confundidos: por eso se añadió un prisma.", options: { bullet: true, breakLine: true } },
     { text: "No aplican a un cubo: morfometría de superficie y fallo progresivo.", options: { bullet: true } },
-  ], { x: 6.5, y: 5.2, w: 6.2, h: 1.7, fontSize: 12, paraSpaceAfter: 4 });
+  ], { x: 6.5, y: 5.3, w: 6.2, h: 1.65, fontSize: 12, paraSpaceAfter: 3 });
   notas(s, "El chequeo recorre cada análisis mecánico de la app con un cubo macizo, que tiene solución exacta: compresión lineal, plato rígido, módulo corregido del núcleo, no lineal de Saint Venant-Kirchhoff frente a su solución cerrada, criterio de Pistoia, homogeneización periódica, compresión en los tres ejes y convergencia con la malla. Los motores usados fueron la app, NGSolve y scikit-fem, en hexaedros y TET10. Guion: sanidad_cubo.py.");
 }
 
@@ -249,7 +269,7 @@ pres.addSection({ title: "Resultados" });
   const A = {};
   R.ajustes.forEach((a) => (A[a.voi + "|" + a.familia] = a));
   const H = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: "1F3A44" }, fontSize: 14, align: "center" } });
-  const rows = [[H("VOI"), H("BV/TV del VOI"), H("BV/TV spinodoide"), H("BV/TV dual-lattice"), H("Error spinodoide"), H("Error dual-lattice")]];
+  const rows = [[H("VOI"), H("BV/TV nativo del VOI"), H("BV/TV spinodoide"), H("BV/TV dual-lattice"), H("Error spinodoide"), H("Error dual-lattice")]];
   let gana = 0;
   VOIS.forEach((v) => {
     const a = A[v + "|spinodoide"], d = A[v + "|dual-lattice"];
@@ -262,14 +282,14 @@ pres.addSection({ title: "Resultados" });
       best(a.error, a.error < d.error), best(d.error, d.error < a.error)]);
   });
   s.addTable(rows, { x: 0.6, y: 1.55, w: 12.1, colW: [1.3, 2.0, 2.2, 2.2, 2.2, 2.2], rowH: 0.52, border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle" });
-  const cards = [[`${gana} de 5`, "VOIs donde el dual-lattice ajusta con menor error morfométrico que el spinodoide"], ["< 1 %", "diferencia de BV/TV entre cada candidato y su VOI"], ["1", "semilla y un ajuste por VOI y familia: sin réplicas"]];
+  const cards = [[`${gana} de 5`, "VOIs donde el dual-lattice ajusta con menor error morfométrico que el spinodoide"], [f2(100 * Math.max(...R.ajustes.map((a) => Math.abs(a.BVTV_generada - a.BVTV_voi)))) + " pp", "diferencia máxima de BV/TV entre un candidato y su VOI (puntos porcentuales)"], ["1", "semilla y un ajuste por VOI y familia: sin réplicas"]];
   cards.forEach((c, i) => {
     const x = 0.6 + i * 4.1;
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "dato " + i, x, y: 5.0, w: 3.8, h: 1.75, fill: { color: "EEF2F3" }, line: { color: "EEF2F3" }, rectRadius: 0.08 });
     txt(s, c[0], { x: x + 0.25, y: 5.1, w: 3.3, h: 0.7, fontFace: "Cambria", fontSize: 34, bold: true, color: "2E7D7A", valign: "middle" });
     txt(s, c[1], { x: x + 0.25, y: 5.8, w: 3.3, h: 0.9, fontSize: 14 });
   });
-  notas(s, "Los ajustes usan el modo completo, la resolución de comparación por omisión (96 elementos por lado), semilla 20260720, sin término mecánico ni réplicas. Los de C2 y C4 reproducen los de la campaña anterior. El error es la función objetivo morfométrica de spinpy.");
+  notas(s, "Los ajustes usan el modo completo, la resolución de comparación por omisión (96 elementos por lado, luego llevada a 40 para el ensayo), semilla 20260720, sin término mecánico ni réplicas. Los de C2 y C4 reproducen los de la campaña anterior. El error es la función objetivo morfométrica de spinpy.");
 }
 
 // ---------------------------------------------------------------- 8 y 9 mapas
@@ -283,16 +303,16 @@ const mapa = (titulo, img, lectura, nota) => {
     txt(s, l[0], { x: 9.95, y: y + 0.1, w: 2.8, h: 0.55, fontFace: "Cambria", fontSize: 22, bold: true, color: l[2] });
     txt(s, l[1], { x: 9.95, y: y + 0.68, w: 2.8, h: 0.9, fontSize: 13 });
   });
-  txt(s, "Escala común por columna: de 0 al p99 de la estructura más tensionada de cada VOI.", { x: 0.5, y: 6.65, w: 9.0, h: 0.3, fontSize: 11, color: "5B6573" });
+  txt(s, "Escala común por columna: de 0 al p99 de la estructura más exigida de cada VOI. Amarillo = zona más deformada o tensionada.", { x: 0.5, y: 6.65, w: 9.0, h: 0.3, fontSize: 11, color: "5B6573" });
   notas(s, nota);
 };
 mapa("Deformación total |u|", "figs/mapa_u.png", [
-  [`${pct(rE_s[0])} a ${pct(rE_s[1])} %`, "de la rigidez del VOI tiene el spinodoide: se deforma mucho más", "C8553D"],
+  [`${pct(rE_s[0])} a ${pct(rE_s[1])} %`, "de la rigidez del VOI conserva el spinodoide a 40³: se deforma más (ver convergencia)", "C8553D"],
   [`${pct(rE_d[0])} a ${pct(rE_d[1])} %`, "de la rigidez del VOI tiene el dual-lattice", "2E7D7A"],
-  ["En la cima", "el máximo de |u| cae en la capa superior en 14 de las 15 estructuras", "1F3A44"],
-], "Deformación total |u| en milímetros, mapa 3D de cada una de las 15 estructuras con la misma escala por VOI. La rigidez aparente se toma del desplazamiento medio del techo ponderado por área. Las cifras salen de NGSolve con solver directo; la app coincide a " + R.dif_max_app_vs_ngsolve.toExponential(0).replace("e-", "×10^-") + " en E_app.");
+  ["En la cima", `el máximo de |u| cae en la capa superior en ${R.tabla.filter((t) => t.capa_del_max_u === t.n_capas - 1).length} de las ${R.tabla.length} estructuras`, "1F3A44"],
+], "Deformación total |u| en milímetros, mapa 3D de cada una de las 15 estructuras con la misma escala por VOI. La rigidez aparente se toma del desplazamiento medio del techo ponderado por área. Las cifras salen de NGSolve con solver directo; la app coincide a " + exp(R.dif_max_app_vs_ngsolve) + " en E_app.");
 mapa("Tensión de von Mises", "figs/mapa_vm.png", [
-  [`${f1(rV_s[0])} a ${f1(rV_s[1])}×`, "el p99 de von Mises del VOI alcanza el spinodoide", "C8553D"],
+  [`${f1(rV_s[0])} a ${f1(rV_s[1])}×`, "el p99 del VOI alcanza el spinodoide a 40³; sube al refinar", "C8553D"],
   [`${f1(rV_d[0])} a ${f1(rV_d[1])}×`, "el p99 del VOI alcanza el dual-lattice", "2E7D7A"],
   ["p99, no máximo", "el máximo no converge con la malla; el p99 es el valor citable", "1F3A44"],
 ], "Tensión de von Mises en MPa. El máximo de un campo de von Mises no converge con la malla (con el cubo macizo crece al refinar), por eso las tablas citan el percentil 99. Las zonas amarillas son nudos y puntales finos del spinodoide.");
@@ -313,8 +333,67 @@ mapa("Tensión de von Mises", "figs/mapa_vm.png", [
   });
   s.addChart(pres.charts.BAR, ser("E_app_MPa"), Object.assign({ x: 0.5, y: 1.35, w: 6.2, h: 4.5 }, cfg("Módulo aparente E_app [MPa]")));
   s.addChart(pres.charts.BAR, ser("vm_p99_MPa"), Object.assign({ x: 6.75, y: 1.35, w: 6.2, h: 4.5 }, cfg("Von Mises, percentil 99 [MPa]")));
-  txt(s, "Valores de NGSolve con solver directo, 40³, base empotrada, 100 N. La app da lo mismo hasta 10⁻¹¹. Las cifras completas, con |u| máxima y von Mises máximo, están en el anexo.", { x: 0.6, y: 6.05, w: 12.1, h: 0.75, fontSize: 14, color: "5B6573" });
+  txt(s, "Valores de NGSolve con solver directo, 40³, base adherida, 100 N. La app coincide en E_app hasta " + exp(R.dif_max_app_vs_ngsolve) + " (relativo). No están convergidos con la malla (diapositiva siguiente).", { x: 0.6, y: 6.05, w: 12.1, h: 0.75, fontSize: 14, color: "5B6573" });
   notas(s, "Con base empotrada, 100 N y E de 18 GPa. E_app se calcula con el desplazamiento medio del techo ponderado por área. El p99 de von Mises es sobre los elementos del sólido. C2 y C4 reproducen los valores de la campaña anterior de la comparativa de motores.");
+}
+
+
+// ---------------------------------------------------------------- convergencia
+{
+  const s = pres.addSlide({ masterName: "CONTENIDO", sectionTitle: "Resultados" });
+  s.addText("Convergencia con la malla", { placeholder: "title" });
+  const H = (t, cs) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: "1F3A44" }, fontSize: 13, align: "center", colspan: cs || 1 } });
+  const r1 = [H("VOI"), H("E_app VOI [MPa]", NS.length)];
+  const r2 = [H("")];
+  NS.forEach(() => {});
+  const filas = [[H("VOI"), H("Spinodoide / VOI, rigidez [%]", NS.length), H("Dual-lattice / VOI, rigidez [%]", NS.length), H("Spinodoide / VOI, p99 [×]", NS.length)],
+                 [H("n por lado"), ...NS.map((n) => H(String(n))), ...NS.map((n) => H(String(n))), ...NS.map((n) => H(String(n)))]];
+  VOIS.forEach((v) => {
+    const c = (t, b) => ({ text: t, options: { fontSize: 13, align: "center", bold: b } });
+    filas.push([c(v, true),
+      ...NS.map((n) => c(f0(mal(v, "spinodoide", n, "E_app_MPa") / mal(v, "voi", n, "E_app_MPa")))),
+      ...NS.map((n) => c(f0(mal(v, "dual-lattice", n, "E_app_MPa") / mal(v, "voi", n, "E_app_MPa")))),
+      ...NS.map((n) => c(f1(mal(v, "spinodoide", n, "vm_p99_MPa") / mal(v, "voi", n, "vm_p99_MPa"))))]);
+  });
+  const nc = 1 + 3 * NS.length, w1 = 1.4, wc = (12.1 - w1) / (3 * NS.length);
+  s.addTable(filas, { x: 0.6, y: 1.45, w: 12.1, colW: [w1, ...Array(3 * NS.length).fill(wc)], rowH: 0.42, border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle" });
+  const maxcam = (e) => Math.max(...VOIS.map((v) => Math.abs(mal(v, e, NS[NS.length - 1], "E_app_MPa") / mal(v, e, NS[0], "E_app_MPa") - 1)));
+  const cards = [
+    [f0(maxcam("voi")) + " %", `cambio máximo de E_app del VOI entre ${NS[0]}³ y ${NS[NS.length - 1]}³: converge razonablemente`],
+    [f0(maxcam("spinodoide")) + " %", "cambio máximo en el spinodoide: sus puntales finos siguen resolviéndose, la malla no ha convergido"],
+    ["Orden", "VOI > dual-lattice > spinodoide se conserva en cada malla (salvo C5, donde dual y spinodoide quedan cercanos)"],
+  ];
+  cards.forEach((c, i) => {
+    const x = 0.6 + i * 4.1;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "conv " + i, x, y: 4.65, w: 3.8, h: 2.15, fill: { color: "EEF2F3" }, line: { color: "EEF2F3" }, rectRadius: 0.08 });
+    txt(s, c[0], { x: x + 0.25, y: 4.75, w: 3.3, h: 0.7, fontFace: "Cambria", fontSize: 32, bold: true, color: i === 1 ? "C8553D" : "2E7D7A", valign: "middle" });
+    txt(s, c[1], { x: x + 0.25, y: 5.5, w: 3.35, h: 1.25, fontSize: 13 });
+  });
+  notas(s, "NGSolve con solver directo, misma carga y misma condición de apoyo, remuestreando cada estructura a distintas mallas. Las razones entre estructuras dependen de la resolución; la que se cita a 40 elementos por lado es una primera aproximación, no un valor convergido. El p99 de von Mises del spinodoide sube con la malla porque los puntales finos quedan mejor resueltos.");
+}
+
+// ---------------------------------------------------------------- sensibilidad a la carga
+{
+  const s = pres.addSlide({ masterName: "CONTENIDO", sectionTitle: "Resultados" });
+  s.addText("Sensibilidad a la carga superior", { placeholder: "title" });
+  const H = (t, cs) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: "1F3A44" }, fontSize: 13, align: "center", colspan: cs || 1 } });
+  const rel = (e, k) => cocientes((v) => SEN[v + "|" + e][k], (v) => SEN[v + "|voi"][k]);
+  const aum = (e) => cocientes((v) => SEN[v + "|" + e].E_app_plato_MPa, (v) => SEN[v + "|" + e].E_app_traccion_MPa);
+  const filas = [[H("Protocolo de carga en la cima"), H("Spinodoide / VOI [%]"), H("Dual-lattice / VOI [%]"), H("E_app VOI, cambio frente a presión [%]")]];
+  const c = (t, b, a) => ({ text: t, options: { fontSize: 14, align: a || "center", bold: b } });
+  const g3 = (k) => [c(rg(rel("spinodoide", k)) , false), c(rg(rel("dual-lattice", k)), false)];
+  filas.push([c("Presión sobre las caras óseas (el aquí usado)", true, "left"), ...g3("E_app_traccion_MPa"), c("0")]);
+  filas.push([c("Plato rígido (uz uniforme en la cima)", true, "left"), ...g3("E_app_plato_MPa"), c("+" + rg(aum("voi").map((x) => x - 1)))]);
+  filas.push([c("Plato rígido, módulo del núcleo corregido", true, "left"), ...g3("E_corregido_MPa"), c("+" + rg(cocientes((v) => SEN[v + "|voi"].E_corregido_MPa, (v) => SEN[v + "|voi"].E_app_traccion_MPa).map((x) => x - 1)))]);
+  s.addTable(filas, { x: 0.6, y: 1.5, w: 12.1, colW: [5.0, 2.2, 2.2, 2.7], rowH: [0.55, 0.5, 0.5, 0.5], border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle" });
+  const fr = R.tabla.map((t) => t.frac_cima), pl = fr.map((x) => SIGMA / x);
+  txt(s, [
+    { text: `Solo ${pct(Math.min(...fr))} a ${pct(Math.max(...fr))} % de la sección de la cima es hueso: la presión local sobre el hueso vale ${f0(Math.min(...pl) / 100)} a ${f0(Math.max(...pl) / 100)} veces ${f1(SIGMA)} MPa (${f1(Math.min(...pl))} a ${f1(Math.max(...pl))} MPa).`, options: { bullet: true, breakLine: true } },
+    { text: "El resultado depende de cómo se aplique la carga: cambia el nivel absoluto y también la razón entre estructuras.", options: { bullet: true, breakLine: true } },
+    { text: "El orden VOI > dual-lattice > spinodoide se mantiene en los tres esquemas, salvo C5 con el módulo corregido, donde dual-lattice y spinodoide empatan (79 %).", options: { bullet: true, breakLine: true } },
+    { text: "El protocolo original de Tapia et al. (2026) no está replicado al detalle (elemento, malla y contacto), por lo que no se comparan cifras absolutas.", options: { bullet: true } },
+  ], { x: 0.6, y: 3.85, w: 12.1, h: 3.0, fontSize: 16, paraSpaceAfter: 8 });
+  notas(s, "Sensibilidad a 40 elementos por lado. Tres esquemas de carga en la cima: presión uniforme sobre las caras óseas (usada en todo el documento), plato rígido (uz uniforme en la cima) y plato rígido con el módulo del núcleo corregido. Las razones respecto del VOI varían, lo que muestra que la magnitud de las diferencias entre estructuras no es independiente del protocolo.");
 }
 
 // ---------------------------------------------------------------- 11 lectura y límites
@@ -322,22 +401,21 @@ pres.addSection({ title: "Cierre" });
 {
   const s = pres.addSlide({ masterName: "CONTENIDO", sectionTitle: "Cierre" });
   s.addText("Lectura y límites", { placeholder: "title" });
-  const c3 = g("C3", "spinodoide", "u_tot_max_mm");
-  const col = (x, titulo, color, items) => {
+    const col = (x, titulo, color, items) => {
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "columna " + titulo, x, y: 1.5, w: 5.95, h: 4.6, fill: { color: "EEF2F3" }, line: { color: "EEF2F3" }, rectRadius: 0.08 });
     txt(s, titulo, { x: x + 0.3, y: 1.65, w: 5.4, h: 0.5, fontSize: 22, bold: true, color });
-    txt(s, items.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < items.length - 1 } })), { x: x + 0.3, y: 2.3, w: 5.4, h: 4.3, fontSize: 18, paraSpaceAfter: 12 });
+    txt(s, items.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < items.length - 1 } })), { x: x + 0.3, y: 2.3, w: 5.4, h: 3.7, fontSize: 16, paraSpaceAfter: 10 });
   };
   col(0.6, "Lo que se puede decir", "2E7D7A", [
-    `Bajo la misma carga, el spinodoide conserva ${pct(rE_s[0])} a ${pct(rE_s[1])} % de la rigidez del VOI y su p99 de von Mises es ${f1(rV_s[0])} a ${f1(rV_s[1])} veces mayor.`,
+    `A 40³ y con esta carga, el spinodoide conserva ${pct(rE_s[0])} a ${pct(rE_s[1])} % de la rigidez del VOI y su p99 de von Mises es ${f1(rV_s[0])} a ${f1(rV_s[1])} veces mayor.`,
     `El dual-lattice conserva ${pct(rE_d[0])} a ${pct(rE_d[1])} % y ${f1(rV_d[0])} a ${f1(rV_d[1])} veces.`,
-    `La formulación se verificó con un cubo y un prisma macizos: ${e_ok} pruebas con respuesta exacta pasan.`,
+    `La formulación se verificó con cubo, prisma y columnas macizos: ${e_ok} pruebas con respuesta exacta pasan.`,
   ]);
   col(6.75, "Límites", "C8553D", [
-    `La base empotrada rigidiza (${f1(100 * (em.E_app_sobre_E_s - 1))} % en el cubo) y su von Mises máximo no converge: se cita el p99.`,
-    `En C3 spinodoide |u| llega a ${f2(c3)} mm (${pct(c3 / 3.008)} % del lado): la hipótesis de pequeñas deformaciones no vale.`,
-    "Una semilla por ajuste y cinco VOIs de un mismo estudio.",
-    "Son resultados de simulación: no hay contraste con un ensayo físico de estos huesos.",
+    "Los resultados a 40³ no están convergidos con la malla, sobre todo los spinodoides; las razones dependen de la resolución y de la carga superior.",
+    `El p99 supera ${f0(LIM_PISTOIA / 100)} MPa (0,7 % de deformación crítica de Pistoia con E = 18 GPa) en ${R.tabla.filter((t) => t.vm_p99_MPa > LIM_PISTOIA).length} de las ${R.tabla.length} estructuras: la hipótesis lineal es discutible.`,
+    "Remuestreo desigual (VOI 188→40, candidatos 96→40), una semilla por ajuste y cinco VOIs de un mismo estudio.",
+    "Es simulación: no hay contraste con un ensayo físico de estos huesos.",
   ]);
   notas(s, "El resultado son comparaciones relativas entre estructuras bajo una misma condición de carga, no predicciones de resistencia de un espécimen. El caso C3 spinodoide es el más blando y es el que más se aparta de la linealidad.");
 }
@@ -347,9 +425,9 @@ pres.addSection({ title: "Cierre" });
   const s = pres.addSlide({ masterName: "CIERRE", sectionTitle: "Cierre" });
   s.addText("Conclusiones", { placeholder: "title" });
   const it = [
-    ["1", "La formulación es la esperada: base empotrada con los tres ejes fijos y cima libre en x e y. Con el cubo macizo es exacta con apoyo deslizante y rigidiza " + f1(100 * (em.E_app_sobre_E_s - 1)) + " % con la base empotrada."],
-    ["2", "El dual-lattice se acerca más al VOI que el spinodoide en rigidez y en tensión, aunque queda " + pct(1 - rE_d[1]) + " a " + pct(1 - rE_d[0]) + " % más blando."],
-    ["3", "Falta el contraste con ensayos mecánicos del mismo hueso. Hasta entonces, son comparaciones relativas."],
+    ["1", "La formulación es la esperada: base adherida con los tres ejes fijos, cima libre en x e y y presión sobre las caras óseas. El cubo macizo es exacto con apoyo deslizante y rigidiza " + f1(100 * (em.E_app_sobre_E_s - 1)) + " % con la base adherida."],
+    ["2", "En estos 5 VOIs, a 40³ y con una semilla, el dual-lattice queda más cerca del VOI que el spinodoide en rigidez y en tensión (" + pct(rE_d[0]) + " a " + pct(rE_d[1]) + " % frente a " + pct(rE_s[0]) + " a " + pct(rE_s[1]) + " %). Las magnitudes dependen de la malla y de la carga."],
+    ["3", "Falta convergencia con la malla y contraste con ensayos mecánicos del mismo hueso. Hasta entonces, son comparaciones relativas."],
   ];
   it.forEach((t, i) => {
     const y = 1.9 + i * 1.5;
@@ -365,15 +443,15 @@ pres.addSection({ title: "Cierre" });
   const s = pres.addSlide({ masterName: "CONTENIDO", sectionTitle: "Cierre" });
   s.addText("Anexo: cifras por estructura", { placeholder: "title" });
   const H = (t, cs) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: "1F3A44" }, fontSize: 12, align: "center", colspan: cs || 1 } });
-  const rows = [[H("VOI"), H("Estructura"), H("BV/TV"), H("E_app [MPa]"), H("von Mises p99 [MPa]"), H("von Mises máx. [MPa]"), H("|u| máx. [mm]")]];
+  const rows = [[H("VOI"), H("Estructura"), H("BV/TV"), H("E_app [MPa]"), H("von Mises p99 [MPa]"), H("von Mises máx. (no citable) [MPa]"), H("|u| máx. [mm]"), H("|u| p99 [mm]")]];
   VOIS.forEach((v) => ESTR.forEach((e, i) => {
     const o = { fontSize: 12, align: "center", fill: { color: i === 0 ? "EEF2F3" : "FFFFFF" } };
     rows.push([{ text: i === 0 ? v : "", options: Object.assign({ bold: true }, o) }, { text: NOM[e], options: Object.assign({}, o, { align: "left" }) },
       { text: f3(g(v, e, "BVTV")), options: o }, { text: f1(g(v, e, "E_app_MPa")), options: o }, { text: f1(g(v, e, "vm_p99_MPa")), options: o },
-      { text: f1(g(v, e, "vm_max_MPa")), options: o }, { text: f4(g(v, e, "u_tot_max_mm")), options: o }]);
+      { text: f1(g(v, e, "vm_max_MPa")), options: o }, { text: f4(g(v, e, "u_tot_max_mm")), options: o }, { text: f4(g(v, e, "u_p99_mm")), options: o }]);
   }));
-  s.addTable(rows, { x: 0.6, y: 1.3, w: 12.1, colW: [0.9, 2.0, 1.3, 1.9, 2.1, 2.1, 1.8], rowH: 0.3, border: { type: "solid", color: "CFD6D9", pt: 0.5 }, fontFace: "Calibri", valign: "middle" });
-  notas(s, "Cifras de NGSolve con solver directo. El von Mises máximo se da a título informativo: no converge con la malla y no debe citarse.");
+  s.addTable(rows, { x: 0.6, y: 1.3, w: 12.1, colW: [0.8, 1.8, 1.1, 1.6, 1.9, 2.3, 1.4, 1.2], rowH: 0.3, border: { type: "solid", color: "CFD6D9", pt: 0.5 }, fontFace: "Calibri", valign: "middle" });
+  notas(s, "Cifras de NGSolve con solver directo a 40³. El von Mises máximo se da a título informativo: no converge con la malla y no debe citarse.");
 }
 
 (async () => {

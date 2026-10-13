@@ -1,24 +1,24 @@
 {
  "deslizante": {
-  "E_app_sobre_E_s": 1.000000000002398,
-  "vm_max_sobre_sigma": 1.0000000002045897,
-  "vm_centro_sobre_sigma": 0.9999999999974543,
-  "ux_borde_techo_mm": 0.0005540780139142058,
+  "E_app_sobre_E_s": 1.0000000000023992,
+  "vm_max_sobre_sigma": 1.0000000002044558,
+  "vm_centro_sobre_sigma": 0.9999999999974553,
+  "ux_borde_techo_mm": 0.000554078013914255,
   "ux_borde_exacto_libre_mm": 0.0005540780141843972,
-  "uz_techo_mm": -0.0018469267139436009,
+  "uz_techo_mm": -0.001846926713943599,
   "uz_techo_exacto_mm": -0.0018469267139479908,
-  "u_tot_max_mm": 0.002006275947533231,
+  "u_tot_max_mm": 0.0020062759475333283,
   "sigma_MPa": 11.052088048890901
  },
  "empotrado": {
-  "E_app_sobre_E_s": 1.030874323008317,
-  "vm_max_sobre_sigma": 1.7608521192961888,
-  "vm_centro_sobre_sigma": 1.0266795166030818,
-  "ux_borde_techo_mm": 0.00028496238568121124,
+  "E_app_sobre_E_s": 1.0308743230083173,
+  "vm_max_sobre_sigma": 1.760852119296184,
+  "vm_centro_sobre_sigma": 1.02667951660308,
+  "ux_borde_techo_mm": 0.0002849623856812112,
   "ux_borde_exacto_libre_mm": 0.0005540780141843972,
-  "uz_techo_mm": -0.0017919557519116302,
+  "uz_techo_mm": -0.0017919557519116298,
   "uz_techo_exacto_mm": -0.0018469267139479908,
-  "u_tot_max_mm": 0.0018515620514666087,
+  "u_tot_max_mm": 0.0018515620514666035,
   "sigma_MPa": 11.052088048890901
  }
 }
