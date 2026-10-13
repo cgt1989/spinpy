@@ -1,0 +1,89 @@
+# Ejecuta la suite de verificacion (tests/) en cada cambio.
+#
+# Los 29+ bloques de tests/ tienen tolerancias declaradas antes de medir; este
+# flujo las hace cumplir en cada pull request y en cada push a main, en vez de
+# depender de que alguien las lance a mano. Tambien lo invoca el flujo del
+# instalador como requisito previo: no se construye ninguna release si la
+# verificacion no pasa.
+#
+# La suite escribe `resultados/validacion_literatura.json`; se sube como
+# artefacto para poder auditar que tolerancia se midio en cada plataforma.
+
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      solo_linux:
+        description: "Solo Linux (para usarlo como requisito del instalador)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pruebas-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pruebas:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      # Desde la construccion del instalador (solo_linux) basta una combinacion;
+      # en pull requests y en main corren las cuatro.
+      matrix:
+        include: ${{ fromJSON(inputs.solo_linux && '[{"os":"ubuntu-latest","python":"3.13"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.13"},{"os":"macos-14","python":"3.13"}]') }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYVISTA_OFF_SCREEN: "true"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Instalar
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[elastico,fem,malla,lote,test,informe]" tifffile
+          pip freeze > entorno_congelado.txt
+
+      # PyVista dibuja las figuras del informe con VTK: en un Linux sin pantalla
+      # hace falta OpenGL por software y un servidor X virtual (si no, VTK
+      # termina el proceso con una violacion de segmento).
+      - name: Pantalla virtual (solo Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libxrender1
+
+      # Incluye tests/test_31, que ejecuta ejemplos/inicio_rapido.py.
+      - name: Suite de verificacion
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a python -m pytest tests/ -q -ra --durations=15
+          else
+            python -m pytest tests/ -q -ra --durations=15
+          fi
+
+      - name: Guardar registro de verificacion y entorno
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verificacion-${{ matrix.os }}-py${{ matrix.python }}
+          path: |
+            resultados/validacion_literatura.json
+            entorno_congelado.txt
+          if-no-files-found: ignore

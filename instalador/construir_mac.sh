@@ -13,7 +13,7 @@ set -euo pipefail
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 RAIZ="$(dirname "$AQUI")"
 TRABAJO="${1:-$HOME/spinpy_build}"
-VERSION="${2:-2.1.5}"
+VERSION="${2:-2.2.0}"
 PY="${PYTHON:-python3}"
 ZIP="$TRABAJO/spinpy-V$VERSION-macos-arm64-PRUEBA.zip"
 

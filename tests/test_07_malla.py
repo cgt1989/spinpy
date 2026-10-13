@@ -78,6 +78,56 @@ def test_esfera_area_y_volumen(registro):
     assert m["estanca"] and m["BS_tapas"] == 0.0
 
 
+def _diagnostico_tapas(BW):
+    """Texto para el mensaje de fallo: por que la clasificacion de tapas difiere.
+
+    Se anadio al ver esta prueba fallar solo en macOS arm64 (BS +2,3 % frente
+    al 1 % declarado; en Linux y Windows pasa). Primera ronda: en macOS no hay
+    triangulos ambiguos (a menos de 1e-3 del plano) y el area total de la malla
+    es la misma que en Linux, pero unos 36 triangulos (~45 de area) dejan de
+    contarse como tapa. Esta segunda ronda reparte las tapas por plano y busca
+    triangulos paralelos a un plano de la caja que NO estan en el plano.
+    """
+    import platform
+    import pyvista as pv
+    import vtk
+    capturada = {}
+    original = pv.PolyData.cell_centers
+
+    def espia(self, *a, **k):
+        capturada["malla"] = self
+        return original(self, *a, **k)
+
+    pv.PolyData.cell_centers = espia
+    try:
+        m = morfometria_malla(BW, [1.0] * 3)
+    finally:
+        pv.PolyData.cell_centers = original
+    s = capturada["malla"]
+    c = np.asarray(s.cell_centers().points, float)
+    areas = np.abs(np.asarray(s.compute_cell_sizes(
+        length=False, area=True, volume=False).cell_data["Area"], float))
+    nrm = np.asarray(s.compute_normals(cell_normals=True, point_normals=False,
+                                       auto_orient_normals=False)
+                     .cell_data["Normals"], float)
+    hi, tol = BW.shape[0] - 1.0, 1e-6
+    partes = []
+    for ax, nom in enumerate("xyz"):
+        for v, lado in ((0.0, "lo"), (hi, "hi")):
+            d = np.abs(c[:, ax] - v)
+            en = d < tol
+            para = (np.abs(nrm[:, ax]) > 0.9) & ~en & (d < 0.6)
+            partes.append("%s%s:%d tri/%.1f" % (nom, lado[0], int(en.sum()),
+                                                areas[en].sum())
+                          + ("+%d fuera/%.1f d~%.2f" % (
+                              int(para.sum()), areas[para].sum(),
+                              float(np.median(d[para]))) if para.any() else ""))
+    return ("%s %s | VTK %s | triangulos %d | BS_tapas %.1f | por plano: %s"
+            % (platform.system(), platform.machine(),
+               vtk.vtkVersion.GetVTKVersion(), s.n_cells, m["BS_tapas"],
+               "; ".join(partes)))
+
+
 def test_losa_tapas_excluidas(registro):
     n, t = 32, 10
     BW = losa(n=n, espesor=t)
@@ -91,7 +141,9 @@ def test_losa_tapas_excluidas(registro):
                     nota="tapas excluidas: %.1f" % m["BS_tapas"])
     registro.anotar(BLOQUE, "losa t=10: BV = L^2 t", REF, V_ex, m["BV"], "1 %",
                     "relativo", abs(eV) <= 0.01)
-    assert abs(eA) <= 0.01, (m["BS"], A_ex, m["BS_tapas"])
+    if abs(eA) > 0.01:
+        pytest.fail("BS %.1f frente a %.1f exacto (%+.2f %%). Diagnostico: %s"
+                    % (m["BS"], A_ex, 100 * eA, _diagnostico_tapas(BW)))
     assert abs(eV) <= 0.01, (m["BV"], V_ex)
     assert m["BS_tapas"] > 0          # las cuatro caras laterales SON tapas
 

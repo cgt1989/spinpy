@@ -236,7 +236,10 @@ def test_opciones_y_tiempo(registro):
     assert ok
 
 
-def test_figura_se_compone(registro, tmp_path, monkeypatch):
+def test_figura_se_compone(registro, tmp_path, monkeypatch, render_disponible):
+    if not render_disponible:
+        pytest.skip("VTK no puede dibujar fuera de pantalla en este equipo "
+                    "(sin OpenGL); ver el fixture render_disponible")
     pytest.importorskip("pyvista")
     monkeypatch.setattr(F, "DPI", 80)            # la composicion, no la nitidez
     h = 0.05
