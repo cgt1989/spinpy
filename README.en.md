@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="version V2.1.5" src="https://img.shields.io/badge/version-V2.1.5-e8a33d">
+  <img alt="version V2.2.0" src="https://img.shields.io/badge/version-V2.2.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 29 blocks" src="https://img.shields.io/badge/verification-29%20blocks-5b6b7f">
+  <img alt="Verification: 31 blocks" src="https://img.shields.io/badge/verification-31%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -263,7 +263,29 @@ print(r["parametros"], r["error"])
 ```
 spinpy-lote folder_with_VOIs --replicas 20 --salida results
 spinpy-informe resultados_sesion.json        # rebuilds the report from a JSON
+spinpy-validar-exp predicciones.csv          # comparison with physical tests
 ```
+
+### Quick start with open data
+
+The repository ships ten porcine subchondral bone VOIs in
+[`datos/porcino_koria2020/`](datos/porcino_koria2020/) (C1 to C5 and V1 to V5;
+3.0 mm cube, 188³ voxels of 16 µm; Koria, Mengoni and Brockett 2020,
+[doi:10.5518/787](https://doi.org/10.5518/787), CC BY 4.0), so the installation
+can be checked without your own data. Each file has its fingerprint in
+`SHA256SUMS.txt`.
+
+```
+python ejemplos/inicio_rapido.py                    # VOI_V1, central 64³ cube
+python ejemplos/inicio_rapido.py --voi C3 --lado 96
+python ejemplos/inicio_rapido.py --voi V1 --lado 187   # whole VOI
+```
+
+The script verifies the file fingerprint, measures the morphometry and runs a
+compression test along z (sliding support, E_s = 20 GPa, 1 MPa), reporting
+the apparent modulus and the Pistoia failure load. With the 40³ cube
+(`--rapido`) it takes a few seconds. The central crop is meant for learning
+the workflow and checking the installation; use the whole VOI to quote values.
 
 ---
 
@@ -302,7 +324,13 @@ python Test/replicar_kumar2020.py --rapido   # ~1.5 min
 python -m pytest tests/ -q
 ```
 
-29 blocks with tolerances **declared before measuring**: topology, SMI,
+The suite runs on every pull request and every change to `main`
+(`.github/workflows/pruebas.yml`: Linux with Python 3.11 and 3.13, Windows and
+macOS with 3.13), and building the installer requires it to pass. Each run
+stores as an artifact the tolerance log and the exact environment
+(`pip freeze`) it was measured with.
+
+31 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.
@@ -680,8 +708,62 @@ Code, docstrings and reports are in Spanish.
 
 ---
 
+## Experimental validation: status and procedure
+
+**Current status.** The absolute mechanical values from spinpy (apparent
+modulus, failure load, stresses) are simulation results verified numerically
+against analytical solutions, FEBio and five finite element engines. **They
+have not been compared with mechanical tests of the bone the VOIs come from.**
+Until that comparison exists, they should be read as relative comparisons
+between structures under one loading condition, not as predictions of the
+strength or stiffness of a real specimen. The morphometry, in contrast, is
+checked against manufactured solutions and against BoneJ (previous section).
+
+**Available procedure.** `spinpy.validacion_exp` (and the `spinpy-validar-exp`
+command) compares predicted with measured values for one or more quantities
+and computes: root mean square error, mean absolute relative error and bias;
+Lin's concordance correlation coefficient with its confidence interval;
+regression with confidence intervals for slope and intercept; Bland-Altman on a logarithmic scale (the
+measured/predicted ratio, because trabecular mechanics errors are
+multiplicative); Spearman correlation; and a calibration of the tissue modulus
+E_s with leave-one-out cross-validation, which separates a scale error (a
+wrong E_s, correctable) from a shape error (the geometry does not explain the
+differences between specimens).
+
+```
+python ejemplos/predecir_para_ensayo.py --salida predicciones.csv   # empty 'medido' column
+# fill 'medido' with the physical test of the same specimen
+spinpy-validar-exp predicciones.csv --ccc-min 0.9 --mape-max 0.25 \
+    --pendiente-delta 0.15 --Es-usado 20000 --json contraste.json
+```
+
+Rules of use. Acceptance criteria are declared **before** looking at the
+measured data; without criteria the verdict is "no evaluado" (not evaluated),
+and a criterion that cannot be computed gives "no evaluable", never a silent
+"does not meet". The CCC criterion compares the lower limit of its interval,
+and the slope criterion requires **equivalence** (the whole interval within
+1 ± δ), because a wide interval from few data does not demonstrate agreement.
+The same criteria apply to every quantity in the CSV.
+The test conditions (tissue modulus, support, tested region) must be
+reproduced in the prediction. With several VOIs per animal the pairs are not
+independent and the intervals come out too narrow: use one pair per animal or
+a mixed model. With fewer than 8 pairs the module warns that the intervals
+cannot support a claim of equivalence. The template is at
+[`datos/porcino_koria2020/ensayos_experimentales_PLANTILLA.csv`](datos/porcino_koria2020/ensayos_experimentales_PLANTILLA.csv).
+
+---
+
 ## Limitations worth knowing
 
+- **No experimental validation of the absolute mechanical values** (see the
+  previous section).
+- **Mesh-based measurement on Apple Silicon macOS.** In the automated
+  verification, `tests/test_07_malla.py::test_losa_tapas_excluidas` fails on
+  macOS (BS +2.34 % against the 1 % tolerance) and passes on Linux and Windows.
+  On a symmetric slab, two of the four lateral faces lose cap area only on ARM,
+  which points to the mesh repair (PyMeshFix) or the VTK clipping. Until this is
+  clarified, do not use the mesh mode on macOS for values you intend to quote;
+  the voxel mode is not affected.
 - **Segmentation is a global threshold.** It is the largest source of
   uncertainty in the whole process, which is why the application declares
   which one was applied instead of hiding it.

@@ -1,0 +1,10 @@
+Koria L., Mengoni M., Brockett C. (2020).
+Estimating tissue-level properties of porcine talar subchondral bone.
+Research Data Leeds Repository. https://doi.org/10.5518/787
+Licencia: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+Subconjunto extraido: VOI cubico de 3.0 mm (188^3 voxeles)
+a 16 um/voxel, centrado en el nucleo oseo de cada
+especimen (C1-C5, V1-V5). Segmentacion por umbral global de Otsu.
+Descargado por HTTP Range con bf_descargar_publico.py; los TIFF
+completos no se conservan.

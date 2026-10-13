@@ -155,6 +155,30 @@ REGISTRO = Registro()
 
 
 @pytest.fixture(scope="session")
+def render_disponible():
+    """True si VTK puede dibujar fuera de pantalla en este equipo.
+
+    Se comprueba en un SUBPROCESO porque, sin OpenGL (runner de Windows de
+    GitHub, Linux sin servidor X), VTK no lanza una excepcion: termina el
+    proceso con una violacion de acceso, y un `try/except` no la atrapa. Las
+    pruebas que dibujan de verdad piden este fixture y se saltan si es False.
+    """
+    import subprocess
+    codigo = ("import pyvista as pv\n"
+              "p = pv.Plotter(off_screen=True, window_size=(64, 64))\n"
+              "p.add_mesh(pv.Sphere())\n"
+              "p.render()\n"
+              "p.screenshot(return_img=True)\n"
+              "p.close()\n")
+    try:
+        r = subprocess.run([sys.executable, "-c", codigo], timeout=180,
+                           capture_output=True)
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    return r.returncode == 0
+
+
+@pytest.fixture(scope="session")
 def registro():
     return REGISTRO
 

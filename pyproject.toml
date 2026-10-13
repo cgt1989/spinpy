@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spinpy"
-version = "2.1.5"
+version = "2.2.0"
 description = "Ajuste de microestructuras espinodales a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -83,6 +83,7 @@ Repositorio = "https://github.com/cgt1989/spinpy"
 [project.scripts]
 spinpy-lote = "spinpy.cli:main_lote"
 spinpy-informe = "spinpy.informe:main"
+spinpy-validar-exp = "spinpy.validacion_exp:main"
 
 [tool.setuptools]
 packages = ["spinpy", "spinpy.motores"]
