@@ -51,7 +51,7 @@ def sha256(ruta):
 
 def huellas_esperadas():
     out = {}
-    for linea in (DATOS / "SHA256SUMS.txt").read_text().splitlines():
+    for linea in (DATOS / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
         if linea.strip():
             h, nombre = linea.split()
             out[nombre] = h

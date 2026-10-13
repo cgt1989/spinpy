@@ -723,8 +723,8 @@ manufacturadas y con BoneJ (sección anterior).
 **Procedimiento disponible.** `spinpy.validacion_exp` (y la orden
 `spinpy-validar-exp`) compara lo predicho con lo medido para una o varias
 magnitudes y calcula: error cuadrático medio, error relativo medio absoluto y
-sesgo; coeficiente de concordancia de Lin; regresión con intervalos de
-confianza de pendiente e intercepto; Bland-Altman en escala logarítmica (la
+sesgo; coeficiente de concordancia de Lin con su intervalo de confianza; regresión con
+intervalos de confianza de pendiente e intercepto; Bland-Altman en escala logarítmica (la
 razón medido/predicho, porque el error de la mecánica trabecular es
 multiplicativo); correlación de Spearman; y calibración del módulo del tejido
 E_s con validación cruzada dejando uno fuera, que separa un error de escala
@@ -734,11 +734,17 @@ las diferencias entre especímenes).
 ```
 python ejemplos/predecir_para_ensayo.py --salida predicciones.csv   # columna 'medido' vacía
 # se completa 'medido' con el ensayo físico del mismo espécimen
-spinpy-validar-exp predicciones.csv --ccc-min 0.9 --mape-max 0.25 --json contraste.json
+spinpy-validar-exp predicciones.csv --ccc-min 0.9 --mape-max 0.25 \
+    --pendiente-delta 0.15 --Es-usado 20000 --json contraste.json
 ```
 
-Tres reglas de uso. Los criterios de aceptación se declaran **antes** de ver
-los datos medidos; sin criterios el veredicto es «no evaluado». Las
+Reglas de uso. Los criterios de aceptación se declaran **antes** de ver los
+datos medidos; sin criterios el veredicto es «no evaluado», y un criterio que
+no se puede calcular da «no evaluable», nunca «no cumple» en silencio. El
+criterio del CCC compara el límite inferior de su intervalo, y el de la
+pendiente exige **equivalencia** (el intervalo entero dentro de 1 ± δ), porque
+un intervalo ancho por pocos datos no demuestra acuerdo. Los mismos criterios
+se aplican a todas las magnitudes del CSV. Las
 condiciones del ensayo (módulo del tejido, apoyo, región ensayada) deben
 reproducirse en la predicción. Con varios VOIs por animal los pares no son
 independientes y los intervalos salen demasiado estrechos: conviene una pareja

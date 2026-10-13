@@ -722,8 +722,8 @@ checked against manufactured solutions and against BoneJ (previous section).
 **Available procedure.** `spinpy.validacion_exp` (and the `spinpy-validar-exp`
 command) compares predicted with measured values for one or more quantities
 and computes: root mean square error, mean absolute relative error and bias;
-Lin's concordance correlation coefficient; regression with confidence
-intervals for slope and intercept; Bland-Altman on a logarithmic scale (the
+Lin's concordance correlation coefficient with its confidence interval;
+regression with confidence intervals for slope and intercept; Bland-Altman on a logarithmic scale (the
 measured/predicted ratio, because trabecular mechanics errors are
 multiplicative); Spearman correlation; and a calibration of the tissue modulus
 E_s with leave-one-out cross-validation, which separates a scale error (a
@@ -733,11 +733,17 @@ differences between specimens).
 ```
 python ejemplos/predecir_para_ensayo.py --salida predicciones.csv   # empty 'medido' column
 # fill 'medido' with the physical test of the same specimen
-spinpy-validar-exp predicciones.csv --ccc-min 0.9 --mape-max 0.25 --json contraste.json
+spinpy-validar-exp predicciones.csv --ccc-min 0.9 --mape-max 0.25 \
+    --pendiente-delta 0.15 --Es-usado 20000 --json contraste.json
 ```
 
-Three rules of use. Acceptance criteria are declared **before** looking at the
-measured data; without criteria the verdict is "no evaluado" (not evaluated).
+Rules of use. Acceptance criteria are declared **before** looking at the
+measured data; without criteria the verdict is "no evaluado" (not evaluated),
+and a criterion that cannot be computed gives "no evaluable", never a silent
+"does not meet". The CCC criterion compares the lower limit of its interval,
+and the slope criterion requires **equivalence** (the whole interval within
+1 ± δ), because a wide interval from few data does not demonstrate agreement.
+The same criteria apply to every quantity in the CSV.
 The test conditions (tissue modulus, support, tested region) must be
 reproduced in the prediction. With several VOIs per animal the pairs are not
 independent and the intervals come out too narrow: use one pair per animal or

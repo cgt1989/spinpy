@@ -26,12 +26,17 @@ Dadas parejas (predicho, medido) de una misma magnitud:
 - Error: RMSE, MAE, error relativo medio absoluto y sesgo relativo.
 - Concordancia de Lin (CCC), que penaliza tanto la dispersion como el sesgo
   sistematico; la correlacion de Pearson sola no detecta que todo este
-  desplazado por un factor.
+  desplazado por un factor. Se da con su IC por la transformacion z de
+  Fisher (Lin 1989); los criterios comparan el LIMITE INFERIOR, no el
+  estimador puntual.
 - Regresion medido ~ predicho con intervalos de confianza de la pendiente y el
   intercepto (t de Student, n-2 g.l.). Pendiente 1 e intercepto 0 es el ideal.
 - Bland-Altman: sesgo y limites de acuerdo al 95 %, con el IC de cada limite
   (Bland y Altman 1986, 1999). Se hace en escala logaritmica (razon medido /
-  predicho), porque el error de la mecanica trabecular es multiplicativo.
+  predicho), porque el error de la mecanica trabecular es multiplicativo. El
+  IC de los limites usa la aproximacion de Bland y Altman (1999), que es
+  anticonservadora con n pequeño (cobertura simulada ~0,92 con n = 5-8 y ~0,94
+  con n = 20 para un nominal de 0,95); el modulo lo avisa si n < 20.
 - Spearman, como medida de ordenacion que no depende de la escala.
 - Calibracion del modulo del tejido E_s: la rigidez aparente es lineal en E_s,
   de modo que, conocido el E_s con que se calculo E_app, se estima el E_s que
@@ -45,7 +50,13 @@ LO QUE NO HACE
 - No decide por usted que el acuerdo sea "suficiente". Solo emite veredicto si
   se le pasan criterios declarados ANTES de mirar los datos (`criterios=`); sin
   ellos informa "no evaluado". Fijar el umbral despues de ver el resultado es
-  el error que este modulo existe para evitar.
+  el error que este modulo existe para evitar. Un criterio que no se puede
+  calcular (NaN) da "no evaluable", nunca "no cumple" en silencio.
+- Los mismos criterios se aplican a todas las magnitudes del CSV. Si E_app y la
+  carga de fallo necesitan umbrales distintos, use un CSV por magnitud.
+- Convenciones de signo: `sesgo_rel` = (predicho - medido) / medido (negativo
+  si el modelo subestima); `factor_sesgo` = medido / predicho (mayor que 1 si
+  el modelo subestima). Son las dos caras de lo mismo, con referencias opuestas.
 - No corrige por medidas repetidas en un mismo animal. Con varios VOI por
   animal los pares no son independientes y los intervalos salen demasiado
   estrechos: use una sola pareja por animal o un modelo mixto.
@@ -77,8 +88,9 @@ from scipy import stats
 
 N_MIN = 3          # menos que esto no admite regresion con IC
 N_AVISO = 8        # por debajo, los IC son demasiado anchos para concluir
+N_BA_AVISO = 20    # por debajo, el IC de los limites de Bland-Altman es aproximado
 
-CLAVES_CRITERIOS = ("ccc_min", "sesgo_rel_max", "mape_max", "pendiente_ic_incluye_1")
+CLAVES_CRITERIOS = ("ccc_min", "sesgo_rel_max", "mape_max", "pendiente_equiv_delta")
 
 
 # ---------------------------------------------------------------------------
@@ -105,6 +117,33 @@ def ccc_lin(p, m):
     cov = float(np.mean((p - mp) * (m - mm)))
     den = vp + vm + (mp - mm) ** 2
     return float(2.0 * cov / den) if den > 0 else float("nan")
+
+
+def ccc_ic(p, m, alfa=0.05):
+    """IC del CCC de Lin por la transformacion z de Fisher (Lin 1989).
+
+    Devuelve (inferior, superior) o None si no se puede calcular (r = 0,
+    CCC = +-1 o varianza nula). Es una aproximacion asintotica: con n < 20 es
+    orientativa.
+    """
+    n = p.size
+    if n < 4 or p.std() == 0 or m.std() == 0:
+        return None
+    r = float(np.corrcoef(p, m)[0, 1])
+    rc = ccc_lin(p, m)
+    if not np.isfinite(rc) or abs(r) < 1e-12 or abs(rc) >= 1 or abs(rc) < 1e-12:
+        return None
+    u = (p.mean() - m.mean()) / math.sqrt(p.std() * m.std())
+    d = (1 - rc ** 2)
+    var_z = (1.0 / (n - 2)) * (
+        (1 - r ** 2) * rc ** 2 * d / (r ** 2 * d ** 2)
+        + 4 * rc ** 3 * (1 - rc) * u ** 2 / (r * d ** 2)
+        - 2 * rc ** 4 * u ** 4 / (r ** 2 * d ** 2))
+    if not np.isfinite(var_z) or var_z <= 0:
+        return None
+    z = math.atanh(rc)
+    h = stats.norm.ppf(1 - alfa / 2) * math.sqrt(var_z)
+    return (math.tanh(z - h), math.tanh(z + h))
 
 
 def _regresion(p, m, alfa):
@@ -171,6 +210,9 @@ def calibrar_Es(pred, med, Es_usado=None):
     fallo de Pistoia, que depende de la deformacion critica y no de E_s.
     """
     x, y = _pares(pred, med)
+    if np.any(x <= 0) or np.any(y <= 0):
+        raise ValueError("la calibracion de E_s exige predicho y medido "
+                         "estrictamente positivos")
     k = float(np.sum(x * y) / np.sum(x * x))
     n = x.size
     err = np.empty(n)
@@ -182,6 +224,14 @@ def calibrar_Es(pred, med, Es_usado=None):
     ss_tot = float(np.sum(y ** 2))
     out = {
         "k": k,
+        # Factor geometrico: el error de la mecanica trabecular es
+        # multiplicativo y los minimos cuadrados absolutos los dominan los
+        # especimenes mas rigidos. Si k y k_geometrico difieren mucho, mandan
+        # pocos especimenes.
+        "k_geometrico": float(np.exp(np.mean(np.log(y / x)))),
+        # R2 NO centrado (por el origen): sale alto aunque no haya relacion
+        # entre especimenes. No lo use como evidencia de acuerdo; mire el
+        # error de validacion cruzada.
         "r2_origen": 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan"),
         "error_rel_loo_medio_abs": float(np.mean(np.abs(err))),
         "error_rel_loo": [float(e) for e in err],
@@ -189,6 +239,7 @@ def calibrar_Es(pred, med, Es_usado=None):
     if Es_usado:
         out["Es_usado"] = float(Es_usado)
         out["Es_calibrado"] = k * float(Es_usado)
+        out["Es_calibrado_geometrico"] = out["k_geometrico"] * float(Es_usado)
     return out
 
 
@@ -200,16 +251,25 @@ def acuerdo(pred, med, ids=None, alfa=0.05, criterios=None, magnitud=""):
     """Contraste completo de una magnitud. Devuelve un diccionario serializable.
 
     criterios (opcional, declarados antes de medir), claves admitidas:
-      ccc_min                 CCC de Lin minimo
+      ccc_min                 minimo del LIMITE INFERIOR del IC del CCC de Lin
       sesgo_rel_max           |sesgo relativo medio| maximo
       mape_max                error relativo medio absoluto maximo
-      pendiente_ic_incluye_1  True: el IC de la pendiente debe contener a 1
-    Sin criterios, "veredicto" es "no evaluado".
+      pendiente_equiv_delta   delta: el IC de la pendiente debe caer ENTERO
+                              dentro de [1 - delta, 1 + delta] (equivalencia)
+    Sin criterios, "veredicto" es "no evaluado"; si algun criterio no se puede
+    calcular (NaN), es "no evaluable".
     """
     p, m = _pares(pred, med)
     n = p.size
-    rel = (p - m) / m if np.all(m != 0) else np.full(n, np.nan)
+    avisos = []
+    if np.all(m > 0):
+        rel = (p - m) / m
+    else:
+        rel = np.full(n, np.nan)
+        avisos.append("Hay valores medidos <= 0: el error relativo (MAPE, "
+                      "sesgo relativo) no esta definido y queda en NaN.")
     rho = stats.spearmanr(p, m)
+    ic_ccc = ccc_ic(p, m, alfa)
     res = {
         "magnitud": magnitud,
         "n": int(n),
@@ -217,15 +277,26 @@ def acuerdo(pred, med, ids=None, alfa=0.05, criterios=None, magnitud=""):
         "ids": list(ids) if ids is not None else None,
         "rmse": float(np.sqrt(np.mean((p - m) ** 2))),
         "mae": float(np.mean(np.abs(p - m))),
-        "mape": float(np.nanmean(np.abs(rel))),
-        "sesgo_rel": float(np.nanmean(rel)),
+        "mape": float(np.mean(np.abs(rel))),
+        "sesgo_rel": float(np.mean(rel)),
         "ccc": ccc_lin(p, m),
+        "ccc_ic": list(ic_ccc) if ic_ccc else None,
         "spearman": float(rho.statistic),
         "spearman_p": float(rho.pvalue),
         "regresion": _regresion(p, m, alfa),
         "bland_altman_log": _bland_altman_log(p, m, alfa),
-        "avisos": [],
+        "avisos": avisos,
     }
+    if not np.isfinite(res["ccc"]):
+        res["avisos"].append("CCC no definido (ambas series constantes): no "
+                             "hay variacion que concordar.")
+    elif ic_ccc is None:
+        res["avisos"].append("No se pudo calcular el IC del CCC (acuerdo casi "
+                             "perfecto, correlacion nula o n < 4).")
+    if n < N_BA_AVISO and res["bland_altman_log"] is not None:
+        res["avisos"].append(
+            f"n = {n}: el IC de los limites de Bland-Altman es aproximado y "
+            f"anticonservador con n < {N_BA_AVISO}.")
     if n < N_AVISO:
         res["avisos"].append(
             f"n = {n}: con menos de {N_AVISO} parejas los intervalos son muy "
@@ -239,6 +310,7 @@ def acuerdo(pred, med, ids=None, alfa=0.05, criterios=None, magnitud=""):
 
 
 def _veredicto(res, criterios):
+    """'cumple', 'no cumple', 'no evaluable' o 'no evaluado' (sin criterios)."""
     if not criterios:
         return "no evaluado", ["No se declararon criterios de aceptacion "
                                "antes de medir."]
@@ -246,28 +318,45 @@ def _veredicto(res, criterios):
     if desconocidas:
         raise ValueError(f"criterios desconocidos: {sorted(desconocidas)}; "
                          f"admitidos: {CLAVES_CRITERIOS}")
-    det, ok = [], True
+    det, ok, indef = [], True, False
 
-    def _eval(nombre, cumple, texto):
-        nonlocal ok
-        ok = ok and cumple
+    def _eval(valor, cumple, texto):
+        nonlocal ok, indef
+        if valor is None or not np.isfinite(valor):
+            indef = True
+            det.append(f"no evaluable: {texto}")
+            return
+        ok = ok and bool(cumple)
         det.append(f"{'cumple' if cumple else 'NO cumple'}: {texto}")
 
     if "ccc_min" in criterios:
-        _eval("ccc", res["ccc"] >= criterios["ccc_min"],
-              f"CCC = {res['ccc']:.3f} (minimo {criterios['ccc_min']})")
+        # Se compara el limite inferior del IC, no el estimador puntual.
+        ic = res.get("ccc_ic")
+        v = ic[0] if ic else res["ccc"]
+        que = ("limite inferior del IC del CCC" if ic
+               else "CCC puntual (no hubo IC)")
+        _eval(v, v >= criterios["ccc_min"] if v == v else False,
+              f"{que} = {v:.3f} (minimo {criterios['ccc_min']})")
     if "sesgo_rel_max" in criterios:
-        _eval("sesgo", abs(res["sesgo_rel"]) <= criterios["sesgo_rel_max"],
-              f"|sesgo relativo| = {abs(res['sesgo_rel']):.3f} "
-              f"(maximo {criterios['sesgo_rel_max']})")
+        v = abs(res["sesgo_rel"])
+        _eval(v, v <= criterios["sesgo_rel_max"],
+              f"|sesgo relativo| = {v:.3f} (maximo {criterios['sesgo_rel_max']})")
     if "mape_max" in criterios:
-        _eval("mape", res["mape"] <= criterios["mape_max"],
-              f"error relativo medio absoluto = {res['mape']:.3f} "
+        v = res["mape"]
+        _eval(v, v <= criterios["mape_max"],
+              f"error relativo medio absoluto = {v:.3f} "
               f"(maximo {criterios['mape_max']})")
-    if criterios.get("pendiente_ic_incluye_1"):
+    if "pendiente_equiv_delta" in criterios:
+        # Equivalencia, no ausencia de diferencia: el IC ENTERO de la
+        # pendiente debe caer dentro de [1 - delta, 1 + delta]. Un IC ancho
+        # (pocos datos, mucho ruido) no puede cumplirlo.
+        d = float(criterios["pendiente_equiv_delta"])
         lo, hi = res["regresion"]["pendiente_ic"]
-        _eval("pendiente", lo <= 1.0 <= hi,
-              f"IC de la pendiente [{lo:.3f}, {hi:.3f}] contiene a 1")
+        _eval(lo, lo >= 1 - d and hi <= 1 + d,
+              f"IC de la pendiente [{lo:.3f}, {hi:.3f}] dentro de "
+              f"[{1 - d:.3f}, {1 + d:.3f}]")
+    if indef:
+        return "no evaluable", det
     return ("cumple" if ok else "no cumple"), det
 
 
@@ -278,27 +367,52 @@ def _veredicto(res, criterios):
 COLUMNAS = ("id", "magnitud", "predicho", "medido")
 
 
+def _num(texto, fila, id_, campo):
+    t = (texto or "").strip().replace(",", ".")
+    try:
+        return float(t)
+    except ValueError:
+        raise ValueError(f"fila {fila} (id '{id_}'): '{campo}' no es un numero "
+                         f"({texto!r})") from None
+
+
 def leer_csv(ruta):
     """Lee el CSV de contraste y agrupa por magnitud.
 
-    Columnas obligatorias: id, magnitud, predicho, medido. Las filas con
-    `medido` vacio se ignoran (es lo que trae la plantilla sin rellenar).
-    Devuelve {magnitud: (ids, predicho, medido)}.
+    Columnas obligatorias: id, magnitud, predicho, medido. Acepta separador
+    coma o punto y coma (Excel en español), coma decimal y BOM de UTF-8. Las
+    filas con `medido` vacio se ignoran (es lo que trae la plantilla sin
+    rellenar); si `medido` esta y `predicho` no, es un error con el numero de
+    fila. Devuelve {magnitud: (ids, predicho, medido)}.
     """
+    texto = Path(ruta).read_text(encoding="utf-8-sig")
+    cabecera = texto.splitlines()[0] if texto else ""
+    sep = ";" if cabecera.count(";") > cabecera.count(",") else ","
     grupos = {}
-    with open(ruta, newline="", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        falta = [c for c in COLUMNAS if c not in (lector.fieldnames or [])]
-        if falta:
-            raise ValueError(f"faltan columnas en el CSV: {falta}")
-        for fila in lector:
-            if not (fila["medido"] or "").strip():
-                continue
-            g = grupos.setdefault(fila["magnitud"].strip(), ([], [], []))
-            g[0].append(fila["id"].strip())
-            g[1].append(float(fila["predicho"]))
-            g[2].append(float(fila["medido"]))
+    lector = csv.DictReader(texto.splitlines(), delimiter=sep)
+    falta = [c for c in COLUMNAS if c not in (lector.fieldnames or [])]
+    if falta:
+        raise ValueError(f"faltan columnas en el CSV: {falta}")
+    for n, fila in enumerate(lector, start=2):
+        if not (fila["medido"] or "").strip():
+            continue
+        id_ = fila["id"].strip()
+        g = grupos.setdefault(fila["magnitud"].strip(), ([], [], []))
+        g[0].append(id_)
+        g[1].append(_num(fila["predicho"], n, id_, "predicho"))
+        g[2].append(_num(fila["medido"], n, id_, "medido"))
     return grupos
+
+
+def _a_json(x):
+    """NaN e inf no son JSON valido: se escriben como null."""
+    if isinstance(x, dict):
+        return {k: _a_json(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_a_json(v) for v in x]
+    if isinstance(x, float) and not math.isfinite(x):
+        return None
+    return x
 
 
 def informe_md(resultados):
@@ -310,17 +424,29 @@ def informe_md(resultados):
         reg, ba = r["regresion"], r["bland_altman_log"]
         L.append(f"- RMSE {r['rmse']:.4g}; MAE {r['mae']:.4g}; error relativo "
                  f"medio absoluto {100 * r['mape']:.1f} %; sesgo relativo "
-                 f"{100 * r['sesgo_rel']:+.1f} %.")
-        L.append(f"- CCC de Lin {r['ccc']:.3f}; Spearman {r['spearman']:.3f}; "
-                 f"R2 {reg['r2']:.3f}.")
+                 f"(predicho - medido) / medido {100 * r['sesgo_rel']:+.1f} %.")
+        ic = r.get("ccc_ic")
+        L.append(f"- CCC de Lin {r['ccc']:.3f}"
+                 + (f" (IC {100 * (1 - r['alfa']):.0f} %: {ic[0]:.3f} a "
+                    f"{ic[1]:.3f})" if ic else "")
+                 + f"; Spearman {r['spearman']:.3f}; R2 {reg['r2']:.3f}.")
         L.append(f"- medido = {reg['pendiente']:.3f} x predicho "
                  f"{reg['intercepto']:+.4g} "
                  f"(IC {100 * (1 - r['alfa']):.0f} %, pendiente "
                  f"[{reg['pendiente_ic'][0]:.3f}, {reg['pendiente_ic'][1]:.3f}]).")
         if ba:
-            L.append(f"- Razon medido/predicho: factor medio "
-                     f"{ba['factor_sesgo']:.3f}; limites de acuerdo "
-                     f"[{ba['limite_inf']:.3f}, {ba['limite_sup']:.3f}].")
+            L.append(f"- Razon medido / predicho (mayor que 1 si el modelo "
+                     f"subestima): factor medio {ba['factor_sesgo']:.3f}; "
+                     f"limites de acuerdo [{ba['limite_inf']:.3f}, "
+                     f"{ba['limite_sup']:.3f}].")
+        cal = r.get("calibracion")
+        if cal:
+            L.append(f"- Calibracion de E_s: k = {cal['k']:.3f} "
+                     f"(geometrico {cal['k_geometrico']:.3f}); error relativo "
+                     f"medio en validacion cruzada "
+                     f"{100 * cal['error_rel_loo_medio_abs']:.1f} %"
+                     + (f"; E_s calibrado {cal['Es_calibrado']:.4g}"
+                        if "Es_calibrado" in cal else "") + ".")
         L.append(f"- Veredicto: **{r['veredicto']}**.")
         for d in r["detalle_veredicto"]:
             L.append(f"  - {d}")
@@ -336,10 +462,15 @@ def main(argv=None):
         description="Contrasta lo predicho por spinpy con ensayos fisicos.")
     ap.add_argument("csv", help="CSV con id, magnitud, predicho, medido")
     ap.add_argument("--json", help="guarda los resultados en este JSON")
-    ap.add_argument("--ccc-min", type=float)
+    ap.add_argument("--ccc-min", type=float,
+                    help="minimo del limite inferior del IC del CCC")
     ap.add_argument("--sesgo-rel-max", type=float)
     ap.add_argument("--mape-max", type=float)
-    ap.add_argument("--pendiente-incluye-1", action="store_true")
+    ap.add_argument("--pendiente-delta", type=float,
+                    help="el IC de la pendiente debe caer en [1-d, 1+d]")
+    ap.add_argument("--Es-usado", type=float, dest="es_usado",
+                    help="E_s (MPa) con que se calculo el predicho; activa la "
+                         "calibracion de E_s en las magnitudes E_app*")
     a = ap.parse_args(argv)
 
     crit = {}
@@ -349,20 +480,31 @@ def main(argv=None):
         crit["sesgo_rel_max"] = a.sesgo_rel_max
     if a.mape_max is not None:
         crit["mape_max"] = a.mape_max
-    if a.pendiente_incluye_1:
-        crit["pendiente_ic_incluye_1"] = True
+    if a.pendiente_delta is not None:
+        crit["pendiente_equiv_delta"] = a.pendiente_delta
 
     grupos = leer_csv(a.csv)
     if not grupos:
         print("El CSV no tiene ninguna fila con 'medido' rellenado: no hay "
               "nada que contrastar todavia.", file=sys.stderr)
         return 2
-    res = [acuerdo(p, m, ids=i, criterios=crit or None, magnitud=mag)
-           for mag, (i, p, m) in grupos.items()]
+    if crit and len(grupos) > 1:
+        print("Aviso: los mismos criterios se aplican a todas las magnitudes "
+              f"({', '.join(grupos)}).", file=sys.stderr)
+    res = []
+    for mag, (i, p, m) in grupos.items():
+        r = acuerdo(p, m, ids=i, criterios=crit or None, magnitud=mag)
+        if a.es_usado and mag.lower().startswith("e_app"):
+            try:
+                r["calibracion"] = calibrar_Es(p, m, Es_usado=a.es_usado)
+            except ValueError as e:
+                r["avisos"].append(f"Calibracion de E_s omitida: {e}")
+        res.append(r)
     print(informe_md(res))
     if a.json:
-        Path(a.json).write_text(json.dumps(res, indent=2, ensure_ascii=False),
-                                encoding="utf-8")
+        Path(a.json).write_text(
+            json.dumps(_a_json(res), indent=2, ensure_ascii=False,
+                       allow_nan=False), encoding="utf-8")
     return 0
 
 

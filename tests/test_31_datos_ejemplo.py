@@ -18,7 +18,6 @@ TOLERANCIAS DECLARADAS ANTES DE MEDIR
 from __future__ import annotations
 
 import hashlib
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -33,7 +32,7 @@ NOMBRES = [f"VOI_{g}{i}.mat" for g in "CV" for i in range(1, 6)]
 
 def _huellas():
     out = {}
-    for linea in (DATOS / "SHA256SUMS.txt").read_text().splitlines():
+    for linea in (DATOS / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
         if linea.strip():
             h, n = linea.split()
             out[n] = h
@@ -59,13 +58,13 @@ def test_voi_se_lee_con_forma_escala_y_bvtv_plausibles(nombre):
 
 
 def test_atribucion_de_la_licencia():
-    t = (DATOS / "FUENTE.txt").read_text()
+    t = (DATOS / "FUENTE.txt").read_text(encoding="utf-8")
     assert "10.5518/787" in t and "CC BY 4.0" in t and "Koria" in t
 
 
 @pytest.mark.lento
-def test_inicio_rapido_corre_de_punta_a_punta(capsys):
-    sys.path.insert(0, str(RAIZ / "ejemplos"))
+def test_inicio_rapido_corre_de_punta_a_punta(capsys, monkeypatch):
+    monkeypatch.syspath_prepend(str(RAIZ / "ejemplos"))
     import inicio_rapido
     assert inicio_rapido.main(["--rapido"]) == 0
     salida = capsys.readouterr().out
