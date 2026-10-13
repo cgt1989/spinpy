@@ -124,6 +124,8 @@ def envolver_en_scroll(dlg: QtWidgets.QDialog) -> bool:
         raiz.addWidget(marco, 0)
     dlg.setProperty("_pantalla_envuelto", True)
     dlg._area_scroll = area
+    dlg._contenido = contenido
+    dlg._pie = marco if pie is not None else None
     return True
 
 
@@ -134,8 +136,23 @@ def ajustar_tamano(dlg: QtWidgets.QDialog) -> None:
     max_w = int(r.width() * FRACCION)
     max_h = int(r.height() * FRACCION)
     dlg.setMaximumSize(r.width(), r.height())
-    pedido = dlg.size()
-    hint = dlg.sizeHint()
+    # Solo cuenta un resize explicito; el 640x480 por defecto no es un pedido.
+    pedido = (dlg.size() if dlg.testAttribute(QtCore.Qt.WA_Resized)
+              else QtCore.QSize(0, 0))
+    contenido = getattr(dlg, "_contenido", None)
+    if contenido is not None:
+        # El tamano preferido de una QScrollArea es pequeno a proposito; el
+        # del dialogo es el del CONTENIDO que envuelve, mas la fila fija de
+        # botones y el margen de las barras de desplazamiento.
+        ch = contenido.sizeHint()
+        pie = getattr(dlg, "_pie", None)
+        alto_pie = pie.sizeHint().height() if pie is not None else 0
+        ancho_pie = pie.sizeHint().width() if pie is not None else 0
+        sb = dlg.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
+        hint = QtCore.QSize(max(ch.width(), ancho_pie) + sb,
+                            ch.height() + alto_pie)
+    else:
+        hint = dlg.sizeHint()
     ancho = max(pedido.width(), hint.width() + _MARGEN)
     alto = max(pedido.height(), hint.height() + _MARGEN)
     ancho, alto = min(ancho, max_w), min(alto, max_h)
