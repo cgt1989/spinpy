@@ -29,7 +29,7 @@ on:
       plataforma:
         description: "Que construir"
         type: choice
-        options: [todas, windows, macos]
+        options: [todas, windows, macos, linux]
         default: todas
 
 permissions:
@@ -45,7 +45,7 @@ jobs:
 
   construir:
     needs: verificar
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.plataforma != 'macos' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.plataforma == 'todas' || inputs.plataforma == 'windows' }}
     runs-on: windows-latest
     timeout-minutes: 120
     env:
@@ -110,7 +110,7 @@ jobs:
   # instalador/LEEME_MAC.txt.
   construir-mac:
     needs: [verificar, construir]
-    if: ${{ !cancelled() && needs.verificar.result == 'success' && (needs.construir.result == 'success' || needs.construir.result == 'skipped') && (github.event_name != 'workflow_dispatch' || inputs.plataforma != 'windows') }}
+    if: ${{ !cancelled() && needs.verificar.result == 'success' && (needs.construir.result == 'success' || needs.construir.result == 'skipped') && (github.event_name != 'workflow_dispatch' || inputs.plataforma == 'todas' || inputs.plataforma == 'macos') }}
     runs-on: macos-14
     timeout-minutes: 120
     env:
@@ -160,4 +160,72 @@ jobs:
         run: |
           gh release upload "$ETIQUETA" \
             "$RUNNER_TEMP/spinpy_build/spinpy-V$VERSION-macos-arm64-PRUEBA.zip" \
+            --clobber
+
+  # VERSION DE PRUEBA para Linux (x86_64, Ubuntu). Como la de macOS, corre
+  # DESPUES de los otros trabajos para no competir por crear la release, y su
+  # fallo no afecta a los instaladores ya adjuntos. Formato: carpeta autonoma en
+  # .tar.gz (sin .deb/.rpm/AppImage): instalador/LEEME_LINUX.txt.
+  construir-linux:
+    needs: [verificar, construir, construir-mac]
+    if: ${{ !cancelled() && needs.verificar.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.construir.result) && contains(fromJSON('["success","skipped","failure"]'), needs.construir-mac.result) && (github.event_name != 'workflow_dispatch' || inputs.plataforma == 'todas' || inputs.plataforma == 'linux') }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      ETIQUETA: ${{ github.event.release.tag_name || inputs.etiqueta }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Version de la etiqueta frente a la del paquete
+        run: |
+          v="${ETIQUETA#[vV]}"
+          paquete="$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' pyproject.toml | head -1)"
+          if [ "$v" != "$paquete" ]; then
+            echo "La etiqueta $ETIQUETA no coincide con la version del paquete ($paquete)"
+            exit 1
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+
+      # Qt y VTK necesitan estas bibliotecas del sistema, tanto para la
+      # autocomprobacion como para el ejecutable ya empaquetado.
+      - name: Bibliotecas del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libegl1 libxrender1 \
+            libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libdbus-1-3
+
+      - name: Construir
+        run: bash instalador/construir_linux.sh "$RUNNER_TEMP/spinpy_build" "$VERSION"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spinpy-linux-x86_64
+          path: ${{ runner.temp }}/spinpy_build/spinpy-V${{ env.VERSION }}-linux-x86_64.tar.gz
+          retention-days: 14
+
+      - name: Crear la release si no existe
+        if: github.event_name == 'workflow_dispatch' && inputs.adjuntar
+        run: |
+          if gh release view "$ETIQUETA" >/dev/null 2>&1; then
+            echo "La release $ETIQUETA ya existe"; exit 0
+          fi
+          notas="instalador/notas/${ETIQUETA}.md"
+          if [ -f "$notas" ]; then
+            gh release create "$ETIQUETA" --target "$GITHUB_SHA" --title "spinpy V$VERSION" --notes-file "$notas"
+          else
+            gh release create "$ETIQUETA" --target "$GITHUB_SHA" --title "spinpy V$VERSION" --generate-notes
+          fi
+
+      - name: Adjuntar a la release
+        if: github.event_name == 'release' || inputs.adjuntar
+        run: |
+          gh release upload "$ETIQUETA" \
+            "$RUNNER_TEMP/spinpy_build/spinpy-V$VERSION-linux-x86_64.tar.gz" \
             --clobber
