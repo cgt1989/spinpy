@@ -29,18 +29,20 @@ VOIS = ("C1", "C2", "C3", "C4", "C5")
 ESTR = ("voi", "spinodoide", "dual-lattice")
 
 
-def main(res):
+def main(res, solver="directo", solo=None):
     prot = fem.protocolo("tapia2026")
     sal = AQUI / "resultados" / "convergencia.jsonl"
     for n in res:
         for v in VOIS:
             for est in ESTR:
+                if solo and (v, est) != solo:
+                    continue
                 BW, sp = RT.cargar(v, est)
                 t0 = time.perf_counter()
                 B, s2 = fem._remuestrear(BW, sp, n)
                 malla = fem.mallar(B, s2, "hex8")
                 reg = fem.ensayo(malla, prot, analisis=("lineal",),
-                                 motor="ngsolve", solver="directo",
+                                 motor="ngsolve", solver=solver,
                                  aislado=False)
                 lin = reg.get("lineal")
                 fila = {"voi": v, "estructura": est, "n": n,
@@ -48,7 +50,8 @@ def main(res):
                         "n_gdl": int(3 * malla["nodos"].shape[0]),
                         "BVTV_malla": float(B.mean()),
                         "tiempo_s": time.perf_counter() - t0,
-                        "fallos": reg["fallos"]}
+                        "fallos": reg["fallos"], "solver": solver,
+                        "residuo_rel": reg.get("motor", {}).get("residuo_rel")}
                 if lin and "_campos_lineal" in reg:
                     u = reg["_campos_lineal"]["u"]
                     vm, um, _ = RT.campos_elemento(malla, u, prot["E_s"],
@@ -72,4 +75,20 @@ def main(res):
 
 
 if __name__ == "__main__":
-    main([int(x) for x in sys.argv[1:]] or [56, 64, 80])
+    # `python convergencia.py 80 iter`: CG + pyamg y un proceso por caso,
+    # para acotar la memoria (el directo de n=80 agota 15 GB)
+    a = sys.argv[1:]
+    modo = "iterativo" if "iter" in a else "directo"
+    ns = [int(x) for x in a if x.isdigit()] or [56, 64, 80]
+    if modo == "iterativo" and "caso" not in a:
+        import subprocess
+        for n in ns:
+            for v in VOIS:
+                for e in ESTR:
+                    subprocess.run([sys.executable, __file__, str(n), "iter",
+                                    "caso", v, e], check=False)
+    elif "caso" in a:
+        i = a.index("caso")
+        main(ns, modo, (a[i + 1], a[i + 2]))
+    else:
+        main(ns, modo)
