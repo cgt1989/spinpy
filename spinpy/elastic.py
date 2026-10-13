@@ -218,6 +218,27 @@ def homogeneizar(BW, E_s=1.0, nu_s=0.3, vox_size=1.0, tol=1e-8,
         vox = np.repeat(vox, 3)
     dx, dy, dz = vox
 
+    # Parametros fisicos: un tensor calculado con ellos fuera de rango no es un
+    # resultado, es ruido con aspecto de resultado. Se devuelve NaN con el
+    # motivo, igual que con "sin material", en vez de ok=True o una excepcion
+    # de division por cero.
+    motivo = None
+    if vox.size != 3 or not np.all(np.isfinite(vox)) or np.any(vox <= 0):
+        motivo = f"tamano de voxel invalido {vox.tolist()}: debe ser > 0."
+    elif not (np.isfinite(E_s) and E_s > 0):
+        motivo = f"modulo de Young invalido (E_s={E_s}): debe ser > 0."
+    elif not (np.isfinite(nu_s) and -1.0 < nu_s < 0.5):
+        motivo = (f"coeficiente de Poisson invalido (nu_s={nu_s}): el material "
+                  f"isotropo exige -1 < nu < 0.5.")
+    elif not (np.isfinite(escala_vacio) and 0.0 <= escala_vacio <= 1.0):
+        motivo = (f"escala_vacio invalida ({escala_vacio}): debe estar en "
+                  f"[0, 1].")
+    if motivo is not None:
+        return (np.full((6, 6), np.nan),
+                {"ok": False, "msg": motivo, "n_elem": int(BW.size),
+                 "n_dof": 3 * int(BW.size), "solver": "",
+                 "rho_solido": float(BW.mean()) if BW.size else 0.0})
+
     nx, ny, nz = BW.shape
     nel = nx * ny * nz
     ndof = 3 * nel

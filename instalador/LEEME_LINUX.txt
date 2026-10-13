@@ -1,0 +1,35 @@
+spinpy para Linux (x86_64): VERSION DE PRUEBA
+==============================================
+
+Esta version es experimental. Se construye y supera la autocomprobacion en un
+equipo Ubuntu de GitHub Actions, pero la interfaz grafica NO se ha probado a
+mano en un escritorio Linux. Si algo falla, abra una incidencia en el
+repositorio con la salida de la terminal.
+
+Requisitos
+  - Linux de 64 bits (x86_64) con glibc reciente (construido en Ubuntu 22.04
+    o posterior) y un escritorio con X11 o XWayland.
+  - Bibliotecas del sistema que Qt necesita y que no viajan dentro. En
+    Debian/Ubuntu:
+        sudo apt install libgl1 libxkbcommon-x11-0 libxcb-cursor0 \
+             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+             libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libegl1
+  - No hay version para ARM (aarch64).
+
+Uso
+  1. Descomprima:   tar -xzf spinpy-V*-linux-x86_64.tar.gz
+  2. Ejecute:       ./spinpy-V*-linux-x86_64/spinpy
+  3. Si no abre, la terminal muestra el error. Un fallo tipico es
+     "Could not load the Qt platform plugin xcb": falta alguna biblioteca de
+     la lista anterior. Con  QT_DEBUG_PLUGINS=1 ./spinpy  se ve cual.
+
+Autocomprobacion (comprueba que los modulos y los calculos funcionan):
+     ./spinpy --autocomprobacion
+
+Diferencias con la version de Windows
+  - Qt 5.15.17 en lugar de 5.15.2; no se ha validado la interfaz con ella.
+  - Mismos motores FEM internos: la aplicacion, NGSolve y scikit-fem.
+  - Sin instalador (.deb, .rpm o AppImage): es una carpeta autonoma.
+
+Licencia: igual que las versiones de Windows y macOS, el binario incluye PyQt5
+(GPL v3) y se distribuye bajo GPL-3.0. Ver LICENCIA_BINARIO.txt.
