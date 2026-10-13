@@ -2112,7 +2112,7 @@ def _version_spinpy():
         return "?"
 
 
-class DialogoBienvenida(DialogoAjustable):
+class DialogoBienvenida(QtWidgets.QDialog):
     """Portada: que es esto, quien lo firma y por donde se entra.
 
     Se abre ANTES de construir la ventana principal, no despues. Construir el
