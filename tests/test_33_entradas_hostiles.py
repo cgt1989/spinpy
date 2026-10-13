@@ -17,6 +17,7 @@ TOLERANCIAS DECLARADAS ANTES DE MEDIR
 """
 from __future__ import annotations
 
+import sys
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -100,6 +101,8 @@ def test_homogeneizar_parametros_validos_siguen_resolviendo():
 @pytest.mark.parametrize("nombre", ["normal", "a&b", 'a"onda', "x<y",
                                     "muestra_ñandú"])
 def test_febio_xml_bien_formado(tmp_path, nombre):
+    if sys.platform == "win32" and any(c in nombre for c in '"<'):
+        pytest.skip("Windows no admite esos caracteres en nombres de archivo")
     nodos = np.array([[x, y, z] for z in (0, 1) for y in (0, 1) for x in (0, 1)],
                      float)
     elems = np.array([[0, 1, 3, 2, 4, 5, 7, 6]])
