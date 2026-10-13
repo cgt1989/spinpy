@@ -357,11 +357,14 @@ mapa("Tensión de von Mises", "figs/mapa_vm.png", [
   });
   const nc = 1 + 3 * NS.length, w1 = 1.4, wc = (12.1 - w1) / (3 * NS.length);
   s.addTable(filas, { x: 0.6, y: 1.45, w: 12.1, colW: [w1, ...Array(3 * NS.length).fill(wc)], rowH: 0.42, border: { type: "solid", color: "CFD6D9", pt: 1 }, fontFace: "Calibri", valign: "middle" });
-  const maxcam = (e) => Math.max(...VOIS.map((v) => Math.abs(mal(v, e, NS[NS.length - 1], "E_app_MPa") / mal(v, e, NS[0], "E_app_MPa") - 1)));
+  const nL = NS[NS.length - 1], nP = NS[NS.length - 2];
+  const maxcam = (e) => Math.max(...VOIS.map((v) => Math.abs(mal(v, e, nL, "E_app_MPa") / mal(v, e, NS[0], "E_app_MPa") - 1)));
+  const salto = (e) => Math.max(...VOIS.map((v) => Math.abs(mal(v, e, nL, "E_app_MPa") / mal(v, e, nP, "E_app_MPa") - 1)));
+  const orden = NS.every((n) => VOIS.every((v) => mal(v, "voi", n, "E_app_MPa") > mal(v, "dual-lattice", n, "E_app_MPa") && mal(v, "dual-lattice", n, "E_app_MPa") > mal(v, "spinodoide", n, "E_app_MPa")));
   const cards = [
-    [f0(maxcam("voi")) + " %", `cambio máximo de E_app del VOI entre ${NS[0]}³ y ${NS[NS.length - 1]}³: converge razonablemente`],
-    [f0(maxcam("spinodoide")) + " %", "cambio máximo en el spinodoide: sus puntales finos siguen resolviéndose, la malla no ha convergido"],
-    ["Orden", "VOI > dual-lattice > spinodoide se conserva en cada malla (salvo C5, donde dual y spinodoide quedan cercanos)"],
+    [f0(maxcam("voi")) + " %", `cambio máximo de E_app del VOI entre ${NS[0]}³ y ${nL}³: converge razonablemente`],
+    [f0(salto("spinodoide")) + " %", `cambio máximo de E_app del spinodoide entre ${nP}³ y ${nL}³ (dual-lattice: ${f0(salto("dual-lattice"))} %): no han convergido y hay saltos bruscos`],
+    ["Orden", (orden ? "VOI > dual-lattice > spinodoide se conserva en los 5 VOIs y en todas las mallas" : "El orden VOI > dual-lattice > spinodoide no se conserva en todas las mallas") + `. A ${nL}³ el spinodoide conserva ${rg(cocientes((v) => mal(v, "spinodoide", nL, "E_app_MPa"), (v) => mal(v, "voi", nL, "E_app_MPa")))} % y el dual-lattice ${rg(cocientes((v) => mal(v, "dual-lattice", nL, "E_app_MPa"), (v) => mal(v, "voi", nL, "E_app_MPa")))} %`],
   ];
   cards.forEach((c, i) => {
     const x = 0.6 + i * 4.1;
@@ -369,7 +372,7 @@ mapa("Tensión de von Mises", "figs/mapa_vm.png", [
     txt(s, c[0], { x: x + 0.25, y: 4.75, w: 3.3, h: 0.7, fontFace: "Cambria", fontSize: 32, bold: true, color: i === 1 ? "C8553D" : "2E7D7A", valign: "middle" });
     txt(s, c[1], { x: x + 0.25, y: 5.5, w: 3.35, h: 1.25, fontSize: 13 });
   });
-  notas(s, "NGSolve con solver directo, misma carga y misma condición de apoyo, remuestreando cada estructura a distintas mallas. Las razones entre estructuras dependen de la resolución; la que se cita a 40 elementos por lado es una primera aproximación, no un valor convergido. El p99 de von Mises del spinodoide sube con la malla porque los puntales finos quedan mejor resueltos.");
+  notas(s, "NGSolve con solver directo, misma carga y misma condición de apoyo, remuestreando cada estructura a distintas mallas. A 80 elementos por lado se usó CG con pyamg (un proceso por caso) por memoria; a 64 coincide con el directo en 4 cifras (comprobado en C2 spinodoide y C3 dual-lattice) y el equilibrio cierra a 10⁻¹³. Las razones entre estructuras dependen de la resolución; la que se cita a 40 elementos por lado es una primera aproximación, no un valor convergido. El p99 de von Mises del spinodoide sube con la malla porque los puntales finos quedan mejor resueltos.");
 }
 
 // ---------------------------------------------------------------- sensibilidad a la carga
