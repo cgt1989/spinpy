@@ -112,16 +112,22 @@ def chequeos_lineales(tipo, apoyo, motor, n):
            TOL_LIN)
     anotar(g, "equilibrio: integral de volumen de szz = fuerza", F_N,
            lin["F_N"], TOL_LIN)
-    # equilibrio de SECCION: la tension media de cada capa horizontal es -sigma
+    # equilibrio de SECCION: la tension media de cada capa horizontal es
+    # -sigma. Solo con ladrillos: una capa de hex8 ES una seccion horizontal;
+    # los tetraedros agrupados por la altura de su centroide no lo son (la
+    # primera version de esta prueba lo hizo y fallaba igual con los dos
+    # motores, un defecto de la prueba, no del solver). En TET10 rige el
+    # equilibrio global de arriba.
     cen = nod[malla["elems"]].mean(axis=1)
-    capas = np.unique(np.round(cen[:, 2], 9))
-    vol = malla["vol_elem"]
-    dev = max(abs((s[cen[:, 2].round(9) == c, 2]
-                   * vol[cen[:, 2].round(9) == c]).sum()
-                  / vol[cen[:, 2].round(9) == c].sum() / -sig - 1.0)
-              for c in capas)
-    anotar(g, "equilibrio de seccion: szz medio por capa = -sigma", 1.0,
-           1.0 + dev, TOL_LIN)
+    if tipo == "hex8":
+        capas = np.unique(np.round(cen[:, 2], 9))
+        vol = malla["vol_elem"]
+        dev = max(abs((s[cen[:, 2].round(9) == c, 2]
+                       * vol[cen[:, 2].round(9) == c]).sum()
+                      / vol[cen[:, 2].round(9) == c].sum() / -sig - 1.0)
+                  for c in capas)
+        anotar(g, "equilibrio de seccion: szz medio por capa = -sigma", 1.0,
+               1.0 + dev, TOL_LIN)
     if apoyo == "deslizante":
         anotar(g, "E_app = E_s", E_S, lin["E_app"], TOL_LIN)
         anotar(g, "von Mises uniforme: media = sigma", sig * 1e-6,

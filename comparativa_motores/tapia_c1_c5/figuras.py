@@ -59,11 +59,15 @@ def guardar(fig, nombre):
 # Cubo macizo
 # ---------------------------------------------------------------------------
 
+def lin_E(reg):
+    return float(reg["lineal"]["E_app"])
+
+
 def fig_bloque():
     sig = F_N / L_MM ** 2                                 # MPa
     h = L_MM / N
     BW = np.ones((N, N, N), bool)
-    datos = {}
+    datos, est = {}, {}
     for apoyo in ("deslizante", "empotrado"):
         malla = fem.mallar(BW, np.full(3, h), "hex8")
         prot = fem.protocolo("tapia2026", apoyo=apoyo)
@@ -80,6 +84,22 @@ def fig_bloque():
         gv[ijk[:, 0], ijk[:, 1], ijk[:, 2]] = vm
         gu[ijk[:, 0], ijk[:, 1], ijk[:, 2]] = um
         datos[apoyo] = (gv, gu)
+        nod = malla["nodos"]
+        top = nod[:, 2] >= nod[:, 2].max() - 1e-9
+        esq = top & (nod[:, 0] >= nod[:, 0].max() - 1e-9)
+        eps = sig / (E_S * 1e-6)
+        est[apoyo] = {
+            "E_app_sobre_E_s": lin_E(reg) / E_S,
+            "vm_max_sobre_sigma": float(vm.max() / sig),
+            "vm_centro_sobre_sigma": float(
+                vm[(np.abs(cen - cen.mean(axis=0)).max(axis=1)
+                    < 1.5 * h)].mean() / sig),
+            "ux_borde_techo_mm": float(u[esq, 0].max()),
+            "ux_borde_exacto_libre_mm": float(NU * eps * L_MM),
+            "uz_techo_mm": float(u[top, 2].mean()),
+            "uz_techo_exacto_mm": float(-eps * L_MM),
+            "u_tot_max_mm": float(np.linalg.norm(u, axis=1).max()),
+            "sigma_MPa": float(sig)}
     fig, ejes = plt.subplots(2, 2, figsize=(6.6, 6.4), facecolor="white")
     clim_v = (0.95, 1.30)
     umax = max(np.nanmax(datos[a][1]) for a in datos) * 1e3
@@ -113,6 +133,8 @@ def fig_bloque():
                  fontsize=10, color=TINTA)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     guardar(fig, "bloque")
+    json.dump(est, open(FIGS / "bloque.json", "w", encoding="utf-8"),
+              indent=1)
 
 
 # ---------------------------------------------------------------------------

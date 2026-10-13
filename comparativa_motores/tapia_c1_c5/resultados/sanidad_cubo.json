@@ -1,0 +1,1248 @@
+{
+ "E_s": 18000000000.0,
+ "nu": 0.3,
+ "F_N": 100.0,
+ "L_mm": 3.008,
+ "filas": [
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999999,
+   "error": 1.1102230246251565e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 99.99999999925649,
+   "error": 7.435163595914673e-12,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "equilibrio de seccion: szz medio por capa = -sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0000000002991973,
+   "error": 2.991973335753073e-10,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.99994,
+   "error": 3.4416913763379853e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "von Mises uniforme: media = sigma",
+   "esperado": 11.0520880488909,
+   "obtenido": 11.052088048945743,
+   "error": 4.9622528308646e-12,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "von Mises uniforme: dispersion (max-min)/sigma",
+   "esperado": 0.0,
+   "obtenido": 3.4214132363891606e-09,
+   "error": 3.4214132363891606e-09,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "deformacion total |u| maxima (esquina superior)",
+   "esperado": 0.0020062759476950753,
+   "obtenido": 0.002006275947713061,
+   "error": 8.964606834638289e-12,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "uz del techo = -eps L",
+   "esperado": -0.0018469267139479904,
+   "obtenido": -0.0018469267139374493,
+   "error": 5.707323502690542e-12,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante app",
+   "prueba": "ux del borde libre del techo = nu eps L (eje libre)",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0005540780148412019,
+   "error": 1.1854013326484392e-09,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999994,
+   "error": 5.551115123125783e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999932,
+   "error": 6.772360450213455e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "equilibrio de seccion: szz medio por capa = -sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000115,
+   "error": 1.1546319456101628e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.00015,
+   "error": 8.215650382226158e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "von Mises uniforme: media = sigma",
+   "esperado": 11.0520880488909,
+   "obtenido": 11.052088048890797,
+   "error": 9.325873406851315e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "von Mises uniforme: dispersion (max-min)/sigma",
+   "esperado": 0.0,
+   "obtenido": 5.967765045166016e-13,
+   "error": 5.967765045166016e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "deformacion total |u| maxima (esquina superior)",
+   "esperado": 0.0020062759476950753,
+   "obtenido": 0.002006275947694764,
+   "error": 1.5520917884259688e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "uz del techo = -eps L",
+   "esperado": -0.0018469267139479904,
+   "obtenido": -0.0018469267139479756,
+   "error": 7.993605777301127e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "ux del borde libre del techo = nu eps L (eje libre)",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0005540780141837181,
+   "error": 1.2255751968837103e-12,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "plato rigido: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.000164,
+   "error": 9.103828801926284e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "plato rigido / fuerza = 1",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000009,
+   "error": 8.881784197001252e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "E corregido (nucleo con plato) = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.0,
+   "error": 0.0,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "no lineal a 100 N: E_app frente a SVK cerrado",
+   "esperado": 17983409973.57628,
+   "obtenido": 17983409989.322575,
+   "error": 8.756011471433567e-10,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "Pistoia: sigma de fallo = eps_crit E_s",
+   "esperado": 126000000.0,
+   "obtenido": 125999999.99999791,
+   "error": 1.6542323066914832e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante ngsolve",
+   "prueba": "no lineal a la carga de fallo: E_app frente a SVK",
+   "esperado": 17809428071.19302,
+   "obtenido": 17809428071.193436,
+   "error": 2.3314683517128287e-14,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999991,
+   "error": 8.881784197001252e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 99.9999999999998,
+   "error": 1.9984014443252818e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "equilibrio de seccion: szz medio por capa = -sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000042,
+   "error": 4.218847493575595e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.000034,
+   "error": 1.9984014443252818e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "von Mises uniforme: media = sigma",
+   "esperado": 11.0520880488909,
+   "obtenido": 11.05208804889088,
+   "error": 1.7763568394002505e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "von Mises uniforme: dispersion (max-min)/sigma",
+   "esperado": 0.0,
+   "obtenido": 9.774932861328126e-14,
+   "error": 9.774932861328126e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "deformacion total |u| maxima (esquina superior)",
+   "esperado": 0.0020062759476950753,
+   "obtenido": 0.002006275947695091,
+   "error": 7.771561172376096e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "uz del techo = -eps L",
+   "esperado": -0.0018469267139479904,
+   "obtenido": -0.0018469267139479871,
+   "error": 1.7763568394002505e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "ux del borde libre del techo = nu eps L (eje libre)",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0005540780141843415,
+   "error": 1.0036416142611415e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "plato rigido: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999966,
+   "error": 1.887379141862766e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "plato rigido / fuerza = 1",
+   "esperado": 1.0,
+   "obtenido": 0.9999999999999962,
+   "error": 3.774758283725532e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 deslizante skfem",
+   "prueba": "E corregido (nucleo con plato) = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.99998,
+   "error": 1.1102230246251565e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999974,
+   "error": 2.55351295663786e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000004,
+   "error": 4.440892098500626e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999992,
+   "error": 4.440892098500626e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "von Mises uniforme: media = sigma",
+   "esperado": 11.0520880488909,
+   "obtenido": 11.052088048890917,
+   "error": 1.5543122344752192e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "von Mises uniforme: dispersion (max-min)/sigma",
+   "esperado": 0.0,
+   "obtenido": 2.072959899902344e-13,
+   "error": 2.072959899902344e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "deformacion total |u| maxima (esquina superior)",
+   "esperado": 0.0020062759476950753,
+   "obtenido": 0.0020062759476950406,
+   "error": 1.7319479184152442e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "uz del techo = -eps L",
+   "esperado": -0.0018469267139479904,
+   "obtenido": -0.001846926713947994,
+   "error": 1.9984014443252818e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "ux del borde libre del techo = nu eps L (eje libre)",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0005540780141845406,
+   "error": 2.5912605394751154e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "plato rigido: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.00002,
+   "error": 1.1102230246251565e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "plato rigido / fuerza = 1",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000016,
+   "error": 1.5543122344752192e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "E corregido (nucleo con plato) = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999996,
+   "error": 2.220446049250313e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "no lineal a 100 N: E_app frente a SVK cerrado",
+   "esperado": 17983409973.57628,
+   "obtenido": 17983409973.57672,
+   "error": 2.4646951146678475e-14,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "Pistoia: sigma de fallo = eps_crit E_s",
+   "esperado": 126000000.0,
+   "obtenido": 125999999.99999844,
+   "error": 1.2434497875801753e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante ngsolve",
+   "prueba": "no lineal a la carga de fallo: E_app frente a SVK",
+   "esperado": 17809428071.19302,
+   "obtenido": 17809428071.193497,
+   "error": 2.6867397195928788e-14,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000031,
+   "error": 3.1086244689504383e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000075,
+   "error": 7.549516567451064e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.99986,
+   "error": 7.882583474838611e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "von Mises uniforme: media = sigma",
+   "esperado": 11.0520880488909,
+   "obtenido": 11.052088048891015,
+   "error": 1.0436096431476471e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "von Mises uniforme: dispersion (max-min)/sigma",
+   "esperado": 0.0,
+   "obtenido": 4.96667709350586e-13,
+   "error": 4.96667709350586e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "deformacion total |u| maxima (esquina superior)",
+   "esperado": 0.0020062759476950753,
+   "obtenido": 0.0020062759476950163,
+   "error": 2.942091015256665e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "uz del techo = -eps L",
+   "esperado": -0.0018469267139479904,
+   "obtenido": -0.001846926713948005,
+   "error": 7.771561172376096e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "ux del borde libre del techo = nu eps L (eje libre)",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0005540780141841566,
+   "error": 4.339861803259737e-13,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "plato rigido: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.000015,
+   "error": 8.881784197001252e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "plato rigido / fuerza = 1",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000087,
+   "error": 8.659739592076221e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 deslizante skfem",
+   "prueba": "E corregido (nucleo con plato) = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999996,
+   "error": 2.220446049250313e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999999,
+   "error": 1.1102230246251565e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 100.00000000172801,
+   "error": 1.728017728908071e-11,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "equilibrio de seccion: szz medio por capa = -sigma",
+   "esperado": 1.0,
+   "obtenido": 1.000000001184001,
+   "error": 1.184000897325177e-09,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "base: |ux|, |uy|, |uz| maximos = 0 (ejes fijos)",
+   "esperado": 0.0,
+   "obtenido": 0.0,
+   "error": 0.0,
+   "tol": 1e-12,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "techo: ux del borde NO es nulo (eje libre), mm",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0002849916140211397,
+   "error": 0.48564713501464696,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta frente al valor del caso deslizante"
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "rigidizacion E_app / E_s - 1 (base empotrada)",
+   "esperado": 0.0,
+   "obtenido": 0.032161717283594404,
+   "error": 0.032161717283594404,
+   "tol": null,
+   "ok": null,
+   "nota": "no hay solucion cerrada: se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "von Mises maximo / sigma (esquinas de la base)",
+   "esperado": 1.0,
+   "obtenido": 1.2730684873855314,
+   "error": 0.27306848738553136,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado app",
+   "prueba": "von Mises en el centro / sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0155924405889494,
+   "error": 0.015592440588949374,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.9999999999998,
+   "error": 1.9984014443252818e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999923,
+   "error": 7.66053886991358e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "equilibrio de seccion: szz medio por capa = -sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000104,
+   "error": 1.0436096431476471e-14,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "base: |ux|, |uy|, |uz| maximos = 0 (ejes fijos)",
+   "esperado": 0.0,
+   "obtenido": 0.0,
+   "error": 0.0,
+   "tol": 1e-12,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "techo: ux del borde NO es nulo (eje libre), mm",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.000284991615172568,
+   "error": 0.48564713293654915,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta frente al valor del caso deslizante"
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "rigidizacion E_app / E_s - 1 (base empotrada)",
+   "esperado": 0.0,
+   "obtenido": 0.03216171728360262,
+   "error": 0.03216171728360262,
+   "tol": null,
+   "ok": null,
+   "nota": "no hay solucion cerrada: se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "von Mises maximo / sigma (esquinas de la base)",
+   "esperado": 1.0,
+   "obtenido": 1.2730684865607786,
+   "error": 0.27306848656077864,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado ngsolve",
+   "prueba": "von Mises en el centro / sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0155924397672762,
+   "error": 0.0155924397672762,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000006,
+   "error": 6.661338147750939e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000001,
+   "error": 2.220446049250313e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "equilibrio de seccion: szz medio por capa = -sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0000000000000033,
+   "error": 3.3306690738754696e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "base: |ux|, |uy|, |uz| maximos = 0 (ejes fijos)",
+   "esperado": 0.0,
+   "obtenido": 0.0,
+   "error": 0.0,
+   "tol": 1e-12,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "techo: ux del borde NO es nulo (eje libre), mm",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.00028499161517257023,
+   "error": 0.48564713293654516,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta frente al valor del caso deslizante"
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "rigidizacion E_app / E_s - 1 (base empotrada)",
+   "esperado": 0.0,
+   "obtenido": 0.032161717283594626,
+   "error": 0.032161717283594626,
+   "tol": null,
+   "ok": null,
+   "nota": "no hay solucion cerrada: se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "von Mises maximo / sigma (esquinas de la base)",
+   "esperado": 1.0,
+   "obtenido": 1.2730684865607844,
+   "error": 0.2730684865607844,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "hex8 empotrado skfem",
+   "prueba": "von Mises en el centro / sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0155924397672955,
+   "error": 0.015592439767295518,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999947,
+   "error": 5.218048215738236e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 99.99999999999957,
+   "error": 4.218847493575595e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "base: |ux|, |uy|, |uz| maximos = 0 (ejes fijos)",
+   "esperado": 0.0,
+   "obtenido": 9.232529067117649e-20,
+   "error": 9.232529067117649e-20,
+   "tol": 1e-12,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "techo: ux del borde NO es nulo (eje libre), mm",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.00028139772072164975,
+   "error": 0.4921333936415665,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta frente al valor del caso deslizante"
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "rigidizacion E_app / E_s - 1 (base empotrada)",
+   "esperado": 0.0,
+   "obtenido": 0.03218851361816655,
+   "error": 0.03218851361816655,
+   "tol": null,
+   "ok": null,
+   "nota": "no hay solucion cerrada: se reporta"
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "von Mises maximo / sigma (esquinas de la base)",
+   "esperado": 1.0,
+   "obtenido": 2.1578843613678558,
+   "error": 1.1578843613678558,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "tet10 empotrado ngsolve",
+   "prueba": "von Mises en el centro / sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0083643966998894,
+   "error": 0.00836439669988942,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "equilibrio: reaccion = fuerza aplicada",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000033,
+   "error": 3.3306690738754696e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "equilibrio: integral de volumen de szz = fuerza",
+   "esperado": 100.0,
+   "obtenido": 100.00000000000054,
+   "error": 5.329070518200751e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "base: |ux|, |uy|, |uz| maximos = 0 (ejes fijos)",
+   "esperado": 0.0,
+   "obtenido": 0.0,
+   "error": 0.0,
+   "tol": 1e-12,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "techo: ux del borde NO es nulo (eje libre), mm",
+   "esperado": 0.0005540780141843971,
+   "obtenido": 0.0002813977207216553,
+   "error": 0.4921333936415565,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta frente al valor del caso deslizante"
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "rigidizacion E_app / E_s - 1 (base empotrada)",
+   "esperado": 0.0,
+   "obtenido": 0.03218851361815611,
+   "error": 0.03218851361815611,
+   "tol": null,
+   "ok": null,
+   "nota": "no hay solucion cerrada: se reporta"
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "von Mises maximo / sigma (esquinas de la base)",
+   "esperado": 1.0,
+   "obtenido": 2.1578843613678886,
+   "error": 1.1578843613678886,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "tet10 empotrado skfem",
+   "prueba": "von Mises en el centro / sigma",
+   "esperado": 1.0,
+   "obtenido": 1.0083643966998992,
+   "error": 0.00836439669989919,
+   "tol": null,
+   "ok": null,
+   "nota": "se reporta"
+  },
+  {
+   "grupo": "acuerdo entre motores (hex8, empotrado)",
+   "prueba": "E_app app frente a NGSolve",
+   "esperado": 18578910911.104847,
+   "obtenido": 18578910911.1047,
+   "error": 7.993605777301127e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "acuerdo entre motores (hex8, empotrado)",
+   "prueba": "von Mises maximo app frente a NGSolve",
+   "esperado": 14.070065005738007,
+   "obtenido": 14.070065014853245,
+   "error": 6.478462211134683e-10,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "acuerdo entre motores (hex8, empotrado)",
+   "prueba": "|u| maximo app frente a NGSolve",
+   "esperado": 0.0018048665378339506,
+   "obtenido": 0.00180486653835595,
+   "error": 2.892177608515567e-10,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "acuerdo entre motores (hex8, empotrado)",
+   "prueba": "E_app skfem frente a NGSolve",
+   "esperado": 18578910911.104847,
+   "obtenido": 18578910911.104702,
+   "error": 7.771561172376096e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "acuerdo entre motores (hex8, empotrado)",
+   "prueba": "von Mises maximo skfem frente a NGSolve",
+   "esperado": 14.070065005738007,
+   "obtenido": 14.07006500573807,
+   "error": 4.440892098500626e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "acuerdo entre motores (hex8, empotrado)",
+   "prueba": "|u| maximo skfem frente a NGSolve",
+   "esperado": 0.0018048665378339506,
+   "obtenido": 0.0018048665378339573,
+   "error": 3.774758283725532e-15,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "Ex = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999985,
+   "error": 8.881784197001252e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "Ey = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999992,
+   "error": 4.440892098500626e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "Ez = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.999992,
+   "error": 4.440892098500626e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "Gyz = E/(2(1+nu))",
+   "esperado": 6923076923.076922,
+   "obtenido": 6923076923.076922,
+   "error": 0.0,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "Gxz = E/(2(1+nu))",
+   "esperado": 6923076923.076922,
+   "obtenido": 6923076923.0769205,
+   "error": 2.220446049250313e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "Gxy = E/(2(1+nu))",
+   "esperado": 6923076923.076922,
+   "obtenido": 6923076923.076922,
+   "error": 0.0,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "nu_xy = nu",
+   "esperado": 0.3,
+   "obtenido": 0.29999999999999993,
+   "error": 2.220446049250313e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "nu_xz = nu",
+   "esperado": 0.3,
+   "obtenido": 0.29999999999999993,
+   "error": 2.220446049250313e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "nu_yz = nu",
+   "esperado": 0.3,
+   "obtenido": 0.3,
+   "error": 0.0,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "C11 = lambda + 2 mu",
+   "esperado": 24230769230.76923,
+   "obtenido": 24230769230.769215,
+   "error": 6.661338147750939e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "homogeneizacion periodica",
+   "prueba": "C12 = lambda",
+   "esperado": 10384615384.615385,
+   "obtenido": 10384615384.61538,
+   "error": 5.551115123125783e-16,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "compresion en X: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.409004,
+   "error": 2.272249055579323e-11,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "compresion en Y: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.407772,
+   "error": 2.265410081747632e-11,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "compresion en Z: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.408825,
+   "error": 2.2712498548571602e-11,
+   "tol": 1e-08,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "convergencia a 8^3: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.00012,
+   "error": 6.661338147750939e-15,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "convergencia a 10^3: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.00004,
+   "error": 2.220446049250313e-15,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "convergencia a 12^3: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.923782,
+   "error": 4.2342795936178845e-12,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "convergencia a 14^3: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 17999999999.980637,
+   "error": 1.0756950885593142e-12,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  },
+  {
+   "grupo": "app: triaxial y convergencia",
+   "prueba": "convergencia a 16^3: E_app = E_s",
+   "esperado": 18000000000.0,
+   "obtenido": 18000000000.408512,
+   "error": 2.269517906938745e-11,
+   "tol": 1e-06,
+   "ok": true,
+   "nota": ""
+  }
+ ]
+}
