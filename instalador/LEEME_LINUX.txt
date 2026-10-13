@@ -10,8 +10,9 @@ Requisitos
   - Linux de 64 bits (x86_64) con glibc reciente (construido en Ubuntu 22.04
     o posterior) y un escritorio con X11 o XWayland.
   - Bibliotecas del sistema que Qt necesita y que no viajan dentro. En
-    Debian/Ubuntu:
+    Debian/Ubuntu (libopenblas0 y libgomp1 las usa NGSolve, el motor FEM):
         sudo apt install libgl1 libxkbcommon-x11-0 libxcb-cursor0 \
+             libopenblas0 libgomp1 \
              libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
              libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libegl1
   - No hay version para ARM (aarch64).

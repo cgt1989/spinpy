@@ -192,11 +192,15 @@ jobs:
           echo "VERSION=$v" >> "$GITHUB_ENV"
 
       # Qt y VTK necesitan estas bibliotecas del sistema, tanto para la
-      # autocomprobacion como para el ejecutable ya empaquetado.
+      # autocomprobacion como para el ejecutable ya empaquetado. libopenblas0 y
+      # libgomp1 las pide NGSolve y su rueda no las incluye (medido en la
+      # primera construccion: "libopenblas.so.0: cannot open shared object
+      # file"); con ellas instaladas PyInstaller las empaqueta en el ejecutable.
       - name: Bibliotecas del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1 libegl1 libxrender1 \
+            libopenblas0 libgomp1 \
             libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
             libxcb-xinerama0 libdbus-1-3
