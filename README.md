@@ -758,6 +758,13 @@ los intervalos no permiten concluir equivalencia. La plantilla está en
 
 - **Sin validación experimental de los valores mecánicos absolutos** (ver la
   sección anterior).
+- **Medida sobre malla en macOS con Apple Silicon.** En la verificación
+  automática, `tests/test_07_malla.py::test_losa_tapas_excluidas` falla en
+  macOS (BS +2,34 % frente a la tolerancia del 1 %) y pasa en Linux y Windows.
+  En una losa simétrica, dos de las cuatro caras pierden área de tapa solo en
+  ARM, lo que apunta a la reparación de la malla (PyMeshFix) o al recorte de
+  VTK. Hasta aclararlo, no use el modo de malla en macOS para valores que vaya
+  a citar; el modo de vóxeles no está afectado.
 - **La segmentación es un umbral global.** Es la mayor fuente de
   incertidumbre de todo el proceso, y por eso la aplicación declara cuál se
   aplicó en vez de esconderlo.

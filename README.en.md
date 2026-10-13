@@ -757,6 +757,13 @@ cannot support a claim of equivalence. The template is at
 
 - **No experimental validation of the absolute mechanical values** (see the
   previous section).
+- **Mesh-based measurement on Apple Silicon macOS.** In the automated
+  verification, `tests/test_07_malla.py::test_losa_tapas_excluidas` fails on
+  macOS (BS +2.34 % against the 1 % tolerance) and passes on Linux and Windows.
+  On a symmetric slab, two of the four lateral faces lose cap area only on ARM,
+  which points to the mesh repair (PyMeshFix) or the VTK clipping. Until this is
+  clarified, do not use the mesh mode on macOS for values you intend to quote;
+  the voxel mode is not affected.
 - **Segmentation is a global threshold.** It is the largest source of
   uncertainty in the whole process, which is why the application declares
   which one was applied instead of hiding it.
