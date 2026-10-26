@@ -87,3 +87,4 @@ jobs:
             resultados/validacion_literatura.json
             entorno_congelado.txt
           if-no-files-found: ignore
+          retention-days: 3

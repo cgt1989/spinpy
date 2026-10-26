@@ -140,7 +140,7 @@ jobs:
         with:
           name: spinpy-macos-arm64-PRUEBA
           path: ${{ runner.temp }}/spinpy_build/spinpy-V${{ env.VERSION }}-macos-arm64-PRUEBA.zip
-          retention-days: 14
+          retention-days: 3
 
       - name: Crear la release si no existe
         if: github.event_name == 'workflow_dispatch' && inputs.adjuntar
@@ -208,7 +208,7 @@ jobs:
         with:
           name: spinpy-linux-x86_64
           path: ${{ runner.temp }}/spinpy_build/spinpy-V${{ env.VERSION }}-linux-x86_64.tar.gz
-          retention-days: 14
+          retention-days: 3
 
       - name: Crear la release si no existe
         if: github.event_name == 'workflow_dispatch' && inputs.adjuntar
