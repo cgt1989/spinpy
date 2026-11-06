@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="version V2.2.1" src="https://img.shields.io/badge/version-V2.2.1-e8a33d">
+  <img alt="version V2.3.0" src="https://img.shields.io/badge/version-V2.3.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
@@ -183,8 +183,7 @@ Spanish).
 Since V2.1.3 each release also attaches `spinpy-V*-macos-arm64-PRUEBA.zip`
 with `spinpy.app`, for Macs with an Apple Silicon chip (M1 or later). The
 repository also builds `spinpy-V*-macos-x86_64-PRUEBA.zip` for Intel Macs, with
-the same recipe on an Intel runner; it will exist as a release asset only once
-a release is built with the updated workflow. **It is a
+the same recipe on an Intel runner; it is a release asset since V2.3.0. **It is a
 test build:** it builds and passes the `.app` self-test on a GitHub Actions
 Apple Silicon runner (including the three built-in FE engines), but the
 graphical interface has not been tried by hand on a Mac with a screen. It is

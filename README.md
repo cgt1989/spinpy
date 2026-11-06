@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="versión V2.2.1" src="https://img.shields.io/badge/versi%C3%B3n-V2.2.1-e8a33d">
+  <img alt="versión V2.3.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.3.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
@@ -186,7 +186,7 @@ Desde la V2.1.3 cada release adjunta además `spinpy-V*-macos-arm64-PRUEBA.zip`
 con `spinpy.app`, para Mac con chip Apple Silicon (M1 o posterior). El
 repositorio construye también `spinpy-V*-macos-x86_64-PRUEBA.zip` para Mac con
 procesador Intel, con la misma receta en un equipo Intel; solo existirá como
-archivo de una release cuando se publique una con el flujo actualizado. **Es una
+archivo de release desde la V2.3.0. **Es una
 versión de prueba:** se construye y supera la autocomprobación del `.app` en un
 equipo Apple Silicon de GitHub Actions (incluidos los tres motores FEM
 internos), pero la interfaz gráfica no se ha probado a mano en un Mac con

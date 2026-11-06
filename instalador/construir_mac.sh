@@ -14,7 +14,7 @@ set -euo pipefail
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 RAIZ="$(dirname "$AQUI")"
 TRABAJO="${1:-$HOME/spinpy_build}"
-VERSION="${2:-2.2.1}"
+VERSION="${2:-2.3.0}"
 PY="${PYTHON:-python3}"
 ARQ="$(uname -m)"
 case "$ARQ" in
