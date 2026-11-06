@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 32 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-32%20bloques-5b6b7f">
+  <img alt="Verificación: 33 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-33%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -339,7 +339,7 @@ macOS con 3.13), y la construcción del instalador exige que pase. Cada
 ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
 (`pip freeze`) con que se midió.
 
-32 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+33 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
