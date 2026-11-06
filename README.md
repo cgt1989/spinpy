@@ -180,17 +180,20 @@ spinpy.exe --autocomprobacion
 Para reconstruirlo, `instalador/construir.ps1` hace el proceso entero, y
 `instalador/LEEME_DESARROLLO.md` explica las trampas del empaquetado.
 
-### Versión de prueba para macOS (Apple Silicon)
+### Versión de prueba para macOS (Apple Silicon e Intel)
 
 Desde la V2.1.3 cada release adjunta además `spinpy-V*-macos-arm64-PRUEBA.zip`
-con `spinpy.app`, para Mac con chip Apple Silicon (M1 o posterior). **Es una
+con `spinpy.app`, para Mac con chip Apple Silicon (M1 o posterior). El
+repositorio construye también `spinpy-V*-macos-x86_64-PRUEBA.zip` para Mac con
+procesador Intel, con la misma receta en un equipo Intel; solo existirá como
+archivo de una release cuando se publique una con el flujo actualizado. **Es una
 versión de prueba:** se construye y supera la autocomprobación del `.app` en un
 equipo Apple Silicon de GitHub Actions (incluidos los tres motores FEM
 internos), pero la interfaz gráfica no se ha probado a mano en un Mac con
 pantalla. No está firmada ni notarizada: la primera vez, clic derecho sobre
 `spinpy.app` y «Abrir» (o `xattr -dr com.apple.quarantine spinpy.app`). Usa
 Qt 5.15.17 en lugar de la 5.15.2 de Windows, que no existe para Apple Silicon.
-No hay versión para Mac con procesador Intel. Instrucciones en
+Instrucciones en
 `instalador/LEEME_MAC.txt`; para reconstruirla, `instalador/construir_mac.sh`.
 
 ### Versión de prueba para Linux (x86_64)

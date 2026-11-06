@@ -1,14 +1,20 @@
-spinpy para macOS (Apple Silicon): VERSION DE PRUEBA
+spinpy para macOS (Apple Silicon e Intel): VERSION DE PRUEBA
 =====================================================
 
 Esta version es experimental. Se construye y supera la autocomprobacion en un
-equipo Apple Silicon (arm64) de GitHub Actions, pero la interfaz grafica NO se
+equipo de GitHub Actions de cada arquitectura, pero la interfaz grafica NO se
 ha probado a mano en un Mac con pantalla. Si algo falla, el informe de errores
 es util: abra una incidencia en el repositorio.
 
 Requisitos
-  - Mac con chip Apple Silicon (M1 o posterior) y macOS 11 o superior.
-  - No hay version para Mac con procesador Intel.
+  - macOS 11 o superior.
+  - Hay DOS archivos; descargue el que corresponda a su Mac:
+      spinpy-V<version>-macos-arm64-PRUEBA.zip    chip Apple Silicon (M1 o posterior)
+      spinpy-V<version>-macos-x86_64-PRUEBA.zip   procesador Intel
+    Para saber cual tiene: menu Apple > "Acerca de este Mac" ("Chip" o
+    "Procesador"), o en Terminal:  uname -m   (arm64 o x86_64).
+  - La de Intel NO se ejecuta de forma nativa en Apple Silicon, ni al reves
+    sin Rosetta (que traduce Intel a Apple Silicon, mas lento).
 
 Instalacion
   1. Descomprima el zip. Mueva spinpy.app a la carpeta Aplicaciones, o
@@ -26,7 +32,8 @@ Autocomprobacion (comprueba que los modulos y los calculos funcionan):
 
 Diferencias con la version de Windows
   - La version de Qt es la 5.15.17 (la 5.15.2 de Windows no existe para
-    Apple Silicon); no se ha validado la interfaz con ella.
+    Apple Silicon); no se ha validado la interfaz con ella. La de Intel usa
+    las mismas versiones fijadas.
   - Mismos motores FEM internos: la aplicacion, NGSolve y scikit-fem.
   - Sin instalador (.dmg) ni firma.
 

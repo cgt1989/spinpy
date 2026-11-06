@@ -1,4 +1,12 @@
-# Entorno con el que se construye la version de PRUEBA para macOS (Apple Silicon).
+# Entorno con el que se construye la version de PRUEBA para macOS (Apple Silicon
+# e Intel).
+#
+# Las mismas versiones sirven para las dos arquitecturas: se comprobo
+# (2026-11-06, `pip download --python-version 3.13 --only-binary=:all:
+# --platform macosx_10_13_x86_64 ...`) que TODAS las versiones fijadas tienen
+# rueda para macOS x86_64, PyQt5-Qt5 5.15.17 incluida. Eso prueba que se
+# pueden instalar, no que el resultado funcione: la comprobacion real es la
+# autocomprobacion del .app en un equipo Intel de CI.
 #
 # Es el de `requisitos_build.txt` con las diferencias que impone macOS:
 #   - PyQt5-Qt5 5.15.2 no tiene rueda para arm64; la primera que la tiene es
