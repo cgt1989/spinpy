@@ -172,45 +172,77 @@ EN = {
     "Recortar VOI cubico": "Crop cubic VOI",
     "Recortar VOI cubico…": "Crop cubic VOI…",
     "Orientando el hueso por PCA…": "Orienting the bone by PCA…",
-    "Orienta el hueso por PCA y recorta un cubo: tres tramos sugeridos o "
-    "posicion libre":
-        "Orients the bone by PCA and crops a cube: three suggested segments "
-        "or a free position",
-    "El hueso se orienta por PCA y se corta en tres tramos a lo largo de su "
-    "eje mayor. <b>El sentido del eje es arbitrario</b>: los tramos van "
-    "ordenados, pero cual es proximal lo decides tu. Pista: en estos "
-    "sesamoideos la densidad crece de proximal a distal.":
-        "The bone is oriented by PCA and cut into three segments along its "
-        "major axis. <b>The axis direction is arbitrary</b>: the segments are "
-        "ordered, but which one is proximal is your call. Hint: in these "
-        "sesamoids density grows from proximal to distal.",
-    "Lado del cubo (mm)": "Cube side (mm)",
-    "Recalcular tramos": "Recompute segments",
+    "Muestra el hueso en 3D orientado por PCA y recorta un cubo del tamano "
+    "que pidas (lado o volumen absoluto), donde lo pongas":
+        "Shows the bone in 3D, oriented by PCA, and crops a cube of the size "
+        "you ask for (side or absolute volume), wherever you place it",
+    "El hueso se orienta por PCA. <b>El sentido del eje es arbitrario</b>: "
+    "los tramos van ordenados, pero cual es proximal lo decides tu. Pista: "
+    "en estos sesamoideos la densidad crece de proximal a distal.":
+        "The bone is oriented by PCA. <b>The axis direction is "
+        "arbitrary</b>: the segments are ordered, but which one is proximal "
+        "is your call. Hint: in these sesamoids density grows from proximal "
+        "to distal.",
     "El tramo 1 es": "Segment 1 is",
     "proximal": "proximal",
     "centro": "middle",
     "distal": "distal",
     "libre": "free",
-    "Elegir libremente": "Choose freely",
-    "usar esta posicion": "use this position",
-    "posicion en el eje (%)": "position along the axis (%)",
-    "desplazar eje 2 (mm)": "offset on axis 2 (mm)",
-    "desplazar eje 3 (mm)": "offset on axis 3 (mm)",
-    "BV/TV {b:.4f} · lado {lv} vox": "BV/TV {b:.4f} · side {lv} vox",
-    "  ·  <b style='color:#c0392b;'>{p:.1f} % del cubo cae fuera del "
-    "volumen</b>":
-        "  ·  <b style='color:#c0392b;'>{p:.1f} % of the cube falls "
-        "outside the volume</b>",
-    "  ·  <b style='color:#c0392b;'>{p:.1f} % fuera</b>":
-        "  ·  <b style='color:#c0392b;'>{p:.1f} % outside</b>",
+    "Perspectiva": "Perspective",
+    "Eje 1-2": "Axes 1-2",
+    "Eje 1-3": "Axes 1-3",
+    "Transversal": "Transverse",
+    "Hueso traslucido": "Translucent bone",
+    "Cortar por el centro del cubo": "Cut through the cube centre",
+    "Quita la mitad del hueso que da a la camara para ver el cubo por "
+    "dentro.":
+        "Removes the half of the bone facing the camera so the cube can be "
+        "seen from inside.",
+    "Arrastrar el cubo con el raton": "Drag the cube with the mouse",
+    "Muestra una esfera en el centro del cubo: arrastrala para moverlo.":
+        "Shows a sphere at the cube centre: drag it to move the cube.",
+    "La vista 3D no esta disponible en este equipo. Los mandos y los cortes "
+    "siguen funcionando.":
+        "The 3D view is not available on this machine. The controls and the "
+        "sections still work.",
+    "PC1 horizontal, PC2 vertical": "PC1 horizontal, PC2 vertical",
+    "PC1 horizontal, PC3 vertical": "PC1 horizontal, PC3 vertical",
+    "PC2 horizontal, PC3 vertical": "PC2 horizontal, PC3 vertical",
+    "Tamano del cubo": "Cube size",
+    "Lado": "Side",
+    "Volumen absoluto": "Absolute volume",
+    "Admite notacion cientifica, por ejemplo 1.25e11":
+        "Scientific notation is accepted, for example 1.25e11",
+    "Valor no valido.": "Invalid value.",
+    "Real: <b>{l:.0f} µm</b> de lado ({n} vox, impar) · <b>{v} µm³</b> "
+    "({vm:.4f} mm³) · voxel {vx:.2f} µm":
+        "Actual: <b>{l:.0f} µm</b> side ({n} vox, odd) · <b>{v} µm³</b> "
+        "({vm:.4f} mm³) · voxel {vx:.2f} µm",
+    "{p:+.1f} % respecto a lo pedido: el lado se redondea a un numero impar "
+    "de voxeles.":
+        "{p:+.1f} % relative to the request: the side is rounded to an odd "
+        "number of voxels.",
+    "Lado de solo {n} voxeles: el cubo puede ser demasiado pequeno para "
+    "medir la microestructura.":
+        "Side of only {n} voxels: the cube may be too small to measure the "
+        "microstructure.",
+    "Posicion": "Position",
+    "posicion en el eje mayor (PC1)": "position along the major axis (PC1)",
+    "desplazamiento en PC2": "offset along PC2",
+    "desplazamiento en PC3": "offset along PC3",
+    "A {x:.2f} mm del extremo 1 de un hueso de {L:.2f} mm (eje mayor).":
+        "{x:.2f} mm from end 1 of a {L:.2f} mm bone (major axis).",
+    "Cubo actual": "Current cube",
+    "{no:,} voxeles oseos de {nt:,}": "{no:,} bone voxels of {nt:,}",
+    "{p:.1f} % del cubo cae fuera del volumen":
+        "{p:.1f} % of the cube falls outside the volume",
     "{p:.1f} % del cubo cae fuera del volumen: el BV/TV esta subestimado.":
         "{p:.1f} % of the cube falls outside the volume: BV/TV is "
         "underestimated.",
-    "Nada seleccionado": "Nothing selected",
-    "Elige un tramo o el modo libre.": "Choose a segment or the free mode.",
-    "Sin vista previa": "No preview yet",
-    "Mueve algun mando para calcular el cubo libre.":
-        "Move a control to compute the free cube.",
+    "posicion en PC1 (mm)": "position along PC1 (mm)",
+    "BV/TV a lo largo del eje (hueco: cubo en parte fuera)":
+        "BV/TV along the axis (hollow: cube partly outside)",
+    "calculando perfil…": "computing profile…",
     "VOI recortado: {et}, {lv}³ vox, BV/TV {b:.4f}. El volumen completo "
     "ya no esta cargado.":
         "VOI cropped: {et}, {lv}³ vox, BV/TV {b:.4f}. The full volume is "

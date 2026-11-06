@@ -83,8 +83,8 @@ def _t(es, en, idioma):
 
 def _lado_vox(lado_mm, h):
     """El mismo lado en voxeles que `voi.extraer_cubo` (impar)."""
-    n = int(round(float(lado_mm) / float(h)))
-    return n + 1 if n % 2 == 0 else n
+    from .voi import lado_en_voxeles
+    return lado_en_voxeles(lado_mm, h)
 
 
 def esquinas_cubo(ejes, centro, centro_pca, lado_mm, spacing):
