@@ -71,6 +71,26 @@ for _mod in ("netgen", "ngsolve", "netgen_occt"):
             binarios += [(str(_f), str(_rel)) for _f in _dir.glob("*.so*")]
             print(f"[spinpy] bibliotecas de {_mod}: {_dir}")
 
+# OpenBLAS de NGSolve. `ngsolve` (6.2.2607) depende del paquete aparte
+# `ngsolve-openblas`, que deja su biblioteca (`libopenblasp-r0.3.33.so`) JUNTO a
+# su `__init__.py`, no en un directorio `.libs`. `ngsolve/__init__.py` la
+# carga con `ngsolve_openblas.get_libraries()` (glob `lib*.so*` en el
+# directorio del paquete) y TRAGA el `OSError` si falla, asi que en el
+# ejecutable, donde esa biblioteca no viajaba, el fallo aparecia mas tarde y
+# sin relacion aparente: «libopenblas.so.0: cannot open shared object file» en
+# la prueba «Motores FEM» de la autocomprobacion (construccion de CI de la
+# V2.3.0). Debe ir en `ngsolve_openblas/`, donde la busca el glob.
+ocultos += ["ngsolve_openblas"]
+_blas = _ilu.find_spec("ngsolve_openblas")
+if _blas is not None and _blas.submodule_search_locations:
+    _blas_dir = Path(list(_blas.submodule_search_locations)[0])
+    _libs_blas = sorted(_blas_dir.glob("lib*.so*"))
+    binarios += [(str(_f), "ngsolve_openblas") for _f in _libs_blas]
+    print(f"[spinpy] bibliotecas de ngsolve_openblas: {len(_libs_blas)}")
+    if not _libs_blas and sys.platform.startswith("linux"):
+        raise SystemExit("[spinpy] ngsolve_openblas no trae libopenblas*.so: "
+                         "NGSolve no funcionaria en el ejecutable.")
+
 # OpenCASCADE (paquete netgen-occt): `netgen/libngpy.so` enlaza con sus
 # bibliotecas (`libTKOffset.so.7.8.1`...) y el enlazador las busca en la raiz
 # del paquete (misma disposicion que en macOS, medida en CI). En un entorno

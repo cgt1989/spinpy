@@ -115,7 +115,8 @@ a = Analysis(                                        # noqa: F821
     hiddenimports=ocultos,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    # Precarga de OpenCASCADE para macOS Intel (ver el propio archivo).
+    runtime_hooks=[str(Path(SPECPATH) / "rthook_occt_macos.py")],  # noqa: F821
     excludes=[
         "tkinter", "_tkinter", "Tkinter",
         "PySide2", "PySide6", "PyQt6", "shiboken2", "shiboken6",
