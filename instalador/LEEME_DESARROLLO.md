@@ -159,13 +159,20 @@ autocomprobacion resuelve el mismo ensayo con todos los motores presentes y
 exige que coincidan (prueba «Motores FEM»). Se construye con el CPython
 oficial, asi que `dlls_conda.py` no interviene.
 
-## Version de prueba para macOS (Apple Silicon)
+## Version de prueba para macOS (Apple Silicon e Intel)
 
 Desde la V2.1.3 el workflow tiene un segundo trabajo, `construir-mac`
-(`macos-14`, arm64), que corre despues del de Windows y adjunta
-`spinpy-V<v>-macos-arm64-PRUEBA.zip`. Para construir solo macOS (sin tocar la
+(`macos-15`, arm64), que corre despues del de Windows y adjunta
+`spinpy-V<v>-macos-arm64-PRUEBA.zip`. Despues corre `construir-mac-intel`
+(`macos-15-intel`, x86_64) con la MISMA receta y adjunta
+`spinpy-V<v>-macos-x86_64-PRUEBA.zip`. La arquitectura es la del equipo que
+construye: no hay compilacion cruzada ni binario universal2. La imagen
+`macos-14` se retiro de GitHub Actions el 2026-11-02, asi que ambos trabajos y
+la matriz de `pruebas.yml` usan las imagenes de macOS 15; el aviso de retirada
+sale del README de `actions/runner-images`, no de docs.github.com, y conviene
+confirmarlo alli. Para construir solo macOS (sin tocar la
 release): Actions -> «Instalador de Windows» -> *Run workflow*, `plataforma =
-macos`, `adjuntar` desmarcado; el zip queda como artefacto de la ejecucion.
+macos` (las dos arquitecturas) o `macos-intel` (solo Intel), `adjuntar` desmarcado; el zip queda como artefacto de la ejecucion.
 
 Receta: `spinpy_mac.spec` (PyInstaller, `BUNDLE`), `construir_mac.sh`
 (entorno, autocomprobacion desde el codigo, empaquetado, autocomprobacion DEL

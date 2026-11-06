@@ -1,27 +1,37 @@
 #!/bin/bash
-# construir_mac.sh - empaqueta la version de PRUEBA de spinpy para macOS
-# (Apple Silicon) y la comprime.
+# construir_mac.sh - empaqueta la version de PRUEBA de spinpy para macOS y la
+# comprime. Sirve para Apple Silicon (arm64) y para Mac con Intel (x86_64): la
+# arquitectura es la del equipo en el que se ejecuta, no se cruza.
 #
 #   bash instalador/construir_mac.sh [CARPETA_DE_TRABAJO] [VERSION]
 #
 # Equivale a `construir.ps1 -SoloZip` de Windows: entorno fijado aparte,
 # autocomprobacion desde el codigo, PyInstaller, autocomprobacion DEL .app y
 # zip. No hay instalador (.dmg) ni firma. Salida:
-#   <trabajo>/spinpy-V<version>-macos-arm64-PRUEBA.zip
+#   <trabajo>/spinpy-V<version>-macos-<arm64|x86_64>-PRUEBA.zip
 set -euo pipefail
 
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 RAIZ="$(dirname "$AQUI")"
 TRABAJO="${1:-$HOME/spinpy_build}"
-VERSION="${2:-2.2.1}"
+VERSION="${2:-2.3.0}"
 PY="${PYTHON:-python3}"
-ZIP="$TRABAJO/spinpy-V$VERSION-macos-arm64-PRUEBA.zip"
+ARQ="$(uname -m)"
+case "$ARQ" in
+    arm64|x86_64) ;;
+    *) echo "Arquitectura no prevista: $ARQ (se esperaba arm64 o x86_64)"; exit 1 ;;
+esac
+# Bajo Rosetta, `uname -m` dice x86_64 en un Mac con Apple Silicon: el
+# ejecutable resultante seria de Intel. Es lo que se pide, pero se avisa.
+if [ "$ARQ" = "x86_64" ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
+    echo "AVISO: Python corre bajo Rosetta; se construira la version para Intel."
+fi
+ZIP="$TRABAJO/spinpy-V$VERSION-macos-$ARQ-PRUEBA.zip"
 
 echo "== spinpy V$VERSION (macOS, prueba) =="
 echo "codigo  : $RAIZ"
 echo "trabajo : $TRABAJO"
-echo "arq.    : $(uname -m)"
-[ "$(uname -m)" = "arm64" ] || echo "AVISO: esta receta es para Apple Silicon (arm64)."
+echo "arq.    : $ARQ"
 
 mkdir -p "$TRABAJO"
 
@@ -58,7 +68,7 @@ echo "-> autocomprobacion del .app"
 codesign --verify --deep --verbose=1 "$APP" || echo "AVISO: firma ad hoc no verificable"
 
 echo "-> zip"
-STAGE="$TRABAJO/stage/spinpy-V$VERSION-macos-arm64-PRUEBA"
+STAGE="$TRABAJO/stage/spinpy-V$VERSION-macos-$ARQ-PRUEBA"
 rm -rf "$TRABAJO/stage" "$ZIP"
 mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/spinpy.app"

@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="versión V2.2.1" src="https://img.shields.io/badge/versi%C3%B3n-V2.2.1-e8a33d">
+  <img alt="versión V2.3.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.3.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 32 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-32%20bloques-5b6b7f">
+  <img alt="Verificación: 33 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-33%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -109,7 +109,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 
 | Etapa | Qué incluye |
 |---|---|
-| **Lee** | VOIs `.vtk` y `.mat`, y pilas TIFF de micro-CT (carpeta de rebanadas o multipágina) con la escala leída del *log* SkyScan. Umbraliza, encuadra por PCA y recorta el cubo. |
+| **Lee** | VOIs `.vtk` y `.mat`, y pilas TIFF de micro-CT (carpeta de rebanadas o multipágina) con la escala leída del *log* SkyScan. Umbraliza, encuadra por PCA y recorta el cubo sobre una vista 3D del hueso: el cubo se pide por su lado o por su volumen absoluto (µm, µm³), se desplaza por el hueso con mandos o arrastrándolo, y se ve su BV/TV, tres cortes con escala y el perfil de BV/TV a lo largo del eje antes de confirmar. |
 | **Genera** | Espinodales por campo aleatorio gaussiano (Kumar et al. 2020), con las dos convenciones de muestreo de ondas de la literatura, y *dual-lattice* (Vafaeefar et al. 2022). |
 | **Mide** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, tensor MIL y DA, Conn.D, SMI, espesor local, tamaño de poro, **Ellipsoid Factor** y curvaturas principales de la interfaz. |
 | **Ajusta** | Los parámetros que mejor reproducen un VOI real: búsqueda escalonada, réplicas con semillas nuevas, suelo de ruido autoconsistente y desempate mecánico opcional. |
@@ -180,17 +180,20 @@ spinpy.exe --autocomprobacion
 Para reconstruirlo, `instalador/construir.ps1` hace el proceso entero, y
 `instalador/LEEME_DESARROLLO.md` explica las trampas del empaquetado.
 
-### Versión de prueba para macOS (Apple Silicon)
+### Versión de prueba para macOS (Apple Silicon e Intel)
 
 Desde la V2.1.3 cada release adjunta además `spinpy-V*-macos-arm64-PRUEBA.zip`
-con `spinpy.app`, para Mac con chip Apple Silicon (M1 o posterior). **Es una
+con `spinpy.app`, para Mac con chip Apple Silicon (M1 o posterior). El
+repositorio construye también `spinpy-V*-macos-x86_64-PRUEBA.zip` para Mac con
+procesador Intel, con la misma receta en un equipo Intel; solo existirá como
+archivo de release desde la V2.3.0. **Es una
 versión de prueba:** se construye y supera la autocomprobación del `.app` en un
 equipo Apple Silicon de GitHub Actions (incluidos los tres motores FEM
 internos), pero la interfaz gráfica no se ha probado a mano en un Mac con
 pantalla. No está firmada ni notarizada: la primera vez, clic derecho sobre
 `spinpy.app` y «Abrir» (o `xattr -dr com.apple.quarantine spinpy.app`). Usa
 Qt 5.15.17 en lugar de la 5.15.2 de Windows, que no existe para Apple Silicon.
-No hay versión para Mac con procesador Intel. Instrucciones en
+Instrucciones en
 `instalador/LEEME_MAC.txt`; para reconstruirla, `instalador/construir_mac.sh`.
 
 ### Versión de prueba para Linux (x86_64)
@@ -336,7 +339,7 @@ macOS con 3.13), y la construcción del instalador exige que pase. Cada
 ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
 (`pip freeze`) con que se midió.
 
-32 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+33 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la

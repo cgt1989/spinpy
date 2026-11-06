@@ -895,44 +895,235 @@ class DialogoPilaTiff(DialogoAjustable):
         }
 
 
-def _pixmap_secciones(cubo, alto=104):
-    """Las tres secciones centrales de un cubo, una al lado de otra.
+class _VistaCorte(QtWidgets.QWidget):
+    """Un corte plano del hueso con el cubo marcado; escala con la ventana.
 
-    Se eligen cortes ORTOGONALES por el centro en vez de una vista 3D porque
-    para decidir un VOI hay que ver el interior: una isosuperficie solo enseña
-    la piel, y dos cubos con interiores muy distintos se ven casi iguales por
-    fuera. Ademas hay que pintar tres de estos por cada movimiento del mando y
-    una vista 3D no daria esa cadencia.
+    El corte es del HUESO entero (no solo del cubo) para que se vea donde cae
+    el cubo y cuanto hueso queda alrededor. Lo que cae dentro del cubo va en
+    naranja, el mismo color que en la vista 3D, y lleva una barra de escala:
+    sin ella un corte de 5 mm y uno de 30 mm se ven igual.
     """
-    from PyQt5 import QtGui
-    c = np.asarray(cubo, bool)
-    n = c.shape[0] // 2
-    cortes = [c[n, :, :], c[:, n, :], c[:, :, n]]
+    FONDO = (28, 34, 43)
+    FONDO_CUBO = (62, 50, 38)
+    HUESO = (217, 199, 160)
+    CUBO = (255, 138, 31)
 
-    sep = 4
-    lado = cortes[0].shape[0]
-    ancho = 3 * lado + 2 * sep
-    lienzo = np.full((lado, ancho), 235, np.uint8)
-    for i, s in enumerate(cortes):
-        # .T lleva (x, y) a (fila, columna) para que se vea con X horizontal
-        img = np.where(np.asarray(s, bool).T, 30, 250).astype(np.uint8)
-        x0 = i * (lado + sep)
-        lienzo[:, x0:x0 + lado] = img
+    def __init__(self, titulo):
+        super().__init__()
+        self._titulo = titulo
+        self._qi = None
+        self.setMinimumSize(90, 70)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                           QtWidgets.QSizePolicy.Expanding)
 
-    qi = QtGui.QImage(lienzo.tobytes(), ancho, lado, ancho,
-                      QtGui.QImage.Format_Grayscale8).copy()
-    return QtGui.QPixmap.fromImage(qi).scaledToHeight(
-        alto, QtCore.Qt.SmoothTransformation)
+    def poner(self, img, extension, centro_ab, lado_mm):
+        a0, a1, b0, b1 = extension
+        nb, na = img.shape
+        paso = (a1 - a0) / max(na - 1, 1)
+        h = 0.5 * lado_mm
+        ca, cb = centro_ab
+        i0 = int(np.clip(round((ca - h - a0) / paso), 0, na))
+        i1 = int(np.clip(round((ca + h - a0) / paso) + 1, 0, na))
+        j0 = int(np.clip(round((cb - h - b0) / paso), 0, nb))
+        j1 = int(np.clip(round((cb + h - b0) / paso) + 1, 0, nb))
+        rgb = np.empty((nb, na, 3), np.uint8)
+        rgb[:] = self.FONDO
+        rgb[img] = self.HUESO
+        if i1 > i0 and j1 > j0:
+            sub = img[j0:j1, i0:i1]
+            reg = rgb[j0:j1, i0:i1]
+            reg[~sub] = self.FONDO_CUBO
+            reg[sub] = self.CUBO
+        rgb = np.ascontiguousarray(rgb[::-1])          # PC_b hacia arriba
+        self._qi = QtGui.QImage(rgb.data, na, nb, 3 * na,
+                                QtGui.QImage.Format_RGB888).copy()
+        self._paso, self._na, self._nb = paso, na, nb
+        # borde del cubo, en pixeles de la imagen (los pixeles ocupan [i, i+1])
+        self._rect = ((ca - h - a0) / paso + 0.5,
+                      (nb - 1) - (cb + h - b0) / paso + 0.5,
+                      lado_mm / paso, lado_mm / paso)
+        self.update()
+
+    def paintEvent(self, _ev):
+        p = QtGui.QPainter(self)
+        p.setRenderHints(QtGui.QPainter.Antialiasing
+                         | QtGui.QPainter.SmoothPixmapTransform)
+        p.fillRect(self.rect(), QtGui.QColor(*self.FONDO))
+        if self._qi is None:
+            return
+        franja = 18                                    # rotulo, fuera de la imagen
+        w, h = self.width(), self.height() - franja
+        s = min(w / self._na, h / self._nb)
+        ox, oy = (w - s * self._na) / 2.0, franja + (h - s * self._nb) / 2.0
+        p.drawImage(QtCore.QRectF(ox, oy, s * self._na, s * self._nb),
+                    self._qi)
+        x, y, lx, ly = self._rect
+        pen = QtGui.QPen(QtGui.QColor(*self.CUBO))
+        pen.setWidthF(2.0)
+        p.setPen(pen)
+        p.drawRect(QtCore.QRectF(ox + s * x, oy + s * y, s * lx, s * ly))
+
+        # barra de escala con una longitud redonda
+        for L in (0.1, 0.2, 0.5, 1, 2, 5, 10, 20):
+            if L / self._paso * s >= 0.12 * s * self._na:
+                break
+        largo = L / self._paso * s
+        yb = oy + s * self._nb - 12
+        p.setPen(QtGui.QPen(QtGui.QColor(235, 235, 235), 3))
+        p.drawLine(QtCore.QPointF(ox + 8, yb), QtCore.QPointF(ox + 8 + largo, yb))
+        f = p.font()
+        f.setPointSizeF(8.5)
+        p.setFont(f)
+        p.setPen(QtGui.QColor(235, 235, 235))
+        p.drawText(QtCore.QPointF(ox + 8, yb - 5), f"{L:g} mm")
+        p.drawText(QtCore.QPointF(4, 13), self._titulo)
+
+
+class _Mando(QtWidgets.QWidget):
+    """Etiqueta, deslizador y caja numerica sincronizados, en unidades reales.
+
+    El deslizador de Qt es entero; aqui se escala (`esc`) para que el valor que
+    ve y escribe quien recorta sea el real (um, %, mm) y no un numero de pasos.
+    `cambiado(valor)` solo se emite por gestos del usuario, nunca por `fijar`,
+    para que mover el cubo desde otro sitio no dispare un bucle.
+    """
+    cambiado = QtCore.pyqtSignal(float)
+
+    def __init__(self, texto, lo, hi, val, dec=0, suf="", esc=1.0, paso=1.0):
+        super().__init__()
+        self._esc = float(esc)
+        v = QtWidgets.QVBoxLayout(self)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(0)
+        self.rotulo = QtWidgets.QLabel(texto)
+        v.addWidget(self.rotulo)
+        f = QtWidgets.QHBoxLayout()
+        v.addLayout(f)
+        self.sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.sl.setRange(int(round(lo * esc)), int(round(hi * esc)))
+        self.sp = QtWidgets.QDoubleSpinBox()
+        self.sp.setDecimals(dec)
+        self.sp.setRange(lo, hi)
+        self.sp.setSingleStep(paso)
+        if suf:
+            self.sp.setSuffix(" " + suf)
+        self.sp.setFixedWidth(96)
+        f.addWidget(self.sl, 1)
+        f.addWidget(self.sp)
+        self.fijar(val)
+        self.sl.valueChanged.connect(self._de_deslizador)
+        self.sp.valueChanged.connect(self._de_caja)
+
+    def valor(self):
+        return self.sp.value()
+
+    def fijar(self, v):
+        """Pone el valor sin emitir `cambiado`."""
+        for w in (self.sl, self.sp):
+            w.blockSignals(True)
+        self.sp.setValue(v)
+        self.sl.setValue(int(round(self.sp.value() * self._esc)))
+        for w in (self.sl, self.sp):
+            w.blockSignals(False)
+
+    def _de_deslizador(self, i):
+        self.sp.blockSignals(True)
+        self.sp.setValue(i / self._esc)
+        self.sp.blockSignals(False)
+        self.cambiado.emit(self.sp.value())
+
+    def _de_caja(self, v):
+        self.sl.blockSignals(True)
+        self.sl.setValue(int(round(v * self._esc)))
+        self.sl.blockSignals(False)
+        self.cambiado.emit(v)
+
+
+class _TareaUnica(QtCore.QObject):
+    """Una tarea de fondo a la vez; si llega otra mientras corre, solo cuenta la
+    ultima.
+
+    Un mando que se arrastra pide un cubo nuevo decenas de veces por segundo y
+    cada uno cuesta de decimas de segundo a un segundo. Encolarlos todos haria
+    que la pantalla fuera siempre por detras del raton; descartar los
+    intermedios hace que solo se calcule lo que de verdad se ve.
+    `fn(obsoleta)` recibe un callable que dice si ya hay otra peticion detras,
+    para abandonar el calculo a medias.
+    """
+
+    def __init__(self, padre):
+        super().__init__(padre)
+        self._hilo = None
+        self._pend = None
+        self._cerrada = False
+
+    def lanzar(self, fn, listo):
+        if self._cerrada:
+            return
+        self._pend = (fn, listo)
+        if self._hilo is None:
+            self._arrancar()
+
+    def _obsoleta(self):
+        return self._pend is not None or self._cerrada
+
+    def _arrancar(self):
+        fn, listo = self._pend
+        self._pend = None
+        self._listo = listo
+        self._hilo = Trabajador(fn, self._obsoleta)
+        self._hilo.listo.connect(self._fin)
+        self._hilo.fallo.connect(self._fallo)
+        self._hilo.start()
+
+    def _liberar(self):
+        h, self._hilo = self._hilo, None
+        if h is not None:
+            h.wait()
+        if self._pend is not None and not self._cerrada:
+            self._arrancar()
+
+    def _fin(self, r):
+        vigente = self._pend is None and not self._cerrada
+        listo = self._listo
+        self._liberar()
+        if vigente and r is not None:
+            listo(r)
+
+    def _fallo(self, tb):
+        self._liberar()
+        sys.stderr.write(tb)
+
+    def cerrar(self):
+        """Para y espera: hay que llamarla antes de destruir el dialogo."""
+        self._cerrada = True
+        self._pend = None
+        if self._hilo is not None:
+            self._hilo.wait(10000)
 
 
 class DialogoRecorte(DialogoAjustable):
-    """Recorte del VOI cubico sobre el volumen cargado, con vista previa.
+    """Recorte del VOI cubico: el cubo se ve y se mueve DENTRO del hueso.
 
     POR QUE ESTE PASO NECESITA INTERFAZ. Una pila de escaner no es un VOI:
     628x664x438 son 1.8e8 voxeles, y ni la homogeneizacion ni el ajuste son
     viables ahi. El recorte ya existia (`vois_por_tercios`, `extraer_cubo`)
     pero solo desde un script, que es tanto como decir que no existia para
     quien no programa.
+
+    QUE SE VE. A la izquierda, el hueso en 3D orientado por PCA, con el cubo
+    como caja y su contenido, a resolucion plena, en naranja: lo que se ve ahi
+    es lo que se va a medir. Debajo, tres cortes planos del hueso por el centro
+    del cubo, con escala. A la derecha, el tamano del cubo (por lado o por
+    volumen absoluto), su posicion, y el BV/TV del cubo actual y de los tres
+    tramos sugeridos, mas el perfil de BV/TV a lo largo del eje para ese
+    tamano: se ve de un vistazo donde sube la densidad y donde el cubo asoma
+    por un extremo.
+
+    TAMANO ABSOLUTO. Se puede pedir el lado (um o mm) o el volumen (um^3 o
+    mm^3). `extraer_cubo` trabaja en voxeles enteros e impares, asi que el cubo
+    real casi nunca mide exactamente lo pedido; la ventana dice cuanto mide de
+    verdad y cuanto se ha desviado, en vez de dejar creer que es lo pedido.
 
     SOBRE LOS NOMBRES ANATOMICOS. El signo de PC1 es arbitrario: la PCA
     determina las direcciones, no su sentido, y dos ejecuciones sobre datos
@@ -942,200 +1133,604 @@ class DialogoRecorte(DialogoAjustable):
     BV/TV como pista: en estos sesamoideos la densidad crece de proximal a
     distal. Poner el nombre por nuestra cuenta seria acertar la mitad de las
     veces y no avisar de la otra mitad.
+
+    CALCULO. Mover el cubo redibuja la caja al instante; su contenido, los
+    cortes y el BV/TV se recalculan en un hilo, con un pequeno retardo, y solo
+    cuenta la ultima peticion (`_TareaUnica`). El 3D es opcional: si el equipo
+    no puede crear la vista, el resto del dialogo sigue funcionando.
     """
 
-    def __init__(self, padre, mask, spacing, marco, tercios, lado_mm):
+    def __init__(self, padre, mask, spacing, marco, tercios, lado_mm,
+                 reducido=None, malla=None):
         super().__init__(padre)
+        from spinpy import escena_recorte
+        from spinpy.voi import GuiaPCA, dimensionar_cubo, rango_pca
+        self._ER = escena_recorte
         self.setWindowTitle(_("Recortar VOI cubico"))
-        self.setMinimumWidth(760)
-        self.mask, self.spacing = mask, spacing
-        self.ejes = marco["ejes"]
-        self.centro = marco["centro"]
+        self.resize(1320, 840)
+        self.mask = mask
+        self.spacing = np.atleast_1d(np.asarray(spacing, float)).ravel()
+        self.sp3 = (np.repeat(self.spacing, 3) if self.spacing.size == 1
+                    else self.spacing[:3])
+        self.ejes, self.centro = marco["ejes"], marco["centro"]
         self.proy = marco["proy"]
+        self.guia = marco.get("guia") or GuiaPCA(self.proy)
+        self.lo, self.hi = rango_pca(self.proy)
         self.tercios = tercios
-        self._cache_libre = None
+        self.centros_tramo = [t["centro_pca"] for t in tercios]
+        self.cubo_actual = None
+        self._etiqueta = 1                      # tramo vigente; None = libre
+        self._dim = dimensionar_cubo(self.sp3, lado_mm=lado_mm)
+        self._perfil = None
+        self.escena = None
 
-        lay = QtWidgets.QVBoxLayout(self)
+        raiz = QtWidgets.QHBoxLayout(self)
 
-        cab = QtWidgets.QLabel(_(
-            "El hueso se orienta por PCA y se corta en tres tramos a lo largo "
-            "de su eje mayor. <b>El sentido del eje es arbitrario</b>: los "
-            "tramos van ordenados, pero cual es proximal lo decides tu. Pista: "
-            "en estos sesamoideos la densidad crece de proximal a distal."))
-        cab.setWordWrap(True)
-        cab.setStyleSheet(
-            "background:#fbf7e8; border:1px solid #e0d5a8; padding:8px;")
-        lay.addWidget(cab)
+        # ---- izquierda: 3D + cortes -------------------------------------
+        izq = QtWidgets.QVBoxLayout()
+        raiz.addLayout(izq, 1)
+        barra = QtWidgets.QHBoxLayout()
+        izq.addLayout(barra)
+        self._botones_vista = []
+        for clave, texto in (("iso", _("Perspectiva")),
+                             ("long12", _("Eje 1-2")),
+                             ("long13", _("Eje 1-3")),
+                             ("transversal", _("Transversal"))):
+            b = QtWidgets.QPushButton(texto)
+            b.clicked.connect(lambda _c=False, k=clave: self._vista(k))
+            barra.addWidget(b)
+            self._botones_vista.append(b)
+        barra.addSpacing(12)
+        self.chk_tras = QtWidgets.QCheckBox(_("Hueso traslucido"))
+        self.chk_tras.setChecked(True)
+        self.chk_corte = QtWidgets.QCheckBox(_("Cortar por el centro del cubo"))
+        self.chk_corte.setToolTip(_(
+            "Quita la mitad del hueso que da a la camara para ver el cubo por "
+            "dentro."))
+        self.chk_mango = QtWidgets.QCheckBox(_("Arrastrar el cubo con el raton"))
+        self.chk_mango.setChecked(True)
+        self.chk_mango.setToolTip(_(
+            "Muestra una esfera en el centro del cubo: arrastrala para moverlo."))
+        for c in (self.chk_tras, self.chk_corte, self.chk_mango):
+            barra.addWidget(c)
+        barra.addStretch(1)
+
+        self.vista3d = None
+        try:
+            self.vista3d = QtInteractor(self)
+            izq.addWidget(self.vista3d.interactor, 5)
+        except Exception:
+            self.vista3d = None
+        if self.vista3d is None:
+            aus = QtWidgets.QLabel(_(
+                "La vista 3D no esta disponible en este equipo. Los mandos y "
+                "los cortes siguen funcionando."))
+            aus.setWordWrap(True)
+            aus.setAlignment(QtCore.Qt.AlignCenter)
+            izq.addWidget(aus, 5)
+            for w in (*self._botones_vista, self.chk_tras, self.chk_corte,
+                      self.chk_mango):
+                w.setEnabled(False)
 
         fila = QtWidgets.QHBoxLayout()
-        fila.addWidget(QtWidgets.QLabel(_("Lado del cubo (mm)")))
+        izq.addLayout(fila, 2)
+        self.cortes = []
+        for titulo, (a, b) in ((_("PC1 horizontal, PC2 vertical"), (0, 1)),
+                               (_("PC1 horizontal, PC3 vertical"), (0, 2)),
+                               (_("PC2 horizontal, PC3 vertical"), (1, 2))):
+            v = _VistaCorte(titulo)
+            ext_a = float(self.hi[a] - self.lo[a])
+            ext_b = float(self.hi[b] - self.lo[b])
+            fila.addWidget(v, max(1, int(round(10 * ext_a / ext_b))))
+            self.cortes.append(((a, b), v))
+
+        # ---- derecha: mandos ----------------------------------------------
+        der = QtWidgets.QVBoxLayout()
+        cont = QtWidgets.QWidget()
+        cont.setLayout(der)
+        cont.setFixedWidth(430)
+        raiz.addWidget(cont)
+
+        cab = QtWidgets.QLabel(_(
+            "El hueso se orienta por PCA. <b>El sentido del eje es "
+            "arbitrario</b>: los tramos van ordenados, pero cual es proximal "
+            "lo decides tu. Pista: en estos sesamoideos la densidad crece de "
+            "proximal a distal."))
+        cab.setWordWrap(True)
+        cab.setStyleSheet("background:#fbf7e8; border:1px solid #e0d5a8; "
+                          "padding:4px; font-size:11px;")
+        der.addWidget(cab)
+
+        # tamano ---------------------------------------------------------------
+        gt = QtWidgets.QGroupBox(_("Tamano del cubo"))
+        gl = QtWidgets.QGridLayout(gt)
+        self.rb_lado = QtWidgets.QRadioButton(_("Lado"))
+        self.rb_vol = QtWidgets.QRadioButton(_("Volumen absoluto"))
+        self.rb_lado.setChecked(True)
+        self.cmb_uni = QtWidgets.QComboBox()
+        self.cmb_uni.addItem("µm", 1e-3)
+        self.cmb_uni.addItem("mm", 1.0)
         self.sp_lado = QtWidgets.QDoubleSpinBox()
-        self.sp_lado.setDecimals(2)
-        self.sp_lado.setRange(0.2, 50.0)
-        self.sp_lado.setValue(lado_mm)
-        self.sp_lado.setSingleStep(0.5)
-        fila.addWidget(self.sp_lado)
-        self.b_recalc = QtWidgets.QPushButton(_("Recalcular tramos"))
-        fila.addWidget(self.b_recalc)
-        fila.addStretch(1)
-        fila.addWidget(QtWidgets.QLabel(_("El tramo 1 es")))
+        self.sp_lado.setSingleStep(100)
+        self.ed_vol = QtWidgets.QLineEdit()
+        val = QtGui.QDoubleValidator(1e-12, 1e30, 12, self)
+        val.setNotation(QtGui.QDoubleValidator.ScientificNotation)
+        self.ed_vol.setValidator(val)
+        self.ed_vol.setToolTip(_(
+            "Admite notacion cientifica, por ejemplo 1.25e11"))
+        self.lab_uvol = QtWidgets.QLabel()
+        gl.addWidget(self.rb_lado, 0, 0)
+        gl.addWidget(self.sp_lado, 0, 1)
+        gl.addWidget(self.cmb_uni, 0, 2)
+        gl.addWidget(self.rb_vol, 1, 0)
+        gl.addWidget(self.ed_vol, 1, 1)
+        gl.addWidget(self.lab_uvol, 1, 2)
+        self.lab_real = QtWidgets.QLabel()
+        self.lab_real.setWordWrap(True)
+        self.lab_real.setTextFormat(QtCore.Qt.RichText)
+        gl.addWidget(self.lab_real, 2, 0, 1, 3)
+        der.addWidget(gt)
+
+        # posicion ----------------------------------------------------------------
+        gp = QtWidgets.QGroupBox(_("Posicion"))
+        pl = QtWidgets.QVBoxLayout(gp)
+        fb = QtWidgets.QHBoxLayout()
+        pl.addLayout(fb)
+        self.b_tramo = []
+        for i in range(3):
+            b = QtWidgets.QPushButton()
+            b.setMinimumHeight(40)
+            b.clicked.connect(lambda _c=False, k=i: self._ir_a_tramo(k))
+            fb.addWidget(b)
+            self.b_tramo.append(b)
+        fo = QtWidgets.QHBoxLayout()
+        fo.addWidget(QtWidgets.QLabel(_("El tramo 1 es")))
         self.cmb_orden = QtWidgets.QComboBox()
         self.cmb_orden.addItem(_("proximal"), "prox")
         self.cmb_orden.addItem(_("distal"), "dist")
-        fila.addWidget(self.cmb_orden)
-        lay.addLayout(fila)
+        fo.addWidget(self.cmb_orden)
+        fo.addStretch(1)
+        pl.addLayout(fo)
 
-        self.grupo = QtWidgets.QButtonGroup(self)
-        self.filas = []
-        self.caja_tramos = QtWidgets.QVBoxLayout()
-        lay.addLayout(self.caja_tramos)
+        self.m_t = _Mando(_("posicion en el eje mayor (PC1)"), 0.0, 100.0,
+                          50.0, dec=1, suf="%", esc=10.0, paso=1.0)
+        r2 = 0.5 * float(self.hi[1] - self.lo[1]) * 1000
+        r3 = 0.5 * float(self.hi[2] - self.lo[2]) * 1000
+        self.m_o2 = _Mando(_("desplazamiento en PC2"), -r2, r2, 0.0,
+                           dec=0, suf="µm", esc=1.0, paso=50.0)
+        self.m_o3 = _Mando(_("desplazamiento en PC3"), -r3, r3, 0.0,
+                           dec=0, suf="µm", esc=1.0, paso=50.0)
+        for m in (self.m_t, self.m_o2, self.m_o3):
+            pl.addWidget(m)
+        self.lab_pos = QtWidgets.QLabel()
+        self.lab_pos.setStyleSheet("color:#555;")
+        self.lab_pos.setWordWrap(True)
+        pl.addWidget(self.lab_pos)
+        der.addWidget(gp)
 
-        # --- modo libre ---------------------------------------------------
-        gb = QtWidgets.QGroupBox(_("Elegir libremente"))
-        gl = QtWidgets.QGridLayout(gb)
-        self.rb_libre = QtWidgets.QRadioButton(_("usar esta posicion"))
-        self.grupo.addButton(self.rb_libre, 99)
-        gl.addWidget(self.rb_libre, 0, 0)
+        # cubo actual -------------------------------------------------------------
+        gc = QtWidgets.QGroupBox(_("Cubo actual"))
+        cl = QtWidgets.QVBoxLayout(gc)
+        self.lab_bvtv = QtWidgets.QLabel("BV/TV …")
+        f = self.lab_bvtv.font()
+        f.setPointSize(f.pointSize() + 7)
+        f.setBold(True)
+        self.lab_bvtv.setFont(f)
+        cl.addWidget(self.lab_bvtv)
+        self.lab_det = QtWidgets.QLabel()
+        self.lab_det.setWordWrap(True)
+        self.lab_det.setTextFormat(QtCore.Qt.RichText)
+        cl.addWidget(self.lab_det)
+        der.addWidget(gc)
 
-        self.lab_libre = QtWidgets.QLabel("—")
-        self.lab_libre.setStyleSheet("color:#555;")
-        gl.addWidget(self.lab_libre, 0, 1, 1, 3)
-
-        self.vista_libre = QtWidgets.QLabel()
-        self.vista_libre.setFixedHeight(104)
-        gl.addWidget(self.vista_libre, 1, 0, 4, 1)
-
-        self.mandos = {}
-        for r, (clave, texto, lo, hi, val) in enumerate([
-                ("t",  _("posicion en el eje (%)"), 0, 100, 50),
-                ("o2", _("desplazar eje 2 (mm)"), -100, 100, 0),
-                ("o3", _("desplazar eje 3 (mm)"), -100, 100, 0)]):
-            gl.addWidget(QtWidgets.QLabel(texto), r + 1, 1)
-            s = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-            s.setRange(lo, hi)
-            s.setValue(val)
-            s.sliderReleased.connect(self._preview_libre)
-            gl.addWidget(s, r + 1, 2)
-            e = QtWidgets.QLabel(str(val))
-            e.setFixedWidth(46)
-            s.valueChanged.connect(lambda v, w=e: w.setText(str(v)))
-            gl.addWidget(e, r + 1, 3)
-            self.mandos[clave] = s
-        lay.addWidget(gb)
+        # perfil --------------------------------------------------------------------
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        from matplotlib.figure import Figure
+        self._fig = Figure(figsize=(4.2, 1.8), tight_layout=True)
+        self._ax = self._fig.add_subplot(111)
+        self._lienzo = FigureCanvasQTAgg(self._fig)
+        self._lienzo.setMinimumHeight(130)
+        der.addWidget(self._lienzo, 1)
 
         bb = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         bb.accepted.connect(self._aceptar)
         bb.rejected.connect(self.reject)
-        lay.addWidget(bb)
+        der.addWidget(bb)
 
-        self.b_recalc.clicked.connect(self._recalcular)
+        # ---- tareas y temporizadores ------------------------------------------
+        self._t_cubo = _TareaUnica(self)
+        self._t_ref = _TareaUnica(self)
+        self._ret_cubo = QtCore.QTimer(self)
+        self._ret_cubo.setSingleShot(True)
+        self._ret_cubo.setInterval(140)
+        self._ret_cubo.timeout.connect(self._calcular_cubo)
+        self._ret_ref = QtCore.QTimer(self)
+        self._ret_ref.setSingleShot(True)
+        self._ret_ref.setInterval(450)
+        self._ret_ref.timeout.connect(self._calcular_referencias)
+
+        # ---- cableado --------------------------------------------------------------
+        for r in (self.rb_lado, self.rb_vol):
+            r.toggled.connect(self._modo_tamano)
+        self.cmb_uni.currentIndexChanged.connect(self._cambia_unidad)
+        self.sp_lado.valueChanged.connect(self._tamano_editado)
+        self.ed_vol.editingFinished.connect(self._tamano_editado)
+        for m in (self.m_t, self.m_o2, self.m_o3):
+            m.cambiado.connect(self._posicion_editada)
         self.cmb_orden.currentIndexChanged.connect(self._reetiquetar)
-        self._pintar_tramos()
-        self._preview_libre()
+        self.chk_tras.toggled.connect(self._cambia_traslucido)
+        self.chk_corte.toggled.connect(self._cambia_corte)
+        self.chk_mango.toggled.connect(self._cambia_mango)
 
-    # -- tramos ----------------------------------------------------------
+        self._poner_unidad()
+        self._reetiquetar()
+        self._ir_a_tramo(1, pedir=False)
+
+        if self.vista3d is not None:
+            try:
+                if malla is None:
+                    malla = escena_recorte.malla_hueso_pca(
+                        reducido or self._reducir(), self.sp3, self.ejes,
+                        self.centro)
+                self.escena = escena_recorte.EscenaRecorte(
+                    self.vista3d, malla, self.lo, self.hi)
+                self.escena.poner_tramos(
+                    self.centros_tramo, ["1", "2", "3"], render=False)
+                self._poner_caja(render=False)
+                self.escena.vista("iso")
+                self._cambia_mango(self.chk_mango.isChecked())
+            except Exception:
+                traceback.print_exc()
+                self.escena = None
+
+        self._calcular_cubo()
+        self._ret_ref.start()
+
+    # -- utilidades ------------------------------------------------------------------
+    def _reducir(self):
+        from spinpy import figura_metodo
+        return figura_metodo.reducir(self.mask)
+
+    @property
+    def lado_mm(self):
+        """Lado REAL del cubo, el que se recorta, en mm."""
+        return float(self._dim["lado_real_mm"])
+
+    def _centro(self):
+        # Mientras no se toque ningun mando, el centro de un tramo es EXACTAMENTE
+        # el de `centros_por_tercios`, no el que salga de redondear los mandos
+        # a 0.1 % y 1 um: asi el cubo del tramo coincide voxel a voxel con el
+        # de `vois_por_tercios` (y con el de VOIsTIFF.m).
+        if self._etiqueta is not None:
+            return np.asarray(self.centros_tramo[self._etiqueta], float)
+        return self.guia.centro(self.m_t.valor() / 100.0,
+                                self.m_o2.valor() / 1000.0,
+                                self.m_o3.valor() / 1000.0)
+
     def _nombres(self):
         base = [_("proximal"), _("centro"), _("distal")]
         return base if self.cmb_orden.currentData() == "prox" else base[::-1]
 
-    def _pintar_tramos(self):
-        while self.caja_tramos.count():
-            w = self.caja_tramos.takeAt(0).widget()
-            if w:
-                w.deleteLater()
-        self.filas = []
-        for i, t in enumerate(self.tercios):
-            w = QtWidgets.QWidget()
-            h = QtWidgets.QHBoxLayout(w)
-            rb = QtWidgets.QRadioButton()
-            self.grupo.addButton(rb, i)
-            if i == 1:
-                rb.setChecked(True)
-            h.addWidget(rb)
-            v = QtWidgets.QLabel()
-            v.setPixmap(_pixmap_secciones(t["cubo"]))
-            h.addWidget(v)
-            txt = QtWidgets.QLabel()
-            txt.setWordWrap(True)
-            h.addWidget(txt, 1)
-            self.caja_tramos.addWidget(w)
-            self.filas.append((rb, txt, t))
+    @staticmethod
+    def _fmt_vol_um3(v_mm3):
+        return f"{v_mm3 * 1e9:.4g}"
+
+    # -- tamano ---------------------------------------------------------------------
+    def _poner_unidad(self):
+        """Ajusta decimales, rango y valores a la unidad elegida (um o mm)."""
+        u = float(self.cmb_uni.currentData())
+        um = abs(u - 1e-3) < 1e-12
+        self.sp_lado.blockSignals(True)
+        self.sp_lado.setDecimals(0 if um else 3)
+        self.sp_lado.setRange(200.0 if um else 0.2, 60000.0 if um else 60.0)
+        self.sp_lado.setSingleStep(100.0 if um else 0.1)
+        self.sp_lado.setValue(self._dim["lado_pedido_mm"] / u)
+        self.sp_lado.blockSignals(False)
+        self.lab_uvol.setText("µm³" if um else "mm³")
+        self._volcar_volumen()
+        self._modo_tamano()
+        self._mostrar_real()
+
+    def _volcar_volumen(self):
+        u = float(self.cmb_uni.currentData())
+        v = self._dim["volumen_pedido_mm3"] / u ** 3
+        self.ed_vol.setText(f"{v:.6g}")
+
+    def _modo_tamano(self):
+        lado = self.rb_lado.isChecked()
+        self.sp_lado.setEnabled(lado)
+        self.ed_vol.setEnabled(not lado)
+
+    def _cambia_unidad(self):
+        self._poner_unidad()
+
+    def _tamano_editado(self, *_a):
+        from spinpy.voi import dimensionar_cubo
+        u = float(self.cmb_uni.currentData())
+        try:
+            if self.rb_lado.isChecked():
+                dim = dimensionar_cubo(self.sp3,
+                                       lado_mm=self.sp_lado.value() * u)
+            else:
+                dim = dimensionar_cubo(
+                    self.sp3,
+                    volumen_mm3=float(self.ed_vol.text().replace(",", "."))
+                    * u ** 3)
+        except ValueError:
+            self.lab_real.setText(
+                "<span style='color:#c0392b;'>"
+                + _("Valor no valido.") + "</span>")
+            return
+        if dim["lado_vox"] == self._dim["lado_vox"] and \
+                abs(dim["lado_pedido_mm"] - self._dim["lado_pedido_mm"]) < 1e-12:
+            return
+        self._dim = dim
+        # el campo que no se edita refleja lo equivalente
+        if self.rb_lado.isChecked():
+            self._volcar_volumen()
+        else:
+            self.sp_lado.blockSignals(True)
+            self.sp_lado.setValue(dim["lado_pedido_mm"] / u)
+            self.sp_lado.blockSignals(False)
+        self._mostrar_real()
+        self._poner_caja()
+        self._pedir_cubo()
+        self._ret_ref.start()
+
+    def _mostrar_real(self):
+        d = self._dim
+        n = d["lado_vox"]
+        lado_um = d["lado_real_mm"] * 1000
+        txt = _("Real: <b>{l:.0f} µm</b> de lado ({n} vox, impar) · "
+                "<b>{v} µm³</b> ({vm:.4f} mm³) · voxel {vx:.2f} µm").format(
+                    l=lado_um, n=n, v=self._fmt_vol_um3(d["volumen_real_mm3"]),
+                    vm=d["volumen_real_mm3"], vx=self.sp3[0] * 1000)
+        if abs(d["desviacion_rel"]) > 0.005:
+            txt += "<br>" + _("{p:+.1f} % respecto a lo pedido: el lado se "
+                              "redondea a un numero impar de voxeles."
+                              ).format(p=100 * d["desviacion_rel"])
+        if n < 15:
+            txt += ("<br><span style='color:#c0392b;'>"
+                    + _("Lado de solo {n} voxeles: el cubo puede ser "
+                        "demasiado pequeno para medir la microestructura."
+                        ).format(n=n) + "</span>")
+        self.lab_real.setText(txt)
+
+    # -- posicion -------------------------------------------------------------------
+    def _ir_a_tramo(self, i, pedir=True):
+        t, o2, o3 = self.guia.parametros(self.centros_tramo[i])
+        self.m_t.fijar(100 * t)
+        self.m_o2.fijar(1000 * o2)
+        self.m_o3.fijar(1000 * o3)
+        self._etiqueta = i
+        self._tras_mover(pedir)
+
+    def _posicion_editada(self, _v):
+        self._etiqueta = None
+        self._tras_mover(True)
+
+    def _tras_mover(self, pedir=True):
+        self._poner_caja()
+        self._actualizar_posicion()
+        self._resaltar_perfil()
+        if pedir:
+            self._pedir_cubo()
+
+    def _actualizar_posicion(self):
+        L = float(self.hi[0] - self.lo[0])
+        self.lab_pos.setText(_(
+            "A {x:.2f} mm del extremo 1 de un hueso de {L:.2f} mm "
+            "(eje mayor).").format(x=L * self.m_t.valor() / 100.0, L=L))
+
+    def _poner_caja(self, render=True):
+        if self.escena is None:
+            return
+        self.escena.poner_cubo(
+            self._centro(), self.lado_mm,
+            texto=f"{self.lado_mm * 1000:.0f} µm", render=render)
+
+    # -- cubo actual (en un hilo) -------------------------------------------------
+    def _pedir_cubo(self):
+        self.lab_bvtv.setText("BV/TV …")
+        self._ret_cubo.start()
+
+    def _calcular_cubo(self):
+        from spinpy.voi import extraer_cubo, seccion_pca
+        centro, lado = self._centro(), self.lado_mm
+        mask, sp, ejes, ctr = self.mask, self.sp3, self.ejes, self.centro
+        lo, hi = self.lo, self.hi
+        pares = [ab for ab, _v in self.cortes]
+        conmalla = self.escena is not None
+        ER = self._ER
+
+        def trabajo(obsoleta):
+            cubo, fuera = extraer_cubo(mask, sp, centro, ejes, ctr, lado)
+            r = {"cubo": cubo, "centro_pca": centro, "fuera": fuera,
+                 "bvtv": float(cubo.mean()), "lado_vox": int(cubo.shape[0])}
+            if obsoleta():
+                return r
+            r["cortes"] = [seccion_pca(mask, sp, ejes, ctr, centro, a, b, lo,
+                                       hi) for a, b in pares]
+            if conmalla and not obsoleta():
+                r["malla"] = ER.malla_cubo_pca(cubo, sp, centro)
+            return r
+
+        self._t_cubo.lanzar(trabajo, self._cubo_listo)
+
+    def _cubo_listo(self, r):
+        self.cubo_actual = r
+        n_oseo = int(r["cubo"].sum())
+        n_tot = int(r["cubo"].size)
+        self.lab_bvtv.setText(f"BV/TV {r['bvtv']:.4f}")
+        det = _("{no:,} voxeles oseos de {nt:,}").format(no=n_oseo, nt=n_tot)
+        if r["fuera"] > 0.005:
+            det += ("<br><b style='color:#c0392b;'>"
+                    + _("{p:.1f} % del cubo cae fuera del volumen: el BV/TV "
+                        "esta subestimado.").format(p=100 * r["fuera"])
+                    + "</b>")
+        self.lab_det.setText(det)
+        lado = self.lado_mm
+        for ((a, b), vista), (img, ext) in zip(self.cortes, r["cortes"]):
+            vista.poner(img, ext, (r["centro_pca"][a], r["centro_pca"][b]),
+                        lado)
+        if self.escena is not None:
+            self.escena.poner_contenido(r.get("malla"), render=True)
+
+    # -- tramos y perfil (en un hilo) ------------------------------------------------
+    def _calcular_referencias(self):
+        from spinpy.voi import extraer_cubo, perfil_bvtv
+        lado = self.lado_mm
+        mask, sp, ejes, ctr, guia = (self.mask, self.sp3, self.ejes,
+                                     self.centro, self.guia)
+        centros = list(self.centros_tramo)
+
+        def trabajo(obsoleta):
+            tercios = []
+            for i, c in enumerate(centros):
+                if obsoleta():
+                    return None
+                cubo, fuera = extraer_cubo(mask, sp, c, ejes, ctr, lado)
+                tercios.append({"indice": i, "cubo": cubo, "centro_pca": c,
+                                "fuera": fuera, "bvtv": float(cubo.mean()),
+                                "lado_vox": int(cubo.shape[0])})
+            perfil = perfil_bvtv(mask, sp, ejes, ctr, guia, lado,
+                                 cancelar=obsoleta)
+            if perfil is None:
+                return None
+            return {"tercios": tercios, "perfil": perfil, "lado": lado}
+
+        self._t_ref.lanzar(trabajo, self._referencias_listas)
+
+    def _referencias_listas(self, r):
+        self.tercios = r["tercios"]
+        self._perfil = r["perfil"]
         self._reetiquetar()
+        self._pintar_perfil()
 
     def _reetiquetar(self):
         nom = self._nombres()
-        for i, (rb, txt, t) in enumerate(self.filas):
-            rb.setText(f"{i + 1}")
-            aviso = ""
-            if t["fuera"] > 0.005:
-                aviso = _("  ·  <b style='color:#c0392b;'>{p:.1f} % del cubo "
-                          "cae fuera del volumen</b>").format(p=100 * t["fuera"])
-            txt.setText(
-                f"<b>Tramo {i + 1} — {nom[i]}</b><br>"
-                + _("BV/TV {b:.4f} · lado {lv} vox").format(
-                    b=t["bvtv"], lv=t["lado_vox"]) + aviso)
+        for i, b in enumerate(self.b_tramo):
+            t = self.tercios[i]
+            aviso = " !" if t["fuera"] > 0.005 else ""
+            b.setText(f"{i + 1} · {nom[i]}\nBV/TV {t['bvtv']:.3f}{aviso}")
+            b.setToolTip(
+                _("{p:.1f} % del cubo cae fuera del volumen").format(
+                    p=100 * t["fuera"]) if t["fuera"] > 0.005 else "")
+        self._pintar_perfil()
 
-    def _recalcular(self):
-        from spinpy.voi import extraer_cubo, centros_por_tercios
-        lado = float(self.sp_lado.value())
-        centros = centros_por_tercios(self.proy, 3)
-        self.tercios = []
-        for i, c in enumerate(centros):
-            cubo, fuera = extraer_cubo(self.mask, self.spacing, c, self.ejes,
-                                       self.centro, lado)
-            self.tercios.append({"indice": i, "cubo": cubo, "centro_pca": c,
-                                 "fuera": fuera, "bvtv": float(cubo.mean()),
-                                 "lado_vox": int(cubo.shape[0])})
-        self._pintar_tramos()
-        self._preview_libre()
-
-    # -- libre -----------------------------------------------------------
-    def _cubo_libre(self):
-        from spinpy.voi import centro_en, extraer_cubo
-        t = self.mandos["t"].value() / 100.0
-        c = centro_en(self.proy, t,
-                      off2=self.mandos["o2"].value() / 10.0,
-                      off3=self.mandos["o3"].value() / 10.0)
-        cubo, fuera = extraer_cubo(self.mask, self.spacing, c, self.ejes,
-                                   self.centro, float(self.sp_lado.value()))
-        return {"cubo": cubo, "centro_pca": c, "fuera": fuera,
-                "bvtv": float(cubo.mean()), "lado_vox": int(cubo.shape[0])}
-
-    def _preview_libre(self):
-        try:
-            r = self._cubo_libre()
-        except Exception as e:
-            self.lab_libre.setText(f"<span style='color:#c0392b;'>{e}</span>")
-            return
-        self._cache_libre = r
-        self.vista_libre.setPixmap(_pixmap_secciones(r["cubo"]))
-        aviso = ""
-        if r["fuera"] > 0.005:
-            aviso = _("  ·  <b style='color:#c0392b;'>{p:.1f} % fuera</b>"
-                      ).format(p=100 * r["fuera"])
-        self.lab_libre.setText(
-            _("BV/TV {b:.4f} · lado {lv} vox").format(
-                b=r["bvtv"], lv=r["lado_vox"]) + aviso)
-
-    def _aceptar(self):
-        i = self.grupo.checkedId()
-        if i == 99:
-            self.elegido = self._cache_libre
-            self.etiqueta = _("libre")
-        elif 0 <= i < len(self.filas):
-            self.elegido = self.filas[i][2]
-            self.etiqueta = self._nombres()[i]
+    def _pintar_perfil(self):
+        ax = self._ax
+        ax.clear()
+        pf = self._perfil
+        ax.set_xlabel(_("posicion en PC1 (mm)"), fontsize=8)
+        ax.set_ylabel("BV/TV", fontsize=8)
+        ax.tick_params(labelsize=7)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.grid(alpha=0.25)
+        self._linea_pos = None
+        if pf is not None:
+            x, y, f = pf["x_mm"] - self.lo[0], pf["bvtv"], pf["fuera"]
+            ax.plot(x, y, "-", color="#1f4e9c", lw=1.4)
+            bien = f <= 0.005
+            ax.plot(x[bien], y[bien], "o", color="#1f4e9c", ms=3.5)
+            ax.plot(x[~bien], y[~bien], "o", mfc="none", mec="#999", ms=4)
+            for i, c in enumerate(self.centros_tramo):
+                ax.axvline(c[0] - self.lo[0], color="#4fb3ff", lw=0.8,
+                           ls=":")
+                ax.text(c[0] - self.lo[0], ax.get_ylim()[1], str(i + 1),
+                        color="#2a8fd8", fontsize=8, ha="center", va="bottom")
+            ax.set_ylim(bottom=0)
+            ax.set_title(_("BV/TV a lo largo del eje (hueco: cubo en parte "
+                           "fuera)"), fontsize=7, loc="left")
         else:
-            QtWidgets.QMessageBox.warning(self, _("Nada seleccionado"),
-                                          _("Elige un tramo o el modo libre."))
+            ax.text(0.5, 0.5, _("calculando perfil…"), transform=ax.transAxes,
+                    ha="center", color="#888", fontsize=9)
+        self._resaltar_perfil(dibujar=False)
+        self._lienzo.draw_idle()
+
+    def _resaltar_perfil(self, dibujar=True):
+        if self._perfil is None:
             return
-        if self.elegido is None:
-            QtWidgets.QMessageBox.warning(
-                self, _("Sin vista previa"),
-                _("Mueve algun mando para calcular el cubo libre."))
+        x = self.m_t.valor() / 100.0 * float(self.hi[0] - self.lo[0])
+        if self._linea_pos is not None:
+            try:
+                self._linea_pos.remove()
+            except Exception:
+                pass
+        self._linea_pos = self._ax.axvline(x, color="#ff8a1f", lw=2)
+        if dibujar:
+            self._lienzo.draw_idle()
+
+    # -- 3D -----------------------------------------------------------------------
+    def _vista(self, clave):
+        if self.escena is not None:
+            self.escena.vista(clave)
+
+    def _cambia_traslucido(self, on):
+        if self.escena is not None:
+            self.escena.fijar_traslucido(on)
+
+    def _cambia_corte(self, on):
+        if self.escena is not None:
+            self.escena.fijar_seccion(on)
+
+    def _cambia_mango(self, on):
+        if self.escena is None:
             return
+        if on:
+            if self.escena._mango is None:
+                self.escena.activar_mango(self._arrastre)
+        else:
+            self.escena.quitar_mango()
+
+    def _arrastre(self, centro):
+        """El raton mueve el mango: los mandos siguen al cubo."""
+        t, o2, o3 = self.guia.parametros(centro)
+        self.m_t.fijar(100 * t)
+        self.m_o2.fijar(1000 * o2)
+        self.m_o3.fijar(1000 * o3)
+        self._etiqueta = None
+        self._poner_caja()
+        self._actualizar_posicion()
+        self._resaltar_perfil()
+        self._pedir_cubo()
+
+    # -- cierre ---------------------------------------------------------------------
+    def _aceptar(self):
+        from spinpy.voi import extraer_cubo
+        self._ret_cubo.stop()
+        self._t_cubo.cerrar()
+        self._t_ref.cerrar()
+        centro, lado = self._centro(), self.lado_mm
+        r = self.cubo_actual
+        vigente = (r is not None and r["lado_vox"] == self._dim["lado_vox"]
+                   and np.allclose(r["centro_pca"], centro, atol=1e-9))
+        if not vigente:
+            # Un calculo a medias no se acepta: se recorta ahora, sincrono, el
+            # cubo EXACTO que dicen los mandos.
+            cubo, fuera = extraer_cubo(self.mask, self.sp3, centro, self.ejes,
+                                       self.centro, lado)
+            r = {"cubo": cubo, "centro_pca": centro, "fuera": fuera,
+                 "bvtv": float(cubo.mean()), "lado_vox": int(cubo.shape[0])}
+        self.elegido = r
+        self.etiqueta = (self._nombres()[self._etiqueta]
+                         if self._etiqueta is not None else _("libre"))
         self.accept()
+
+    def done(self, r):
+        for t in (self._ret_cubo, self._ret_ref):
+            t.stop()
+        self._t_cubo.cerrar()
+        self._t_ref.cerrar()
+        # El QtInteractor retiene un contexto de VTK: cerrarlo a mano evita
+        # que se quede vivo al cerrar el dialogo y reviente al salir.
+        try:
+            if self.vista3d is not None:
+                self.vista3d.close()
+        except Exception:
+            pass
+        super().done(r)
 
 
 # ---------------------------------------------------------------------------
@@ -3279,8 +3874,9 @@ class Visor(QtWidgets.QMainWindow):
         # Una pila de escaner no es un VOI. Este es el paso que faltaba para
         # cerrar el camino desde el escaner sin salir de la interfaz.
         self.b_recorte = QtWidgets.QPushButton("Recortar VOI cubico…")
-        self.b_recorte.setToolTip("Orienta el hueso por PCA y recorta un cubo: "
-                                  "tres tramos sugeridos o posicion libre")
+        self.b_recorte.setToolTip("Muestra el hueso en 3D orientado por PCA y "
+                                  "recorta un cubo del tamano que pidas "
+                                  "(lado o volumen absoluto), donde lo pongas")
         self.b_recorte.clicked.connect(self.recortar_voi)
         self.b_recorte.setEnabled(False)
         gl.addWidget(self.b_recorte)
@@ -5124,7 +5720,8 @@ class Visor(QtWidgets.QMainWindow):
         if self.VOI is None:
             return
 
-        from spinpy.voi import marco_pca, centros_por_tercios, extraer_cubo
+        from spinpy.voi import (GuiaPCA, marco_pca, centros_por_tercios,
+                                extraer_cubo)
 
         mask, spc = self.VOI, self.VOI_spacing
         # Lado por defecto: 5 mm es el del banco de este proyecto, pero si el
@@ -5139,10 +5736,11 @@ class Visor(QtWidgets.QMainWindow):
         prog.setWindowModality(QtCore.Qt.WindowModal)
         prog.setMinimumDuration(0)
 
-        from spinpy import figura_metodo
+        from spinpy import escena_recorte, figura_metodo
 
         def tarea():
             ejes, centro, proy = marco_pca(mask, spc)
+            guia = GuiaPCA(proy)
             centros = centros_por_tercios(proy, 3)
             tercios = []
             for i, c in enumerate(centros):
@@ -5153,13 +5751,21 @@ class Visor(QtWidgets.QMainWindow):
             # Pila reducida para la figura 0: aqui, en el hilo de trabajo,
             # porque tras el recorte la pila completa se suelta.
             reducido = figura_metodo.reducir(mask)
-            return ({"ejes": ejes, "centro": centro, "proy": proy}, tercios,
-                    reducido)
+            # La malla 3D del hueso tambien aqui: es lo mas caro de abrir el
+            # dialogo y no debe congelar la ventana.
+            try:
+                malla = escena_recorte.malla_hueso_pca(
+                    reducido, spc, ejes, centro)
+            except Exception:
+                malla = None
+            return ({"ejes": ejes, "centro": centro, "proy": proy,
+                     "guia": guia}, tercios, reducido, malla)
 
         def listo(r):
             prog.close()
-            marco, tercios, reducido = r
-            dlg = DialogoRecorte(self, mask, spc, marco, tercios, lado)
+            marco, tercios, reducido, malla = r
+            dlg = DialogoRecorte(self, mask, spc, marco, tercios, lado,
+                                 reducido=reducido, malla=malla)
             if dlg.exec_() != QtWidgets.QDialog.Accepted:
                 return
             e = dlg.elegido
@@ -5168,7 +5774,9 @@ class Visor(QtWidgets.QMainWindow):
                 nota = _("{p:.1f} % del cubo cae fuera del volumen: el BV/TV "
                          "esta subestimado.").format(p=100 * e["fuera"])
             nombre = f"{self.VOI_nombre} · {dlg.etiqueta} {e['lado_vox']}³"
-            lado_elegido = float(dlg.sp_lado.value())
+            # El lado REAL (voxeles enteros e impares), no el pedido: es el
+            # que reproduce este recorte desde el registro de la sesion.
+            lado_elegido = float(dlg.lado_mm)
             pila = self._pila_param
             try:
                 ctx = figura_metodo.contexto_pila(

@@ -1,5 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""Receta de PyInstaller para la version de PRUEBA de macOS (Apple Silicon).
+"""Receta de PyInstaller para la version de PRUEBA de macOS (Apple Silicon e Intel).
+
+La arquitectura es la del equipo que construye (`target_arch=None`): el .app de
+arm64 se construye en arm64 y el de Intel en un equipo Intel. No se hace un
+binario universal2: NGSolve lo trae, pero VTK y las demas ruedas son de una
+sola arquitectura.
 
 Es `spinpy.spec` sin lo que solo existe en Windows (DLL de Visual C++, las de
 OpenCASCADE y las de Anaconda) y con un paquete `spinpy.app` (BUNDLE) en lugar
