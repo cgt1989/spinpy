@@ -511,6 +511,54 @@ def centros_por_tercios(proyecciones, n=3):
     return np.array(centros)
 
 
+def _spacing3(spacing):
+    sp = np.atleast_1d(np.asarray(spacing, float)).ravel()
+    return np.repeat(sp, 3) if sp.size == 1 else sp[:3]
+
+
+def lado_en_voxeles(lado_mm, h):
+    """Lado en voxeles que usa `extraer_cubo`: el redondeo al entero mas
+    cercano, forzado a IMPAR. Es la unica definicion; `dimensionar_cubo` y
+    `figura_metodo._lado_vox` tienen que coincidir con ella para que el cubo
+    que se anuncia sea el que se recorta."""
+    n = int(round(float(lado_mm) / float(h)))
+    return n + 1 if n % 2 == 0 else n
+
+
+def dimensionar_cubo(spacing, lado_mm=None, volumen_mm3=None):
+    """Tamano REAL de un cubo pedido por su lado o por su volumen absoluto.
+
+    Se da exactamente uno de los dos. El volumen se traduce a lado con la raiz
+    cubica (el VOI es un cubo). Como `extraer_cubo` trabaja en voxeles enteros
+    e impares, el cubo que se obtiene casi nunca mide lo pedido: con voxeles de
+    51.5 um, 5000 um dan 97 voxeles = 4994 um. Esa diferencia se devuelve, no
+    se esconde, porque quien pide «un cubo de X um^3 de volumen absoluto» tiene
+    que poder ver cuanto se ha desviado.
+
+    Devuelve un dict con el lado y el volumen pedidos y reales, y `lado_vox`.
+    Todo en mm y mm^3, la unidad interna de spinpy.
+    """
+    if (lado_mm is None) == (volumen_mm3 is None):
+        raise ValueError("indica el lado o el volumen del cubo, no ambos")
+    sp = _spacing3(spacing)
+    if volumen_mm3 is not None:
+        v = float(volumen_mm3)
+        if not np.isfinite(v) or v <= 0:
+            raise ValueError(f"volumen invalido: {volumen_mm3}")
+        pedido = v ** (1.0 / 3.0)
+    else:
+        pedido = float(lado_mm)
+        if not np.isfinite(pedido) or pedido <= 0:
+            raise ValueError(f"lado invalido: {lado_mm}")
+    n = lado_en_voxeles(pedido, sp[0])
+    return {"lado_pedido_mm": pedido,
+            "volumen_pedido_mm3": pedido ** 3,
+            "lado_vox": int(n),
+            "lado_real_mm": float(n * sp[0]),
+            "volumen_real_mm3": float(n ** 3 * np.prod(sp)),
+            "desviacion_rel": float(n * sp[0] / pedido - 1.0)}
+
+
 def extraer_cubo(mask, spacing, centro_pca, ejes, centro, lado_mm=5.0,
                  lado_vox=None):
     """Recorta un cubo orientado segun los ejes principales.
@@ -531,7 +579,7 @@ def extraer_cubo(mask, spacing, centro_pca, ejes, centro, lado_mm=5.0,
         spacing = np.repeat(spacing, 3)
 
     if lado_vox is None:
-        lado_vox = int(round(lado_mm / spacing[0]))
+        lado_vox = lado_en_voxeles(lado_mm, spacing[0])
     if lado_vox % 2 == 0:
         lado_vox += 1
     h = (lado_vox - 1) // 2
@@ -612,6 +660,163 @@ def centro_en(proyecciones, t, off2=0.0, off3=0.0, ventana=0.15):
         loc = p.mean(axis=0)
 
     return np.array([c1, loc[1] + float(off2), loc[2] + float(off3)])
+
+
+# ---------------------------------------------------------------------------
+# Colocar el cubo a mano: guia del eje, perfil de densidad y cortes planos
+# ---------------------------------------------------------------------------
+
+class GuiaPCA:
+    """Posicion del cubo en el marco PCA, con su inversa y a coste constante.
+
+    `centro_en` recorre todas las proyecciones (decenas de millones de
+    voxeles oseos en una pila real) en cada llamada, que no sirve para un mando
+    que se mueve decenas de veces por segundo ni para arrastrar el cubo con el
+    raton, que necesita la operacion inversa. Aqui las proyecciones se
+    resumen UNA vez en un histograma a lo largo de PC1, y despues cada
+    consulta es una resta de sumas acumuladas.
+
+    Mantiene el criterio de `centro_en`: PC1 lo fija quien recorta, y PC2/PC3
+    siguen al hueso (centroide de los voxeles en una ventana de anchura
+    `ventana` alrededor de esa posicion) mas el desplazamiento pedido. La
+    diferencia es la resolucion del histograma, L/nbins (0.07 mm en un hueso de
+    33 mm con 512 cajas), muy por debajo del tamano de un cubo.
+    """
+
+    def __init__(self, proyecciones, nbins=512, ventana=0.15):
+        p = np.asarray(proyecciones, float)
+        self.lo, self.hi = rango_pca(p)
+        self.L = float(self.hi[0] - self.lo[0])
+        if not self.L > 0:
+            raise ValueError("el hueso no tiene extension a lo largo de PC1")
+        self.nbins, self.ventana = int(nbins), float(ventana)
+        b = np.minimum(((p[:, 0] - self.lo[0]) / self.L * self.nbins)
+                       .astype(np.int64), self.nbins - 1)
+        cero = np.zeros(1)
+        self._n = np.concatenate(
+            [cero, np.cumsum(np.bincount(b, minlength=self.nbins))])
+        self._s = [np.concatenate(
+            [cero, np.cumsum(np.bincount(b, weights=p[:, k],
+                                         minlength=self.nbins))])
+            for k in (1, 2)]
+        self._global = p.mean(axis=0)
+
+    def _local(self, t):
+        for w in (self.ventana, 2 * self.ventana, 4 * self.ventana):
+            a = max(int(np.floor((t - 0.5 * w) * self.nbins)), 0)
+            b = min(int(np.ceil((t + 0.5 * w) * self.nbins)), self.nbins)
+            n = self._n[b] - self._n[a]
+            if n > 0:
+                return ((self._s[0][b] - self._s[0][a]) / n,
+                        (self._s[1][b] - self._s[1][a]) / n)
+        return self._global[1], self._global[2]
+
+    def centro(self, t, off2=0.0, off3=0.0):
+        """Centro del cubo, marco PCA, mm. `t` en [0, 1] sobre el rango."""
+        t = float(np.clip(t, 0.0, 1.0))
+        l2, l3 = self._local(t)
+        return np.array([self.lo[0] + t * self.L, l2 + float(off2),
+                         l3 + float(off3)])
+
+    def parametros(self, centro_pca):
+        """Inversa de `centro`: (t, off2, off3). `t` se acota a [0, 1]."""
+        c = np.asarray(centro_pca, float)
+        t = float(np.clip((c[0] - self.lo[0]) / self.L, 0.0, 1.0))
+        base = self.centro(t)
+        return t, float(c[1] - base[1]), float(c[2] - base[2])
+
+
+def pca_a_mundo(puntos, ejes, centro):
+    """Marco PCA -> mm de la pila (el mismo mapeo que `extraer_cubo`)."""
+    return np.asarray(puntos, float) @ np.asarray(ejes, float).T + centro
+
+
+def mundo_a_pca(puntos, ejes, centro):
+    """mm de la pila -> marco PCA. Inversa de `pca_a_mundo` (ejes ortonormales)."""
+    return (np.asarray(puntos, float) - centro) @ np.asarray(ejes, float)
+
+
+def cubo_a_pca(indices, lado_vox, spacing, centro_pca):
+    """Indices (a, b, c) de un array de `extraer_cubo` -> marco PCA, en mm.
+
+    NO es la identidad, y por eso vive aqui y con test: `extraer_cubo` traspone
+    el cubo (1, 0, 2) para reproducir el orden de MATLAB, asi que la dimension 0
+    del array es el eje 2 del marco PCA y la 1 es el eje 1. Dibujar el
+    contenido del cubo en la escena sin esta correccion lo pondria girado
+    respecto al cubo que se anuncia.
+    """
+    d = np.asarray(indices, float) - 0.5 * (int(lado_vox) - 1)
+    sp = _spacing3(spacing)
+    delta = np.stack([d[:, 1] * sp[0], d[:, 0] * sp[1], d[:, 2] * sp[2]],
+                     axis=1)
+    return delta + np.asarray(centro_pca, float)
+
+
+def perfil_bvtv(mask, spacing, ejes, centro, guia, lado_mm, off2=0.0,
+                off3=0.0, n=21, cancelar=None):
+    """BV/TV de un cubo del tamano dado a lo largo del eje mayor.
+
+    Sirve para decidir donde recortar: se ve de un vistazo en que tramo sube la
+    densidad y donde el cubo asoma por el extremo. Es el MISMO cubo que se
+    recortara (`extraer_cubo`, a resolucion completa), no una estimacion, asi
+    que cuesta n extracciones; `cancelar()` se consulta entre una y otra para
+    poder abandonarlo si el usuario ya cambio el tamano.
+
+    `bvtv` es el del cubo entero, con lo que cae fuera del volumen contado como
+    fondo (igual que `extraer_cubo`), y `fuera` es esa fraccion: donde es
+    grande el BV/TV esta subestimado y el punto no debe leerse como densidad.
+    """
+    ts = np.linspace(0.0, 1.0, int(n))
+    bv, fu = [], []
+    for t in ts:
+        if cancelar is not None and cancelar():
+            return None
+        cubo, fuera = extraer_cubo(mask, spacing, guia.centro(t, off2, off3),
+                                   ejes, centro, lado_mm)
+        bv.append(float(cubo.mean()))
+        fu.append(float(fuera))
+    return {"t": ts, "x_mm": guia.lo[0] + ts * guia.L,
+            "bvtv": np.array(bv), "fuera": np.array(fu)}
+
+
+def seccion_pca(mask, spacing, ejes, centro, centro_pca, eje_a, eje_b, lo, hi,
+                paso_mm=None, max_px=2_000_000):
+    """Corte plano del hueso por el centro del cubo, en el marco PCA.
+
+    El plano contiene los ejes PCA `eje_a` (columnas) y `eje_b` (filas) y pasa
+    por `centro_pca`; el tercero queda fijo. Se muestrea la mascara a un
+    voxel por pixel (vecino mas proximo, igual que `extraer_cubo`) en todo el
+    rango del hueso `lo`..`hi`, de modo que se ve el cubo EN SU CONTEXTO y no
+    solo su contenido.
+
+    Devuelve (img bool (nb, na), (a0, a1, b0, b1) en mm del marco PCA). La fila
+    0 es el menor valor de `eje_b`.
+    """
+    mask = np.asarray(mask, bool)
+    sp = _spacing3(spacing)
+    lo, hi = np.asarray(lo, float), np.asarray(hi, float)
+    paso = float(paso_mm) if paso_mm else float(sp[0])
+    na = (hi[eje_a] - lo[eje_a]) / paso
+    nb = (hi[eje_b] - lo[eje_b]) / paso
+    if na * nb > max_px:
+        paso *= float(np.sqrt(na * nb / max_px))
+    a = np.arange(lo[eje_a], hi[eje_a] + paso, paso)
+    b = np.arange(lo[eje_b], hi[eje_b] + paso, paso)
+    A, B = np.meshgrid(a, b)
+    pts = np.zeros((A.size, 3))
+    pts[:, eje_a], pts[:, eje_b] = A.ravel(), B.ravel()
+    k = 3 - eje_a - eje_b
+    pts[:, k] = float(np.asarray(centro_pca, float)[k])
+    idx = np.rint(pca_a_mundo(pts, ejes, centro) / sp[None, :]).astype(np.int64)
+    dentro = np.ones(idx.shape[0], bool)
+    for d in range(3):
+        dentro &= (idx[:, d] >= 0) & (idx[:, d] < mask.shape[d])
+    vals = np.zeros(idx.shape[0], bool)
+    if dentro.any():
+        i = idx[dentro]
+        vals[dentro] = mask[i[:, 0], i[:, 1], i[:, 2]]
+    return (vals.reshape(A.shape),
+            (float(a[0]), float(a[-1]), float(b[0]), float(b[-1])))
 
 
 def vois_por_tercios(mask, spacing, lado_mm=5.0, n=3):

@@ -38,9 +38,10 @@ jobs:
     strategy:
       fail-fast: false
       # Desde la construccion del instalador (solo_linux) basta una combinacion;
-      # en pull requests y en main corren las cuatro.
+      # en pull requests y en main corren las cinco (macOS en Apple Silicon e Intel;
+      # `macos-14` se retiro de GitHub Actions el 2026-11-02).
       matrix:
-        include: ${{ fromJSON(inputs.solo_linux && '[{"os":"ubuntu-latest","python":"3.13"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.13"},{"os":"macos-14","python":"3.13"}]') }}
+        include: ${{ fromJSON(inputs.solo_linux && '[{"os":"ubuntu-latest","python":"3.13"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.13"},{"os":"macos-15","python":"3.13"},{"os":"macos-15-intel","python":"3.13"}]') }}
     env:
       QT_QPA_PLATFORM: offscreen
       PYVISTA_OFF_SCREEN: "true"

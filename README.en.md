@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="version V2.2.1" src="https://img.shields.io/badge/version-V2.2.1-e8a33d">
+  <img alt="version V2.3.0" src="https://img.shields.io/badge/version-V2.3.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 32 blocks" src="https://img.shields.io/badge/verification-32%20blocks-5b6b7f">
+  <img alt="Verification: 33 blocks" src="https://img.shields.io/badge/verification-33%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -104,7 +104,7 @@ candidate**, and failure load by the Pistoia criterion.
 
 | Stage | What it includes |
 |---|---|
-| **Reads** | `.vtk` and `.mat` VOIs, and micro-CT TIFF stacks (folder of slices or multipage) with the scale read from the SkyScan *log*. Thresholds, frames by PCA and crops the cube. |
+| **Reads** | `.vtk` and `.mat` VOIs, and micro-CT TIFF stacks (folder of slices or multipage) with the scale read from the SkyScan *log*. Thresholds, frames by PCA and crops the cube on a 3D view of the bone: the cube is requested by its side or its absolute volume (µm, µm³), moved through the bone with sliders or by dragging, and its BV/TV, three sections with scale and the BV/TV profile along the axis are shown before confirming. |
 | **Generates** | Spinodoids from a Gaussian random field (Kumar et al. 2020), with both wave-sampling conventions found in the literature, and *dual-lattice* (Vafaeefar et al. 2022). |
 | **Measures** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, MIL tensor and DA, Conn.D, SMI, local thickness, pore size, **Ellipsoid Factor** and principal curvatures of the interface. |
 | **Fits** | The parameters that best reproduce a real VOI: staged search, replicas with fresh seeds, self-consistent noise floor and optional mechanical tie-break. |
@@ -178,17 +178,19 @@ To rebuild it, `instalador/construir.ps1` runs the whole process, and
 `instalador/LEEME_DESARROLLO.md` explains the packaging pitfalls (in
 Spanish).
 
-### macOS test build (Apple Silicon)
+### macOS test build (Apple Silicon and Intel)
 
 Since V2.1.3 each release also attaches `spinpy-V*-macos-arm64-PRUEBA.zip`
-with `spinpy.app`, for Macs with an Apple Silicon chip (M1 or later). **It is a
+with `spinpy.app`, for Macs with an Apple Silicon chip (M1 or later). The
+repository also builds `spinpy-V*-macos-x86_64-PRUEBA.zip` for Intel Macs, with
+the same recipe on an Intel runner; it is a release asset since V2.3.0. **It is a
 test build:** it builds and passes the `.app` self-test on a GitHub Actions
 Apple Silicon runner (including the three built-in FE engines), but the
 graphical interface has not been tried by hand on a Mac with a screen. It is
 neither signed nor notarised: the first time, right-click `spinpy.app` and
 choose "Open" (or `xattr -dr com.apple.quarantine spinpy.app`). It uses Qt
 5.15.17 instead of the 5.15.2 used on Windows, which does not exist for Apple
-Silicon. There is no build for Intel Macs. Instructions are in
+Silicon. Instructions are in
 `instalador/LEEME_MAC.txt` (in Spanish); to rebuild it, use
 `instalador/construir_mac.sh`.
 
@@ -339,7 +341,7 @@ macOS with 3.13), and building the installer requires it to pass. Each run
 stores as an artifact the tolerance log and the exact environment
 (`pip freeze`) it was measured with.
 
-32 blocks with tolerances **declared before measuring**: topology, SMI,
+33 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.
