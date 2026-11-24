@@ -28,7 +28,7 @@ Se contrastan tres cosas:
   3. MATLAB voxel-primero vs MATLAB ruta-malla -> cuanto cuesta el rodeo por
      la malla, que es lo que el port se ahorra.
 
-Uso:  python comparar.py         (requiere resultados/referencia_matlab.json)
+Uso:  python validacion/comparar.py         (requiere resultados/referencia_matlab.json)
 """
 
 from __future__ import annotations
@@ -41,10 +41,10 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from spinpy import generar_mascara, morfometria   # noqa: E402
 
-RAIZ = Path(__file__).parent
+RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "referencia_matlab.json"
 RUIDO = RAIZ.parent / "Validacion_Anexo" / "resultados" / "ruido_estocastico.csv"

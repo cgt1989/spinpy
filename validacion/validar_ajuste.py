@@ -26,7 +26,7 @@ seria enganarse:
   del propio generador, ya medida en Validacion_Anexo. Dos ejecuciones de
   MATLAB con semillas distintas tampoco coinciden entre si.
 
-Uso:  python validar_ajuste.py   (requiere resultados/ajuste_matlab.json)
+Uso:  python validacion/validar_ajuste.py   (requiere resultados/ajuste_matlab.json)
 """
 
 from __future__ import annotations
@@ -37,10 +37,10 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from spinpy import ajustar_spinodoide, leer_voi, morfometria   # noqa: E402
 
-RAIZ = Path(__file__).parent
+RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "ajuste_matlab.json"
 VOIDIR = RAIZ.parent / "H4" / "Segmentadas"

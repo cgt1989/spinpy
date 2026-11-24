@@ -3,7 +3,7 @@ probar_voi_h4.py — El port sobre los VOIs reales de H4.
 
 POR QUE ESTE CONTRASTE ES MAS DURO QUE EL DEL GENERADOR
 -------------------------------------------------------
-`comparar.py` enfrenta dos implementaciones de un proceso ESTOCASTICO, asi que
+`validacion/comparar.py` enfrenta dos implementaciones de un proceso ESTOCASTICO, asi que
 el criterio tiene que ser estadistico (|z| frente a la banda de ruido). Aqui el
 VOI es un dato fijo leido de disco: la morfometria es deterministica y las dos
 implementaciones deben coincidir hasta la aritmetica. No hay varianza donde
@@ -14,7 +14,7 @@ real del port. Lo unico que se admite es el sesgo conocido del variante de
 marching cubes en BS (sub-1%, creciente con la densidad), que se propaga a
 BS/BV, Tb.Th y Tb.N por ser funciones de BS.
 
-Uso:  python probar_voi_h4.py        (requiere resultados/referencia_voi_h4.json)
+Uso:  python validacion/probar_voi_h4.py        (requiere resultados/referencia_voi_h4.json)
 """
 
 from __future__ import annotations
@@ -26,10 +26,10 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from spinpy import leer_vtk_voi, morfometria   # noqa: E402
 
-RAIZ = Path(__file__).parent
+RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "referencia_voi_h4.json"
 VOIDIR = RAIZ.parent / "H4" / "Segmentadas"

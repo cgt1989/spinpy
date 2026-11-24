@@ -9,7 +9,7 @@ Se incluye ademas la comparacion de los dos esquemas de muestreo de ondas
 (rechazo vs equitativo), que es la discrepancia de fondo entre AppFinal_V2 y el
 repositorio TPMS-Scaffolds-generator.
 
-Uso:  python validar_analitico.py
+Uso:  python validacion/validar_analitico.py
 """
 
 from __future__ import annotations
@@ -20,10 +20,10 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from spinpy import morfometria, tensor_mil, wave_directions   # noqa: E402
 
-RAIZ = Path(__file__).parent
+RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "resultados"
 SALIDA.mkdir(exist_ok=True)
 

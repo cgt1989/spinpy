@@ -351,7 +351,7 @@ marked as strict `xfail`: the suite stays green, the log still records them
 as failed and, should either start passing, the suite fails to force a review
 of its documentation.
 
-Against the original MATLAB implementation (`validar_*.py`, reference
+Against the original MATLAB implementation (`validacion/validar_*.py`, reference
 outputs in `resultados/`):
 
 | What is checked | Result |

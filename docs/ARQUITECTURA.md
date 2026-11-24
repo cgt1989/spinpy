@@ -8,9 +8,12 @@ redundantes son correcciones ya pagadas.
 
 ## Capas
 
-El paquete `spinpy/` no importa Qt. La interfaz (`visor.py` y los
-`dialogo_*.py`) importa el paquete; el paquete nunca importa la interfaz. Se
-puede usar el núcleo desde un script o un cuaderno sin arrastrar la GUI.
+Los módulos de cálculo de `spinpy/` no importan Qt. La interfaz (`visor.py` y
+los `dialogo_*.py`) importa el paquete; el paquete nunca importa la interfaz.
+Se puede usar el núcleo desde un script o un cuaderno sin arrastrar la GUI.
+Hay dos excepciones declaradas, que son código de interfaz y viven en el
+paquete por historia: `pantalla.py` (diálogos que se ajustan a la pantalla) e
+`idioma.py` (traducción de la interfaz, que importa Qt dentro de una función).
 
 ```
  visor.py, dialogo_*.py            interfaz (PyQt5, GPL)         ← depende de todo
@@ -29,6 +32,22 @@ puede usar el núcleo desde un script o un cuaderno sin arrastrar la GUI.
  voi.py, io.py                     entrada: pilas TIFF, .vtk, .mat, recorte
  motores/                          motores FEM intercambiables
 ```
+
+## Qué hay en la raíz del repositorio
+
+| Carpeta o archivo | Qué es |
+|---|---|
+| `spinpy/` | el paquete (núcleo, informe, motores FEM) |
+| `visor.py`, `dialogo_*.py` | la interfaz gráfica; se lanza con `python visor.py` |
+| `validacion/` | guiones que contrastan el código con MATLAB y con soluciones analíticas (`python validacion/validar_error.py`); escriben en `resultados/` |
+| `tests/` | la suite de verificación |
+| `Test/` | réplicas de las figuras de los artículos en que se basa el método |
+| `comparativa_*/` | campañas de comparación con FEBio y entre motores (informes y guiones) |
+| `ejemplos/`, `datos/` | cuaderno e inicio rápido, y los diez VOIs porcinos abiertos |
+| `instalador/` | construcción de los ejecutables de Windows, macOS y Linux |
+| `docs/` | manual, guías y medios del README |
+| `matlab/`, `resultados/` | lado MATLAB de la validación y sus salidas de referencia |
+| `idioma_revisar.py` | comprobador del diccionario de traducción de la interfaz |
 
 ## Dónde está cada cosa
 

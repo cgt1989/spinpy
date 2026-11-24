@@ -15,9 +15,9 @@ Se incluyen ademas casos con NaN inyectado, que es donde vive la invariante C6
 y donde un port ingenuo se separa.
 
 Uso:
-    python validar_error.py --exportar     genera pares_error.json
+    python validacion/validar_error.py --exportar     genera pares_error.json
     matlab -batch "cd('...'); validar_error_matlab"
-    python validar_error.py                compara
+    python validacion/validar_error.py                compara
 """
 
 from __future__ import annotations
@@ -28,10 +28,10 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from spinpy.error import error_morfometrico   # noqa: E402
 
-RAIZ = Path(__file__).parent
+RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "resultados"
 REF = SALIDA / "referencia_vois_todos.json"
 PARES = SALIDA / "pares_error.json"

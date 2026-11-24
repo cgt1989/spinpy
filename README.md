@@ -349,7 +349,7 @@ marcados como `xfail` estricto: la suite queda en verde, el registro los sigue
 anotando como fallidos y, si alguno empezara a pasar, la suite fallaría para
 obligar a revisar su documentación.
 
-Contra la implementación MATLAB original (`validar_*.py`, salidas de
+Contra la implementación MATLAB original (`validacion/validar_*.py`, salidas de
 referencia en `resultados/`):
 
 | Qué se comprueba | Resultado |
