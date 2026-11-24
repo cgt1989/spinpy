@@ -70,3 +70,28 @@ def test_inicio_rapido_corre_de_punta_a_punta(capsys, monkeypatch):
     salida = capsys.readouterr().out
     assert "coincide con SHA256SUMS.txt" in salida
     assert "E_app" in salida
+
+
+@pytest.mark.lento
+def test_cuaderno_de_inicio_corre(monkeypatch):
+    """`ejemplos/spinpy_inicio.ipynb` es lo primero que ve quien llega por
+    Colab: si la API cambia y el cuaderno no, la primera impresion es un error.
+    Se ejecutan sus celdas de codigo, salvo la de instalacion."""
+    import json
+    nb = json.loads((RAIZ / "ejemplos" / "spinpy_inicio.ipynb")
+                    .read_text(encoding="utf-8"))
+    monkeypatch.chdir(RAIZ)
+    ambito = {}
+    n = 0
+    for celda in nb["cells"]:
+        if celda["cell_type"] != "code":
+            continue
+        fuente = "".join(celda["source"])
+        if "pip" in fuente and "install" in fuente:
+            continue
+        exec(compile(fuente, f"<celda {n}>", "exec"), ambito)
+        n += 1
+    assert n >= 4
+    # el cilindro NO es el de la caja entera: la medida se restringe al dominio
+    assert ambito["m_cil"]["dominio"] is True
+    assert ambito["m_cil"]["BVTV"] > ambito["cil"]["cubo"].mean() * 1.1

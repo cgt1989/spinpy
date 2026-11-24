@@ -29,31 +29,50 @@ import importlib
 import importlib.util
 import multiprocessing as mp
 import time
+from typing import NamedTuple, Optional
 
 from ._comun import (ErrorMotor, NoDisponible, esquinas,           # noqa: F401
                      problema_de_malla, rectificar_aristas)
 
-#: Orden de presentacion. La app va primero: es la linea base validada.
-MOTORES = ("app", "ngsolve", "fenicsx", "skfem", "sfepy")
 
-#: Modulo que delata la instalacion de cada motor.
-_SONDA = {"app": None, "ngsolve": "ngsolve", "fenicsx": "dolfinx",
-          "skfem": "skfem", "sfepy": "sfepy"}
+class Motor(NamedTuple):
+    """Ficha de un motor. ANADIR UN MOTOR ES ANADIR UNA FICHA A `REGISTRO` Y UN
+    ARCHIVO `m_<clave>.py` (guia completa: `docs/AGREGAR_UN_MOTOR_FEM.md`)."""
+    clave: str            # nombre corto; el archivo es `m_<clave>.py`
+    etiqueta: str         # como se muestra en la interfaz
+    sonda: Optional[str]  # modulo cuya presencia delata la instalacion; None = siempre
+    distribucion: Optional[str]   # nombre en PyPI, para leer la version sin importar
+    mallas: tuple         # 'hex8' y/o 'tet10'
+    nl: tuple             # materiales no lineales: 'svk', 'neohookeano'
+    plato: bool           # resuelve el plato rigido (control por desplazamiento)
 
+
+#: Los motores conocidos, en orden de presentacion. La app va primero: es la
+#: linea base validada. Todo lo demas (`MOTORES`, `ETIQUETAS`, `CAPACIDADES`...)
+#: se deriva de aqui, de modo que no hay que tocar cinco tablas.
+REGISTRO = (
+    Motor("app", "App (spinpy)", None, None, ("hex8",), (), False),
+    Motor("ngsolve", "NGSolve", "ngsolve", "ngsolve", ("hex8", "tet10"),
+          ("svk", "neohookeano"), True),
+    # FEniCSx: solo conda-forge; compila en tiempo de ejecucion.
+    Motor("fenicsx", "FEniCSx", "dolfinx", "fenics-dolfinx",
+          ("hex8", "tet10"), ("svk", "neohookeano"), True),
+    Motor("skfem", "scikit-fem", "skfem", "scikit-fem", ("hex8", "tet10"),
+          ("svk", "neohookeano"), True),
+    # SfePy: no lineal solo SVK y con Newton de convergencia lineal (tangente
+    # inconsistente, medido).
+    Motor("sfepy", "SfePy", "sfepy", "sfepy", ("hex8", "tet10"), ("svk",),
+          True),
+)
+
+MOTORES = tuple(m.clave for m in REGISTRO)
+ETIQUETAS = {m.clave: m.etiqueta for m in REGISTRO}
 #: Lo que resuelve cada motor. `nl` = materiales no lineales disponibles.
-CAPACIDADES = {
-    "app": {"mallas": ("hex8",), "nl": (), "plato": False},
-    "ngsolve": {"mallas": ("hex8", "tet10"), "nl": ("svk", "neohookeano"),
-                "plato": True},
-    "fenicsx": {"mallas": ("hex8", "tet10"), "nl": ("svk", "neohookeano"),
-                "plato": True},
-    "skfem": {"mallas": ("hex8", "tet10"), "nl": ("svk", "neohookeano"),
-              "plato": True},
-    "sfepy": {"mallas": ("hex8", "tet10"), "nl": ("svk",), "plato": True},
-}
-
-ETIQUETAS = {"app": "App (spinpy)", "ngsolve": "NGSolve",
-             "fenicsx": "FEniCSx", "skfem": "scikit-fem", "sfepy": "SfePy"}
+CAPACIDADES = {m.clave: {"mallas": m.mallas, "nl": m.nl, "plato": m.plato}
+               for m in REGISTRO}
+_SONDA = {m.clave: m.sonda for m in REGISTRO}
+_DISTRIBUCION = {m.clave: m.distribucion for m in REGISTRO
+                 if m.distribucion}
 
 #: Motor recomendado para lo que la app no resuelve (TET10, no lineal),
 #: segun la comparativa: exacto en todas las pruebas, instalable con pip en
@@ -74,11 +93,6 @@ def instalado(motor):
 def disponibles():
     """Motores instalados en este entorno, en el orden de `MOTORES`."""
     return [m for m in MOTORES if instalado(m)]
-
-
-#: Distribucion de cada motor, para leer su version SIN importarlo.
-_DISTRIBUCION = {"ngsolve": "ngsolve", "fenicsx": "fenics-dolfinx",
-                 "skfem": "scikit-fem", "sfepy": "sfepy"}
 
 
 def version(motor):

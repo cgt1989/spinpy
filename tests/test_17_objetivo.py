@@ -5,7 +5,7 @@ alineacion impuesta.
 QUE SE VERIFICA, Y CONTRA QUE
   identidad    con `pesos=None` —y con los pesos base escritos a mano— el
                error es bit a bit el de antes, y dentro de 1e-12 del de MATLAB
-               en los 1173 pares de `validar_error.py` (se salta si faltan).
+               en los 1173 pares de `validacion/validar_error.py` (se salta si faltan).
   C6           un termino opcional ausente se salta y renormaliza.
   distancias   W1 entre dos uniformes desplazadas = desplazamiento (exacto);
                escalar una distribucion por s da el termino (s - 1)^2;
@@ -55,7 +55,7 @@ def test_identidad_con_matlab(registro):
     pares = RAIZ / "resultados" / "pares_error.json"
     mat = RAIZ / "resultados" / "error_matlab.json"
     if not (pares.exists() and mat.exists()):
-        pytest.skip("sin los pares de validar_error.py")
+        pytest.skip("sin los pares de validacion/validar_error.py")
     d = json.loads(pares.read_text(encoding="utf-8"))
     m = json.loads(mat.read_text(encoding="utf-8"))
 
@@ -80,7 +80,7 @@ def test_identidad_con_matlab(registro):
             peor = max(peor, rel)
     ok = identicos and peor <= 1e-12
     registro.anotar(BLOQUE, "error por omision = MATLAB, bit a bit",
-                    "validar_error.py (1173 pares)", 0.0, peor, "<= 1e-12",
+                    "validacion/validar_error.py (1173 pares)", 0.0, peor, "<= 1e-12",
                     "pesos None == base explicitos == {}", ok)
     assert ok
 

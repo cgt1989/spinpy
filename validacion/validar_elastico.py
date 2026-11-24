@@ -20,9 +20,9 @@ Dos verificaciones independientes, en este orden:
      sobre VOIs.
 
 Uso:
-    python validar_elastico.py --exportar   genera casos_elastico.mat
+    python validacion/validar_elastico.py --exportar   genera casos_elastico.mat
     matlab -batch "cd('...'); validar_elastico_matlab"
-    python validar_elastico.py              compara
+    python validacion/validar_elastico.py              compara
 """
 
 from __future__ import annotations
@@ -34,12 +34,12 @@ from pathlib import Path
 import numpy as np
 from scipy.io import loadmat, savemat
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from spinpy import generar_mascara                                  # noqa: E402
 from spinpy.elastic import (backus_laminado, constantes_ingenieria,  # noqa: E402
                             homogeneizar)
 
-RAIZ = Path(__file__).parent
+RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "resultados"
 CASOS = SALIDA / "casos_elastico.mat"
 REF_MAT = SALIDA / "elastico_matlab.json"

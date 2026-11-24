@@ -220,7 +220,6 @@ from spinpy.estadistica import informe      # noqa: E402
 from spinpy.lote import (METRICAS, correr_lote,  # noqa: E402
                          dispersion_semillas)
 from spinpy.metodos import COMPARADAS as COMPARADAS_MET  # noqa: E402
-from spinpy.metodos import REGISTRO                       # noqa: E402
 from spinpy.metodos import REGISTROS                      # noqa: E402
 from spinpy.metodos import comparar_resultados            # noqa: E402
 # `_` es la funcion de traduccion en todo este modulo. NO usarla como
@@ -896,10 +895,10 @@ class DialogoPilaTiff(DialogoAjustable):
 
 
 class _VistaCorte(QtWidgets.QWidget):
-    """Un corte plano del hueso con el cubo marcado; escala con la ventana.
+    """Un corte plano del hueso con el cubo (o cilindro) marcado; escala con la ventana.
 
-    El corte es del HUESO entero (no solo del cubo) para que se vea donde cae
-    el cubo y cuanto hueso queda alrededor. Lo que cae dentro del cubo va en
+    El corte es del HUESO entero (no solo de la region) para que se vea donde
+    cae y cuanto hueso queda alrededor. Lo que cae dentro de la region va en
     naranja, el mismo color que en la vista 3D, y lleva una barra de escala:
     sin ella un corte de 5 mm y uno de 30 mm se ven igual.
     """
@@ -912,36 +911,49 @@ class _VistaCorte(QtWidgets.QWidget):
         super().__init__()
         self._titulo = titulo
         self._qi = None
+        self._circular = False
         self.setMinimumSize(90, 70)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                            QtWidgets.QSizePolicy.Expanding)
 
-    def poner(self, img, extension, centro_ab, lado_mm):
+    def poner(self, img, extension, centro_ab, semiejes, circular=False):
+        """Pinta el corte. `semiejes` = (ha, hb) de la region en mm: un cuadrado
+        o rectangulo (cubo, o cilindro cortado por un plano que contiene su
+        eje) o, con `circular`, una elipse (cilindro cortado perpendicular a su
+        eje)."""
         a0, a1, b0, b1 = extension
         nb, na = img.shape
         paso = (a1 - a0) / max(na - 1, 1)
-        h = 0.5 * lado_mm
+        ha, hb = float(semiejes[0]), float(semiejes[1])
         ca, cb = centro_ab
-        i0 = int(np.clip(round((ca - h - a0) / paso), 0, na))
-        i1 = int(np.clip(round((ca + h - a0) / paso) + 1, 0, na))
-        j0 = int(np.clip(round((cb - h - b0) / paso), 0, nb))
-        j1 = int(np.clip(round((cb + h - b0) / paso) + 1, 0, nb))
+        i0 = int(np.clip(round((ca - ha - a0) / paso), 0, na))
+        i1 = int(np.clip(round((ca + ha - a0) / paso) + 1, 0, na))
+        j0 = int(np.clip(round((cb - hb - b0) / paso), 0, nb))
+        j1 = int(np.clip(round((cb + hb - b0) / paso) + 1, 0, nb))
         rgb = np.empty((nb, na, 3), np.uint8)
         rgb[:] = self.FONDO
         rgb[img] = self.HUESO
         if i1 > i0 and j1 > j0:
             sub = img[j0:j1, i0:i1]
             reg = rgb[j0:j1, i0:i1]
-            reg[~sub] = self.FONDO_CUBO
-            reg[sub] = self.CUBO
+            if circular:
+                xa = a0 + paso * np.arange(i0, i1)
+                xb = b0 + paso * np.arange(j0, j1)
+                en = (((xa[None, :] - ca) / ha) ** 2
+                      + ((xb[:, None] - cb) / hb) ** 2) <= 1.0
+            else:
+                en = np.ones(sub.shape, bool)
+            reg[en & ~sub] = self.FONDO_CUBO
+            reg[en & sub] = self.CUBO
         rgb = np.ascontiguousarray(rgb[::-1])          # PC_b hacia arriba
         self._qi = QtGui.QImage(rgb.data, na, nb, 3 * na,
                                 QtGui.QImage.Format_RGB888).copy()
         self._paso, self._na, self._nb = paso, na, nb
-        # borde del cubo, en pixeles de la imagen (los pixeles ocupan [i, i+1])
-        self._rect = ((ca - h - a0) / paso + 0.5,
-                      (nb - 1) - (cb + h - b0) / paso + 0.5,
-                      lado_mm / paso, lado_mm / paso)
+        # borde de la region, en pixeles de la imagen (los pixeles ocupan [i, i+1])
+        self._circular = bool(circular)
+        self._rect = ((ca - ha - a0) / paso + 0.5,
+                      (nb - 1) - (cb + hb - b0) / paso + 0.5,
+                      2 * ha / paso, 2 * hb / paso)
         self.update()
 
     def paintEvent(self, _ev):
@@ -961,7 +973,11 @@ class _VistaCorte(QtWidgets.QWidget):
         pen = QtGui.QPen(QtGui.QColor(*self.CUBO))
         pen.setWidthF(2.0)
         p.setPen(pen)
-        p.drawRect(QtCore.QRectF(ox + s * x, oy + s * y, s * lx, s * ly))
+        borde = QtCore.QRectF(ox + s * x, oy + s * y, s * lx, s * ly)
+        if self._circular:
+            p.drawEllipse(borde)
+        else:
+            p.drawRect(borde)
 
         # barra de escala con una longitud redonda
         for L in (0.1, 0.2, 0.5, 1, 2, 5, 10, 20):
@@ -1103,7 +1119,7 @@ class _TareaUnica(QtCore.QObject):
 
 
 class DialogoRecorte(DialogoAjustable):
-    """Recorte del VOI cubico: el cubo se ve y se mueve DENTRO del hueso.
+    """Recorte del VOI, cubico o cilindrico: la forma se ve y se mueve DENTRO del hueso.
 
     POR QUE ESTE PASO NECESITA INTERFAZ. Una pila de escaner no es un VOI:
     628x664x438 son 1.8e8 voxeles, y ni la homogeneizacion ni el ajuste son
@@ -1119,6 +1135,14 @@ class DialogoRecorte(DialogoAjustable):
     tramos sugeridos, mas el perfil de BV/TV a lo largo del eje para ese
     tamano: se ve de un vistazo donde sube la densidad y donde el cubo asoma
     por un extremo.
+
+    CUBO O CILINDRO. La forma se elige arriba a la derecha. El cilindro se pide
+    por su radio y su altura, con el eje a lo largo de PC1, PC2 o PC3, y se
+    recorta con `voi.extraer_cilindro`: una caja envolvente mas el DOMINIO (los
+    voxeles del cilindro). Todo lo que la ventana muestra de un cilindro (BV/TV,
+    perfil, tramos) se calcula DENTRO del dominio, y los cortes lo marcan como
+    rectangulo o circulo segun el plano. Tanto el cubo como el cilindro pasan
+    por `voi.recortar`, de modo que lo que se dibuja es lo que se mide.
 
     TAMANO ABSOLUTO. Se puede pedir el lado (um o mm) o el volumen (um^3 o
     mm^3). `extraer_cubo` trabaja en voxeles enteros e impares, asi que el cubo
@@ -1144,9 +1168,10 @@ class DialogoRecorte(DialogoAjustable):
                  reducido=None, malla=None):
         super().__init__(padre)
         from spinpy import escena_recorte
-        from spinpy.voi import GuiaPCA, dimensionar_cubo, rango_pca
+        from spinpy.voi import (GuiaPCA, dimensionar_cilindro, dimensionar_cubo,
+                                rango_pca)
         self._ER = escena_recorte
-        self.setWindowTitle(_("Recortar VOI cubico"))
+        self.setWindowTitle(_("Recortar VOI"))
         self.resize(1320, 840)
         self.mask = mask
         self.spacing = np.atleast_1d(np.asarray(spacing, float)).ravel()
@@ -1161,6 +1186,8 @@ class DialogoRecorte(DialogoAjustable):
         self.cubo_actual = None
         self._etiqueta = 1                      # tramo vigente; None = libre
         self._dim = dimensionar_cubo(self.sp3, lado_mm=lado_mm)
+        # Cilindro por defecto: el inscrito en el cubo por defecto.
+        self._dimc = dimensionar_cilindro(self.sp3, 0.5 * lado_mm, lado_mm)
         self._perfil = None
         self.escena = None
 
@@ -1183,14 +1210,14 @@ class DialogoRecorte(DialogoAjustable):
         barra.addSpacing(12)
         self.chk_tras = QtWidgets.QCheckBox(_("Hueso traslucido"))
         self.chk_tras.setChecked(True)
-        self.chk_corte = QtWidgets.QCheckBox(_("Cortar por el centro del cubo"))
+        self.chk_corte = QtWidgets.QCheckBox(_("Cortar por el centro de la region"))
         self.chk_corte.setToolTip(_(
-            "Quita la mitad del hueso que da a la camara para ver el cubo por "
-            "dentro."))
-        self.chk_mango = QtWidgets.QCheckBox(_("Arrastrar el cubo con el raton"))
+            "Quita la mitad del hueso que da a la camara para ver la region "
+            "por dentro."))
+        self.chk_mango = QtWidgets.QCheckBox(_("Arrastrar la region con el raton"))
         self.chk_mango.setChecked(True)
         self.chk_mango.setToolTip(_(
-            "Muestra una esfera en el centro del cubo: arrastrala para moverlo."))
+            "Muestra una esfera en el centro de la region: arrastrala para moverla."))
         for c in (self.chk_tras, self.chk_corte, self.chk_mango):
             barra.addWidget(c)
         barra.addStretch(1)
@@ -1241,15 +1268,30 @@ class DialogoRecorte(DialogoAjustable):
                           "padding:4px; font-size:11px;")
         der.addWidget(cab)
 
-        # tamano ---------------------------------------------------------------
-        gt = QtWidgets.QGroupBox(_("Tamano del cubo"))
-        gl = QtWidgets.QGridLayout(gt)
-        self.rb_lado = QtWidgets.QRadioButton(_("Lado"))
-        self.rb_vol = QtWidgets.QRadioButton(_("Volumen absoluto"))
-        self.rb_lado.setChecked(True)
+        # forma y tamano --------------------------------------------------------
+        gt = QtWidgets.QGroupBox(_("Forma y tamano"))
+        vt = QtWidgets.QVBoxLayout(gt)
+        fm = QtWidgets.QHBoxLayout()
+        fm.addWidget(QtWidgets.QLabel(_("Forma")))
+        self.cmb_forma = QtWidgets.QComboBox()
+        self.cmb_forma.addItem(_("Cubo"), "cubo")
+        self.cmb_forma.addItem(_("Cilindro"), "cilindro")
+        fm.addWidget(self.cmb_forma)
+        fm.addStretch(1)
+        fm.addWidget(QtWidgets.QLabel(_("Unidad")))
         self.cmb_uni = QtWidgets.QComboBox()
         self.cmb_uni.addItem("µm", 1e-3)
         self.cmb_uni.addItem("mm", 1.0)
+        fm.addWidget(self.cmb_uni)
+        vt.addLayout(fm)
+
+        # cubo: por lado o por volumen absoluto
+        self.w_cubo = QtWidgets.QWidget()
+        gl = QtWidgets.QGridLayout(self.w_cubo)
+        gl.setContentsMargins(0, 0, 0, 0)
+        self.rb_lado = QtWidgets.QRadioButton(_("Lado"))
+        self.rb_vol = QtWidgets.QRadioButton(_("Volumen absoluto"))
+        self.rb_lado.setChecked(True)
         self.sp_lado = QtWidgets.QDoubleSpinBox()
         self.sp_lado.setSingleStep(100)
         self.ed_vol = QtWidgets.QLineEdit()
@@ -1261,14 +1303,36 @@ class DialogoRecorte(DialogoAjustable):
         self.lab_uvol = QtWidgets.QLabel()
         gl.addWidget(self.rb_lado, 0, 0)
         gl.addWidget(self.sp_lado, 0, 1)
-        gl.addWidget(self.cmb_uni, 0, 2)
         gl.addWidget(self.rb_vol, 1, 0)
         gl.addWidget(self.ed_vol, 1, 1)
         gl.addWidget(self.lab_uvol, 1, 2)
+        vt.addWidget(self.w_cubo)
+
+        # cilindro: radio, altura y eje
+        self.w_cil = QtWidgets.QWidget()
+        cg = QtWidgets.QGridLayout(self.w_cil)
+        cg.setContentsMargins(0, 0, 0, 0)
+        self.sp_radio = QtWidgets.QDoubleSpinBox()
+        self.sp_alto = QtWidgets.QDoubleSpinBox()
+        self.cmb_eje_cil = QtWidgets.QComboBox()
+        for k, nom in enumerate(("PC1", "PC2", "PC3")):
+            self.cmb_eje_cil.addItem(nom, k)
+        self.cmb_eje_cil.setToolTip(_(
+            "Eje PCA a lo largo del cual va el cilindro. En el VOI recortado "
+            "es el ultimo eje (z), el de la carga del ensayo."))
+        cg.addWidget(QtWidgets.QLabel(_("Radio")), 0, 0)
+        cg.addWidget(self.sp_radio, 0, 1)
+        cg.addWidget(QtWidgets.QLabel(_("Altura")), 1, 0)
+        cg.addWidget(self.sp_alto, 1, 1)
+        cg.addWidget(QtWidgets.QLabel(_("Eje del cilindro")), 2, 0)
+        cg.addWidget(self.cmb_eje_cil, 2, 1)
+        vt.addWidget(self.w_cil)
+        self.w_cil.setVisible(False)
+
         self.lab_real = QtWidgets.QLabel()
         self.lab_real.setWordWrap(True)
         self.lab_real.setTextFormat(QtCore.Qt.RichText)
-        gl.addWidget(self.lab_real, 2, 0, 1, 3)
+        vt.addWidget(self.lab_real)
         der.addWidget(gt)
 
         # posicion ----------------------------------------------------------------
@@ -1309,7 +1373,7 @@ class DialogoRecorte(DialogoAjustable):
         der.addWidget(gp)
 
         # cubo actual -------------------------------------------------------------
-        gc = QtWidgets.QGroupBox(_("Cubo actual"))
+        gc = self.gc = QtWidgets.QGroupBox(_("Cubo actual"))
         cl = QtWidgets.QVBoxLayout(gc)
         self.lab_bvtv = QtWidgets.QLabel("BV/TV …")
         f = self.lab_bvtv.font()
@@ -1356,6 +1420,10 @@ class DialogoRecorte(DialogoAjustable):
         self.cmb_uni.currentIndexChanged.connect(self._cambia_unidad)
         self.sp_lado.valueChanged.connect(self._tamano_editado)
         self.ed_vol.editingFinished.connect(self._tamano_editado)
+        self.cmb_forma.currentIndexChanged.connect(self._cambia_forma)
+        self.sp_radio.valueChanged.connect(self._tamano_editado)
+        self.sp_alto.valueChanged.connect(self._tamano_editado)
+        self.cmb_eje_cil.currentIndexChanged.connect(self._cambia_eje_cilindro)
         for m in (self.m_t, self.m_o2, self.m_o3):
             m.cambiado.connect(self._posicion_editada)
         self.cmb_orden.currentIndexChanged.connect(self._reetiquetar)
@@ -1397,6 +1465,28 @@ class DialogoRecorte(DialogoAjustable):
         """Lado REAL del cubo, el que se recorta, en mm."""
         return float(self._dim["lado_real_mm"])
 
+    def _forma(self):
+        return self.cmb_forma.currentData()
+
+    def _region(self, centro=None):
+        """La region que dicen los mandos, como la entiende `voi.recortar`."""
+        c = self._centro() if centro is None else np.asarray(centro, float)
+        if self._forma() == "cilindro":
+            d = self._dimc
+            return {"forma": "cilindro", "centro_pca": c,
+                    "radio_mm": d["radio_pedido_mm"],
+                    "altura_mm": d["altura_real_mm"],
+                    "eje": int(self.cmb_eje_cil.currentData())}
+        return {"forma": "cubo", "centro_pca": c, "lado_mm": self.lado_mm}
+
+    def _texto_region(self):
+        """Etiqueta que acompana a la forma en la escena 3D."""
+        if self._forma() == "cilindro":
+            d = self._dimc
+            return (f"r {d['radio_pedido_mm'] * 1000:.0f} · "
+                    f"h {d['altura_real_mm'] * 1000:.0f} µm")
+        return f"{self.lado_mm * 1000:.0f} µm"
+
     def _centro(self):
         # Mientras no se toque ningun mando, el centro de un tramo es EXACTAMENTE
         # el de `centros_por_tercios`, no el que salga de redondear los mandos
@@ -1427,6 +1517,17 @@ class DialogoRecorte(DialogoAjustable):
         self.sp_lado.setSingleStep(100.0 if um else 0.1)
         self.sp_lado.setValue(self._dim["lado_pedido_mm"] / u)
         self.sp_lado.blockSignals(False)
+        for sp, pedido, minimo, maximo in (
+                (self.sp_radio, self._dimc["radio_pedido_mm"], 100.0, 30000.0),
+                (self.sp_alto, self._dimc["altura_pedida_mm"], 200.0,
+                 60000.0)):
+            sp.blockSignals(True)
+            sp.setDecimals(0 if um else 3)
+            sp.setRange(minimo if um else minimo * 1e-3,
+                        maximo if um else maximo * 1e-3)
+            sp.setSingleStep(100.0 if um else 0.1)
+            sp.setValue(pedido / u)
+            sp.blockSignals(False)
         self.lab_uvol.setText("µm³" if um else "mm³")
         self._volcar_volumen()
         self._modo_tamano()
@@ -1446,8 +1547,25 @@ class DialogoRecorte(DialogoAjustable):
         self._poner_unidad()
 
     def _tamano_editado(self, *_a):
-        from spinpy.voi import dimensionar_cubo
+        from spinpy.voi import dimensionar_cilindro, dimensionar_cubo
         u = float(self.cmb_uni.currentData())
+        if self._forma() == "cilindro":
+            try:
+                dim = dimensionar_cilindro(self.sp3, self.sp_radio.value() * u,
+                                           self.sp_alto.value() * u)
+            except ValueError:
+                self.lab_real.setText(
+                    "<span style='color:#c0392b;'>"
+                    + _("Valor no valido.") + "</span>")
+                return
+            if (dim["lado_caja"], dim["alto_vox"]) == (
+                    self._dimc["lado_caja"], self._dimc["alto_vox"]) and \
+                    abs(dim["radio_pedido_mm"]
+                        - self._dimc["radio_pedido_mm"]) < 1e-12:
+                return
+            self._dimc = dim
+            self._tras_cambiar_tamano()
+            return
         try:
             if self.rb_lado.isChecked():
                 dim = dimensionar_cubo(self.sp3,
@@ -1473,12 +1591,31 @@ class DialogoRecorte(DialogoAjustable):
             self.sp_lado.blockSignals(True)
             self.sp_lado.setValue(dim["lado_pedido_mm"] / u)
             self.sp_lado.blockSignals(False)
+        self._tras_cambiar_tamano()
+
+    def _tras_cambiar_tamano(self):
         self._mostrar_real()
         self._poner_caja()
         self._pedir_cubo()
         self._ret_ref.start()
 
+    def _cambia_forma(self):
+        cil = self._forma() == "cilindro"
+        self.w_cubo.setVisible(not cil)
+        self.w_cil.setVisible(cil)
+        self.gc.setTitle(_("Cilindro actual") if cil else _("Cubo actual"))
+        self._perfil = None
+        self._tras_cambiar_tamano()
+        self._pintar_perfil()
+
+    def _cambia_eje_cilindro(self):
+        if self._forma() == "cilindro":
+            self._tras_cambiar_tamano()
+
     def _mostrar_real(self):
+        if self._forma() == "cilindro":
+            self._mostrar_real_cilindro()
+            return
         d = self._dim
         n = d["lado_vox"]
         lado_um = d["lado_real_mm"] * 1000
@@ -1495,6 +1632,28 @@ class DialogoRecorte(DialogoAjustable):
                     + _("Lado de solo {n} voxeles: el cubo puede ser "
                         "demasiado pequeno para medir la microestructura."
                         ).format(n=n) + "</span>")
+        self.lab_real.setText(txt)
+
+    def _mostrar_real_cilindro(self):
+        d = self._dimc
+        txt = _("Real: radio <b>{r:.0f} µm</b>, altura <b>{h:.0f} µm</b> "
+                "({na} vox, impar) · <b>{v} µm³</b> en {nd:,} voxeles · "
+                "voxel {vx:.2f} µm").format(
+                    r=d["radio_pedido_mm"] * 1000,
+                    h=d["altura_real_mm"] * 1000, na=d["alto_vox"],
+                    v=self._fmt_vol_um3(d["volumen_real_mm3"]),
+                    nd=d["n_vox_dominio"], vx=self.sp3[0] * 1000)
+        if abs(d["desviacion_rel_altura"]) > 0.005:
+            txt += "<br>" + _("{p:+.1f} % respecto a la altura pedida: se "
+                              "redondea a un numero impar de voxeles."
+                              ).format(p=100 * d["desviacion_rel_altura"])
+        if d["lado_caja"] < 15:
+            txt += ("<br><span style='color:#c0392b;'>"
+                    + _("Radio de solo {n} voxeles: el cilindro puede ser "
+                        "demasiado pequeno para medir la microestructura."
+                        ).format(n=(d["lado_caja"] - 1) // 2) + "</span>")
+        txt += "<br>" + _("Solo se mide dentro del cilindro: el exterior de "
+                          "su caja no cuenta como poro.")
         self.lab_real.setText(txt)
 
     # -- posicion -------------------------------------------------------------------
@@ -1526,9 +1685,16 @@ class DialogoRecorte(DialogoAjustable):
     def _poner_caja(self, render=True):
         if self.escena is None:
             return
-        self.escena.poner_cubo(
-            self._centro(), self.lado_mm,
-            texto=f"{self.lado_mm * 1000:.0f} µm", render=render)
+        if self._forma() == "cilindro":
+            d = self._dimc
+            self.escena.poner_cilindro(
+                self._centro(), d["radio_pedido_mm"], d["altura_real_mm"],
+                int(self.cmb_eje_cil.currentData()),
+                texto=self._texto_region(), render=render)
+        else:
+            self.escena.poner_cubo(
+                self._centro(), self.lado_mm, texto=self._texto_region(),
+                render=render)
 
     # -- cubo actual (en un hilo) -------------------------------------------------
     def _pedir_cubo(self):
@@ -1536,8 +1702,9 @@ class DialogoRecorte(DialogoAjustable):
         self._ret_cubo.start()
 
     def _calcular_cubo(self):
-        from spinpy.voi import extraer_cubo, seccion_pca
-        centro, lado = self._centro(), self.lado_mm
+        from spinpy.voi import recortar, seccion_pca
+        centro = self._centro()
+        region = self._region(centro)
         mask, sp, ejes, ctr = self.mask, self.sp3, self.ejes, self.centro
         lo, hi = self.lo, self.hi
         pares = [ab for ab, _v in self.cortes]
@@ -1545,57 +1712,62 @@ class DialogoRecorte(DialogoAjustable):
         ER = self._ER
 
         def trabajo(obsoleta):
-            cubo, fuera = extraer_cubo(mask, sp, centro, ejes, ctr, lado)
-            r = {"cubo": cubo, "centro_pca": centro, "fuera": fuera,
-                 "bvtv": float(cubo.mean()), "lado_vox": int(cubo.shape[0])}
+            r = recortar(mask, sp, ejes, ctr, region)
+            r["lado_vox"] = int(r["cubo"].shape[0])
             if obsoleta():
                 return r
             r["cortes"] = [seccion_pca(mask, sp, ejes, ctr, centro, a, b, lo,
                                        hi) for a, b in pares]
             if conmalla and not obsoleta():
-                r["malla"] = ER.malla_cubo_pca(cubo, sp, centro)
+                r["malla"] = ER.malla_region_pca(r, sp)
             return r
 
         self._t_cubo.lanzar(trabajo, self._cubo_listo)
 
     def _cubo_listo(self, r):
+        from spinpy.voi import semiejes_corte
         self.cubo_actual = r
         n_oseo = int(r["cubo"].sum())
-        n_tot = int(r["cubo"].size)
+        n_tot = int(r["dominio"].sum() if r["dominio"] is not None
+                    else r["cubo"].size)
         self.lab_bvtv.setText(f"BV/TV {r['bvtv']:.4f}")
         det = _("{no:,} voxeles oseos de {nt:,}").format(no=n_oseo, nt=n_tot)
         if r["fuera"] > 0.005:
             det += ("<br><b style='color:#c0392b;'>"
-                    + _("{p:.1f} % del cubo cae fuera del volumen: el BV/TV "
-                        "esta subestimado.").format(p=100 * r["fuera"])
+                    + _("{p:.1f} % de la region cae fuera del volumen: el "
+                        "BV/TV esta subestimado.").format(p=100 * r["fuera"])
                     + "</b>")
         self.lab_det.setText(det)
-        lado = self.lado_mm
         for ((a, b), vista), (img, ext) in zip(self.cortes, r["cortes"]):
+            semi, circ = semiejes_corte(r["region"], a, b)
             vista.poner(img, ext, (r["centro_pca"][a], r["centro_pca"][b]),
-                        lado)
+                        semi, circular=circ)
         if self.escena is not None:
             self.escena.poner_contenido(r.get("malla"), render=True)
 
     # -- tramos y perfil (en un hilo) ------------------------------------------------
     def _calcular_referencias(self):
-        from spinpy.voi import extraer_cubo, perfil_bvtv
+        from spinpy.voi import perfil_bvtv, recortar
+        region = self._region()
         lado = self.lado_mm
         mask, sp, ejes, ctr, guia = (self.mask, self.sp3, self.ejes,
                                      self.centro, self.guia)
         centros = list(self.centros_tramo)
+
+        def en(c):
+            return recortar(mask, sp, ejes, ctr, {**region, "centro_pca": c})
 
         def trabajo(obsoleta):
             tercios = []
             for i, c in enumerate(centros):
                 if obsoleta():
                     return None
-                cubo, fuera = extraer_cubo(mask, sp, c, ejes, ctr, lado)
-                tercios.append({"indice": i, "cubo": cubo, "centro_pca": c,
-                                "fuera": fuera, "bvtv": float(cubo.mean()),
-                                "lado_vox": int(cubo.shape[0])})
-            perfil = perfil_bvtv(mask, sp, ejes, ctr, guia, lado,
-                                 cancelar=obsoleta)
+                t = en(c)
+                t.update(indice=i, lado_vox=int(t["cubo"].shape[0]))
+                tercios.append(t)
+            perfil = perfil_bvtv(
+                mask, sp, ejes, ctr, guia, lado, cancelar=obsoleta,
+                recorte=lambda c: (lambda t: (t["bvtv"], t["fuera"]))(en(c)))
             if perfil is None:
                 return None
             return {"tercios": tercios, "perfil": perfil, "lado": lado}
@@ -1698,21 +1870,21 @@ class DialogoRecorte(DialogoAjustable):
 
     # -- cierre ---------------------------------------------------------------------
     def _aceptar(self):
-        from spinpy.voi import extraer_cubo
+        from spinpy.voi import misma_region, recortar
         self._ret_cubo.stop()
         self._t_cubo.cerrar()
         self._t_ref.cerrar()
-        centro, lado = self._centro(), self.lado_mm
+        centro = self._centro()
+        region = self._region(centro)
         r = self.cubo_actual
-        vigente = (r is not None and r["lado_vox"] == self._dim["lado_vox"]
+        vigente = (r is not None
+                   and misma_region(r["region"], region)
                    and np.allclose(r["centro_pca"], centro, atol=1e-9))
         if not vigente:
-            # Un calculo a medias no se acepta: se recorta ahora, sincrono, el
-            # cubo EXACTO que dicen los mandos.
-            cubo, fuera = extraer_cubo(self.mask, self.sp3, centro, self.ejes,
-                                       self.centro, lado)
-            r = {"cubo": cubo, "centro_pca": centro, "fuera": fuera,
-                 "bvtv": float(cubo.mean()), "lado_vox": int(cubo.shape[0])}
+            # Un calculo a medias no se acepta: se recorta ahora, sincrono, la
+            # region EXACTA que dicen los mandos.
+            r = recortar(self.mask, self.sp3, self.ejes, self.centro, region)
+            r["lado_vox"] = int(r["cubo"].shape[0])
         self.elegido = r
         self.etiqueta = (self._nombres()[self._etiqueta]
                          if self._etiqueta is not None else _("libre"))
@@ -3599,6 +3771,10 @@ class Visor(QtWidgets.QMainWindow):
         self._pila_param = None
         self.VOI_contexto = None
         self.VOI_recorte = None
+        # Mascara de la forma del VOI cuando NO es un cubo (cilindro): los
+        # voxeles que pertenecen al VOI dentro de su caja. None = cubo.
+        self.VOI_dominio = None
+        self.VOI_region = None
         # Ultimo resultado de cada calculo, para poder exportarlos. Se guardan
         # segun se producen y no se recalculan al exportar: exportar tiene que
         # volcar EXACTAMENTE los numeros que el usuario vio, y como el
@@ -3873,10 +4049,10 @@ class Visor(QtWidgets.QMainWindow):
         gl.addWidget(b)
         # Una pila de escaner no es un VOI. Este es el paso que faltaba para
         # cerrar el camino desde el escaner sin salir de la interfaz.
-        self.b_recorte = QtWidgets.QPushButton("Recortar VOI cubico…")
+        self.b_recorte = QtWidgets.QPushButton("Recortar VOI (cubo o cilindro)…")
         self.b_recorte.setToolTip("Muestra el hueso en 3D orientado por PCA y "
-                                  "recorta un cubo del tamano que pidas "
-                                  "(lado o volumen absoluto), donde lo pongas")
+                                  "recorta un cubo (lado o volumen absoluto) o un "
+                                  "cilindro (radio y altura), donde lo pongas")
         self.b_recorte.clicked.connect(self.recortar_voi)
         self.b_recorte.setEnabled(False)
         gl.addWidget(self.b_recorte)
@@ -5013,13 +5189,22 @@ class Visor(QtWidgets.QMainWindow):
         # etapas: cada `*_listo` libera la interfaz al terminar la suya, y un
         # clic en ese instante lanzaria un calculo en medio de la cadena.
         bloquear = si or self._auto is not None
+        # Con un VOI cilindrico solo se mide la morfometria basica: el ajuste,
+        # la homogeneizacion y el ensayo FE suponen un cubo y quedan fuera.
+        solo_cubo = ({self.btn_fit, self.btn_ela, self.btn_exp, self.btn_fe,
+                      self.btn_hist, self.btn_dist, self.btn_conv,
+                      self.btn_disp, self.btn_todos, self.btn_paper,
+                      self.btn_sim, self.btn_fallo, self.act_informe,
+                      self.act_informe_auto, self.btn_febio,
+                      self.act_fem_auto}
+                     if self.VOI_dominio is not None else set())
         for b in (self.btn_gen, self.btn_med, self.btn_fit, self.btn_ela,
                   self.btn_exp, self.btn_fe, self.btn_hist, self.btn_dist,
                   self.btn_conv, self.btn_disp, self.btn_lote, self.btn_todos,
                   self.btn_paper, self.cmb_familia, self.btn_sim,
                   self.btn_fallo, self.act_informe, self.act_informe_auto,
                   self.btn_febio, self.act_fem_auto):
-            b.setEnabled(not bloquear)
+            b.setEnabled(not bloquear and b not in solo_cubo)
         if si and determinada:
             self.barra.setRange(0, max(1, int(total)))
             self.barra.setValue(0)
@@ -5714,10 +5899,18 @@ class Visor(QtWidgets.QMainWindow):
         hilo.start()
 
     def recortar_voi(self):
-        """Orienta el volumen cargado por PCA y abre el recorte del cubo."""
+        """Orienta el volumen cargado por PCA y abre el recorte (cubo o cilindro)."""
         if self.hilo is not None and self.hilo.isRunning():
             return
         if self.VOI is None:
+            return
+        if self.VOI_dominio is not None:
+            # Un cilindro ya recortado es una caja con el exterior vacio:
+            # recortarla otra vez tomaria ese vacio por hueso ausente.
+            QtWidgets.QMessageBox.information(
+                self, _("Recortar VOI"),
+                _("El VOI activo ya es un cilindro recortado. Vuelve a "
+                  "cargar el volumen original para recortar otra region."))
             return
 
         from spinpy.voi import (GuiaPCA, marco_pca, centros_por_tercios,
@@ -5732,7 +5925,7 @@ class Visor(QtWidgets.QMainWindow):
 
         prog = QtWidgets.QProgressDialog(
             _("Orientando el hueso por PCA…"), None, 0, 0, self)
-        prog.setWindowTitle(_("Recortar VOI cubico"))
+        prog.setWindowTitle(_("Recortar VOI"))
         prog.setWindowModality(QtCore.Qt.WindowModal)
         prog.setMinimumDuration(0)
 
@@ -5769,34 +5962,49 @@ class Visor(QtWidgets.QMainWindow):
             if dlg.exec_() != QtWidgets.QDialog.Accepted:
                 return
             e = dlg.elegido
+            reg = e["region"]
+            cilindro = reg["forma"] == "cilindro"
             nota = ""
             if e["fuera"] > 0.005:
-                nota = _("{p:.1f} % del cubo cae fuera del volumen: el BV/TV "
-                         "esta subestimado.").format(p=100 * e["fuera"])
-            nombre = f"{self.VOI_nombre} · {dlg.etiqueta} {e['lado_vox']}³"
-            # El lado REAL (voxeles enteros e impares), no el pedido: es el
-            # que reproduce este recorte desde el registro de la sesion.
-            lado_elegido = float(dlg.lado_mm)
+                nota = _("{p:.1f} % de la region cae fuera del volumen: el "
+                         "BV/TV esta subestimado.").format(p=100 * e["fuera"])
+            if cilindro:
+                nombre = (f"{self.VOI_nombre} · {dlg.etiqueta} cil r "
+                          f"{reg['radio_mm'] * 1000:.0f} µm, h "
+                          f"{reg['altura_mm'] * 1000:.0f} µm")
+            else:
+                nombre = f"{self.VOI_nombre} · {dlg.etiqueta} {e['lado_vox']}³"
             pila = self._pila_param
-            try:
-                ctx = figura_metodo.contexto_pila(
-                    mask, spc, marco["ejes"], marco["centro"],
-                    e["centro_pca"], lado_elegido,
-                    origen=(pila or {}).get("origen"),
-                    patron=(pila or {}).get("patron") or "*.tif",
-                    reducido=reducido)
-            except Exception:
-                ctx = None
+            # El contexto de la figura 0 (esquinas del cubo sobre la pila) solo
+            # esta definido para el cubo; con un cilindro se omite.
+            ctx = None
+            if not cilindro:
+                # El lado REAL (voxeles enteros e impares), no el pedido: es el
+                # que reproduce este recorte desde el registro de la sesion.
+                try:
+                    ctx = figura_metodo.contexto_pila(
+                        mask, spc, marco["ejes"], marco["centro"],
+                        e["centro_pca"], float(dlg.lado_mm),
+                        origen=(pila or {}).get("origen"),
+                        patron=(pila or {}).get("patron") or "*.tif",
+                        reducido=reducido)
+                except Exception:
+                    ctx = None
             rec = (figura_metodo.registro_recorte(
                 pila, marco["ejes"], marco["centro"], e["centro_pca"],
-                lado_elegido) if pila else None)
+                None if cilindro else float(dlg.lado_mm),
+                region=reg if cilindro else None) if pila else None)
             self._instalar_voi(e["cubo"], np.asarray(spc).ravel(), nombre,
-                               self.VOI_ruta, nota=nota)
+                               self.VOI_ruta, nota=nota,
+                               dominio=e["dominio"],
+                               region=reg if cilindro else None)
             self.VOI_contexto, self.VOI_recorte = ctx, rec
+            forma = (f"cilindro r {reg['radio_mm'] * 1000:.0f} µm"
+                     if cilindro else f"{e['lado_vox']}³ vox")
             self.statusBar().showMessage(
-                _("VOI recortado: {et}, {lv}³ vox, BV/TV {b:.4f}. El volumen "
+                _("VOI recortado: {et}, {f}, BV/TV {b:.4f}. El volumen "
                   "completo ya no esta cargado.").format(
-                      et=dlg.etiqueta, lv=e["lado_vox"], b=e["bvtv"]))
+                      et=dlg.etiqueta, f=forma, b=e["bvtv"]))
 
         def fallo(tb):
             prog.close()
@@ -5874,7 +6082,8 @@ class Visor(QtWidgets.QMainWindow):
                 orig=info["tam_voxel_origen"], u=f"{info['umbral']:g}",
                 met=info["umbral_metodo"]))
 
-    def _instalar_voi(self, VOI, spacing, nombre, ruta, nota=""):
+    def _instalar_voi(self, VOI, spacing, nombre, ruta, nota="", dominio=None,
+                      region=None):
         """Deja un VOI ya leido como VOI activo y rehace todo lo que depende.
 
         Se separo de `cargar_voi` para que la carga desde una pila TIFF entre
@@ -5890,6 +6099,10 @@ class Visor(QtWidgets.QMainWindow):
         self._pila_param = None
         self.VOI_contexto = None
         self.VOI_recorte = None
+        # `dominio` solo existe para un VOI que no es un cubo (cilindro): toda
+        # medida se restringe a el. Cualquier otra carga lo borra.
+        self.VOI_dominio = dominio
+        self.VOI_region = region
         # El recorte tiene sentido sobre cualquier volumen cargado, no solo
         # sobre una pila: un .vtk demasiado grande tambien se puede recortar.
         try:
@@ -5900,7 +6113,9 @@ class Visor(QtWidgets.QMainWindow):
         # Aviso de densidad (Estudio_Familias, 4.6): a BV/TV >= 0.83 ninguna
         # familia sale bicontinua y el VOI ya no es trabecula. Se avisa al
         # cargar, con el BV/TV crudo, porque es cuando se decide si seguir.
-        dens = voi_no_trabecular(float(VOI.mean()))
+        bv_voi = float(VOI[dominio].mean() if dominio is not None
+                       else VOI.mean())
+        dens = voi_no_trabecular(bv_voi)
         if dens["aviso"]:
             txt = _("BV/TV {bv} ≥ {umbral}: a esta densidad el VOI no es "
                     "trabecular (poros aislados). Un ajuste con error bajo no "
@@ -5908,11 +6123,17 @@ class Visor(QtWidgets.QMainWindow):
                 bv=f"{dens['BVTV']:.3f}", umbral=f"{dens['umbral']:.2f}")
             nota = f"{nota}<br>{txt}" if nota else txt
         tam = " x ".join(f"{s * spacing[i]:.3f}" for i, s in enumerate(VOI.shape))
-        self.lab_voi.setText(
+        if dominio is not None:
+            nota = (nota + "<br>" if nota else "") + _(
+                "VOI cilindrico: solo se mide la morfometria basica dentro "
+                "del cilindro. El ajuste, la homogeneizacion y el ensayo FE "
+                "necesitan un cubo.")
+        self._txt_voi_base = (
             f"<b>{self.VOI_nombre}</b><br>{VOI.shape[0]}x{VOI.shape[1]}x"
             f"{VOI.shape[2]} vox · {spacing[0]:.6f} mm/vox<br>"
-            f"{tam} mm · BV/TV crudo {VOI.mean():.4f}"
+            f"{tam} mm · BV/TV crudo {bv_voi:.4f}"
             + (f"<br><span style='color:#a33;'>{nota}</span>" if nota else ""))
+        self.lab_voi.setText(self._txt_voi_base)
 
         self.malla_voi = malla_de_mascara(VOI, spacing)
 
@@ -5949,9 +6170,50 @@ class Visor(QtWidgets.QMainWindow):
         self._para_cada(_panel)
 
         self.m_voi = None
+        self._ocupado(False)        # reaplica que acciones admite esta forma
         self.statusBar().showMessage(
             _("VOI cargado. Pulsa Medir para la morfometria (el candidato se "
               "escalara a {lado} mm de lado).").format(lado=f"{lado:.3f}"))
+
+    def medir_cilindro(self):
+        """Morfometria basica de un VOI cilindrico, restringida a su dominio."""
+        if self.hilo is not None and self.hilo.isRunning():
+            return
+        from spinpy.morphometry import morfometria_dominio
+        VOI, dom, sp = self.VOI, self.VOI_dominio, self.VOI_spacing
+        self._ocupado(True, _("Midiendo el cilindro…"))
+
+        def listo(m):
+            self.m_voi = m
+            self._ocupado(False)
+            self._mostrar_medida_cilindro(m)
+
+        self.hilo = Trabajador(lambda: morfometria_dominio(VOI, dom, sp))
+        self.hilo.listo.connect(listo)
+        self.hilo.fallo.connect(self._error)
+        self.hilo.start()
+
+    def _mostrar_medida_cilindro(self, m):
+        def um(v):
+            return f"{1000 * v:.1f} µm" if np.isfinite(v) else "—"
+        filas = [("BV/TV", f"{m['BVTV']:.4f}"),
+                 ("BS/BV", f"{m['BSBV']:.2f} mm⁻¹" if np.isfinite(m["BSBV"])
+                  else "—"),
+                 ("Tb.Th", um(m["TbTh"])), ("Tb.Sp", um(m["TbSp"])),
+                 ("Tb.N", f"{m['TbN']:.3f} mm⁻¹" if np.isfinite(m["TbN"])
+                  else "—")]
+        tabla = "".join(f"<tr><td>{k}&nbsp;</td><td><b>{v}</b></td></tr>"
+                        for k, v in filas)
+        self.lab_voi.setText(
+            self._txt_voi_base
+            + f"<table style='margin-top:4px;'>{tabla}</table>"
+            + "<span style='color:#555;'>"
+            + _("Medido solo dentro del cilindro. Tb.Th es 2·BV/BS (placas); "
+                "la pared curva subestima BS en torno a un 4 % (bloque 35). "
+                "DA, Conn.D, SMI y EF no se calculan con un dominio no "
+                "cubico.") + "</span>")
+        self.statusBar().showMessage(
+            _("Cilindro medido: BV/TV {b:.4f}.").format(b=m["BVTV"]))
 
     def medir(self, sobre_mascara=False):
         """Morfometria de cada familia activa y, si hace falta, del VOI.
@@ -5963,6 +6225,9 @@ class Visor(QtWidgets.QMainWindow):
         mediria una estructura vecina de la ganadora, no la ganadora, y su
         huella no cuadraria con la del paquete de reproduccion.
         """
+        if self.VOI_dominio is not None:
+            self.medir_cilindro()
+            return
         if self.hilo is not None and self.hilo.isRunning():
             return
         res = int(self.sl["resm"].valor())
@@ -8030,7 +8295,6 @@ class Visor(QtWidgets.QMainWindow):
         sp = self._spacing(res)
         m_voi = self.m_voi
         extra = self.chk_extra.isChecked()
-        poro = self.chk_poro.isChecked()
 
         self._ocupado(True, f"{K} realizaciones a {res}³…",
                       determinada=True, total=K)
@@ -8303,6 +8567,11 @@ class Visor(QtWidgets.QMainWindow):
                    "spacing_mm": [float(x) for x in
                                   np.ravel(self.VOI_spacing)],
                    "sha256": sha256_archivo(self.VOI_ruta)}
+            if self.VOI_region and self.VOI_region.get("forma") == "cilindro":
+                # Forma del VOI: el JSON debe decir que no es un cubo.
+                voi["region"] = {k: (v if isinstance(v, (str, int))
+                                     else np.asarray(v, float).tolist())
+                                 for k, v in self.VOI_region.items()}
             if self.VOI_recorte:
                 # Figura 0 desde la CLI: con esto se relee la pila y se
                 # vuelve a situar el cubo.

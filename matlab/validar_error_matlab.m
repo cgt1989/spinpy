@@ -1,7 +1,7 @@
 %% =====================================================================
 %  validar_error_matlab.m — lado MATLAB de la validacion de la funcion de error
 %
-%  Lee los pares generados por `python validar_error.py --exportar`, evalua
+%  Lee los pares generados por `python validacion/validar_error.py --exportar`, evalua
 %  computeMorphometricError (la copia verbatim de applib) sobre cada uno y
 %  escribe los resultados para que el lado Python los contraste.
 %

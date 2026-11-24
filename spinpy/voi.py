@@ -618,6 +618,213 @@ def extraer_cubo(mask, spacing, centro_pca, ejes, centro, lado_mm=5.0,
     return cubo, float(1.0 - dentro.mean())
 
 
+# ---------------------------------------------------------------------------
+# Recorte cilindrico
+# ---------------------------------------------------------------------------
+#
+# Una biopsia de hueso trabecular es casi siempre un cilindro (Bouxsein et al.
+# 2010 piden que el VOI se describa por su forma y sus dimensiones). El cilindro
+# se recorta con la MISMA regla que el cubo: puntos de una rejilla alineada con
+# los ejes PCA, llevados a indices de voxel por vecino mas proximo, y lo que cae
+# fuera del volumen cuenta como vacio y se declara en `fuera`.
+#
+# A diferencia del cubo, el resultado NO es solo un array: es la CAJA
+# ENVOLVENTE (`volumen`) mas el DOMINIO (`dominio`), la mascara de los voxeles
+# que de verdad pertenecen al cilindro. Sin el dominio, el exterior de la caja
+# contaria como poro y el BV/TV saldria ~ pi/4 de lo real. Toda cifra medida
+# sobre un cilindro debe restringirse al dominio (ver
+# `morphometry.morfometria_dominio`).
+#
+# ORDEN DE LOS EJES DE LA CAJA: (u, v, w), con w el eje del cilindro y (u, v) los
+# otros dos ejes PCA en orden CICLICO (sin reflexion):
+#
+#     eje del cilindro   PC1 -> (PC2, PC3, PC1)
+#                        PC2 -> (PC3, PC1, PC2)
+#                        PC3 -> (PC1, PC2, PC3)
+#
+# El eje del cilindro queda siempre en la ultima dimension porque el ensayo de
+# compresion de spinpy carga en z: un cilindro cargado a lo largo de su eje es
+# el caso natural. No se transpone como `extraer_cubo`: aqui no hay referencia
+# de MATLAB que reproducir bit a bit.
+
+def _ejes_cilindro(eje):
+    """(u, v, w): indices PCA de las tres dimensiones de la caja del cilindro."""
+    eje = int(eje)
+    if eje not in (0, 1, 2):
+        raise ValueError(f"eje del cilindro invalido: {eje} (0, 1 o 2)")
+    return ((eje + 1) % 3, (eje + 2) % 3, eje)
+
+
+def dimensionar_cilindro(spacing, radio_mm, altura_mm):
+    """Tamano REAL de un cilindro pedido por su radio y su altura.
+
+    Igual que `dimensionar_cubo`, devuelve lo pedido y lo que de verdad se
+    recorta, porque la altura se redondea a un numero impar de voxeles y el
+    dominio es discreto. `lado_caja` es el lado (impar) de la caja envolvente
+    en el plano transversal, y `volumen_real_mm3` es el del DOMINIO (numero de
+    voxeles del cilindro por el volumen del voxel), no el analitico: el
+    analitico, pi r^2 h, se devuelve aparte para ver cuanto se desvia.
+    """
+    sp = _spacing3(spacing)
+    r, hgt = float(radio_mm), float(altura_mm)
+    for nombre, v in (("radio", r), ("altura", hgt)):
+        if not np.isfinite(v) or v <= 0:
+            raise ValueError(f"{nombre} invalido: {v}")
+    h = float(sp[0])
+    n_r = int(np.floor(r / h))                 # voxeles del centro al borde
+    lado_caja = 2 * n_r + 1
+    n_alt = lado_en_voxeles(hgt, h)
+    n_dom = int(dominio_cilindro(lado_caja, 1, r / h).sum()) * n_alt
+    return {"radio_pedido_mm": r,
+            "altura_pedida_mm": hgt,
+            "lado_caja": int(lado_caja),
+            "alto_vox": int(n_alt),
+            "altura_real_mm": float(n_alt * h),
+            "n_vox_dominio": n_dom,
+            "volumen_real_mm3": float(n_dom * np.prod(sp)),
+            "volumen_analitico_mm3": float(np.pi * r * r * n_alt * h),
+            "desviacion_rel_altura": float(n_alt * h / hgt - 1.0)}
+
+
+def dominio_cilindro(lado_caja, alto_vox, radio_vox):
+    """Mascara booleana (lado_caja, lado_caja, alto_vox) del cilindro.
+
+    Un voxel es del cilindro si su CENTRO esta a distancia <= `radio_vox`
+    (en voxeles) del eje. Es la unica definicion de pertenencia: la usan la
+    extraccion, el dibujo y la medida.
+    """
+    n_r = (int(lado_caja) - 1) // 2
+    uu = np.arange(int(lado_caja)) - n_r
+    plano = (uu[:, None] ** 2 + uu[None, :] ** 2) <= float(radio_vox) ** 2
+    return np.repeat(plano[:, :, None], int(alto_vox), axis=2)
+
+
+def extraer_cilindro(mask, spacing, centro_pca, ejes, centro, radio_mm,
+                     altura_mm, eje=0):
+    """Recorta un cilindro orientado segun los ejes principales.
+
+    Devuelve un dict con
+      volumen   caja envolvente bool (u, v, w); ver el orden de ejes arriba
+      dominio   bool de la misma forma: los voxeles que pertenecen al cilindro
+      fuera     fraccion del DOMINIO que cayo fuera del volumen (contada como
+                vacio, igual que en `extraer_cubo`)
+      bvtv      fraccion de hueso DENTRO del dominio (no de la caja)
+      eje       el eje PCA del cilindro
+    El eje del cilindro pasa por `centro_pca` y es el eje PCA `eje`.
+    """
+    mask = np.asarray(mask, bool)
+    sp = _spacing3(spacing)
+    dim = dimensionar_cilindro(sp, radio_mm, altura_mm)
+    n, na = dim["lado_caja"], dim["alto_vox"]
+    n_r, n_a = (n - 1) // 2, (na - 1) // 2
+    u, v, w = _ejes_cilindro(eje)
+    h = float(sp[0])
+
+    ru = (np.arange(n) - n_r) * h
+    rw = (np.arange(na) - n_a) * h
+    du, dv, dw = np.meshgrid(ru, ru, rw, indexing="ij")
+    delta = np.zeros((du.size, 3))
+    delta[:, u], delta[:, v], delta[:, w] = du.ravel(), dv.ravel(), dw.ravel()
+
+    pts_mm = (delta + np.asarray(centro_pca, float)) @ ejes.T + centro
+    idx = np.rint(pts_mm / sp[None, :]).astype(np.int64)
+    dentro = np.ones(idx.shape[0], bool)
+    for k in range(3):
+        dentro &= (idx[:, k] >= 0) & (idx[:, k] < mask.shape[k])
+    vals = np.zeros(idx.shape[0], bool)
+    if dentro.any():
+        i = idx[dentro]
+        vals[dentro] = mask[i[:, 0], i[:, 1], i[:, 2]]
+
+    forma = (n, n, na)
+    dominio = dominio_cilindro(n, na, float(radio_mm) / h)
+    # `ravel()` y `reshape` usan el mismo orden C que `meshgrid(indexing="ij")`.
+    volumen = vals.reshape(forma) & dominio
+    dentro3 = dentro.reshape(forma)
+    fuera = float(1.0 - dentro3[dominio].mean())
+    return {"volumen": volumen, "dominio": dominio, "fuera": fuera,
+            "bvtv": float(volumen[dominio].mean()), "eje": int(eje),
+            "radio_pedido_mm": float(radio_mm), "dim": dim,
+            "centro_pca": np.asarray(centro_pca, float)}
+
+
+def cilindro_a_pca(indices, forma, spacing, centro_pca, eje):
+    """Indices (a, b, c) de la caja de `extraer_cilindro` -> marco PCA, en mm.
+
+    Inversa de la asignacion de ejes de `extraer_cilindro`: la dimension 0 de la
+    caja es el eje PCA `u`, la 1 el `v` y la 2 el `w` (el del cilindro).
+    """
+    u, v, w = _ejes_cilindro(eje)
+    sp = _spacing3(spacing)
+    d = np.asarray(indices, float) - 0.5 * (np.asarray(forma, float) - 1.0)
+    delta = np.zeros_like(d)
+    delta[:, u], delta[:, v], delta[:, w] = (d[:, 0] * sp[0], d[:, 1] * sp[0],
+                                             d[:, 2] * sp[0])
+    return delta + np.asarray(centro_pca, float)
+
+
+def recortar(mask, spacing, ejes, centro, region):
+    """Recorta la region pedida, sea cubo o cilindro, con un resultado uniforme.
+
+    `region` es un dict:
+        {"forma": "cubo", "centro_pca": c, "lado_mm": L}
+        {"forma": "cilindro", "centro_pca": c, "radio_mm": R, "altura_mm": H,
+         "eje": 0|1|2}
+    Devuelve un dict con
+        cubo      el array recortado: el cubo, o la caja envolvente del cilindro
+        dominio   None para el cubo; para el cilindro, la mascara de sus voxeles
+        fuera     fraccion de la region que cayo fuera del volumen
+        bvtv      fraccion de hueso DENTRO de la region
+        centro_pca, region
+    Es el unico punto por el que la interfaz recorta: dibujar, medir y aceptar
+    pasan por aqui, de modo que lo que se ve es lo que se mide.
+    """
+    c = np.asarray(region["centro_pca"], float)
+    if region["forma"] == "cubo":
+        cubo, fuera = extraer_cubo(mask, spacing, c, ejes, centro,
+                                   region["lado_mm"])
+        return {"cubo": cubo, "dominio": None, "fuera": float(fuera),
+                "bvtv": float(cubo.mean()), "centro_pca": c,
+                "region": dict(region)}
+    if region["forma"] == "cilindro":
+        r = extraer_cilindro(mask, spacing, c, ejes, centro,
+                             region["radio_mm"], region["altura_mm"],
+                             eje=region.get("eje", 0))
+        return {"cubo": r["volumen"], "dominio": r["dominio"],
+                "fuera": r["fuera"], "bvtv": r["bvtv"], "centro_pca": c,
+                "region": dict(region)}
+    raise ValueError(f"forma de recorte desconocida: {region['forma']!r}")
+
+
+def misma_region(a, b):
+    """Dos regiones de `recortar` son la misma forma con las mismas medidas
+    (el centro se compara aparte)."""
+    if a["forma"] != b["forma"]:
+        return False
+    claves = (("lado_mm",) if a["forma"] == "cubo"
+              else ("radio_mm", "altura_mm"))
+    return (all(abs(a[k] - b[k]) < 1e-12 for k in claves)
+            and a.get("eje") == b.get("eje"))
+
+
+def semiejes_corte(region, eje_a, eje_b, spacing=None):
+    """Semiejes (ha, hb) de la region en un plano PCA (eje_a, eje_b), en mm, y
+    si su contorno es circular. Es lo que hace falta para marcar la region en
+    un corte plano.
+
+    El cubo es un cuadrado en cualquier plano. El cilindro es un rectangulo en
+    los planos que contienen su eje y un circulo en el perpendicular.
+    """
+    if region["forma"] == "cubo":
+        h = 0.5 * float(region["lado_mm"])
+        return (h, h), False
+    k = int(region.get("eje", 0))
+    R, semi_h = float(region["radio_mm"]), 0.5 * float(region["altura_mm"])
+    if k not in (eje_a, eje_b):
+        return (R, R), True
+    return ((semi_h if eje_a == k else R), (semi_h if eje_b == k else R)), False
+
+
 def rango_pca(proyecciones):
     """Extremos del hueso en el marco PCA: (lo, hi) por eje, en mm.
 
@@ -753,7 +960,7 @@ def cubo_a_pca(indices, lado_vox, spacing, centro_pca):
 
 
 def perfil_bvtv(mask, spacing, ejes, centro, guia, lado_mm, off2=0.0,
-                off3=0.0, n=21, cancelar=None):
+                off3=0.0, n=21, cancelar=None, recorte=None):
     """BV/TV de un cubo del tamano dado a lo largo del eje mayor.
 
     Sirve para decidir donde recortar: se ve de un vistazo en que tramo sube la
@@ -765,16 +972,24 @@ def perfil_bvtv(mask, spacing, ejes, centro, guia, lado_mm, off2=0.0,
     `bvtv` es el del cubo entero, con lo que cae fuera del volumen contado como
     fondo (igual que `extraer_cubo`), y `fuera` es esa fraccion: donde es
     grande el BV/TV esta subestimado y el punto no debe leerse como densidad.
+
+    `recorte` permite perfilar otra forma que el cubo: es una funcion
+    `centro_pca -> (bvtv, fuera)` (para el cilindro, ver `extraer_cilindro`).
+    Sin ella se recorta el cubo de lado `lado_mm`.
     """
+    if recorte is None:
+        def recorte(c):
+            cubo, fuera = extraer_cubo(mask, spacing, c, ejes, centro,
+                                       lado_mm)
+            return float(cubo.mean()), float(fuera)
     ts = np.linspace(0.0, 1.0, int(n))
     bv, fu = [], []
     for t in ts:
         if cancelar is not None and cancelar():
             return None
-        cubo, fuera = extraer_cubo(mask, spacing, guia.centro(t, off2, off3),
-                                   ejes, centro, lado_mm)
-        bv.append(float(cubo.mean()))
-        fu.append(float(fuera))
+        b, f = recorte(guia.centro(t, off2, off3))
+        bv.append(float(b))
+        fu.append(float(f))
     return {"t": ts, "x_mm": guia.lo[0] + ts * guia.L,
             "bvtv": np.array(bv), "fuera": np.array(fu)}
 

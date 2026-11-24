@@ -13,7 +13,7 @@ QUE SE VERIFICA
   `morfometria_malla` mide sobre la superficie cerrada + Taubin + PyMeshFix,
   recortada a la caja del VOI y sin las seis tapas. Contra figuras de area y
   volumen conocidos debe estar mucho mas cerca que el modo de voxeles, cuyo
-  +8.5 % de area esta medido en validar_analitico.py.
+  +8.5 % de area esta medido en validacion/validar_analitico.py.
 
 TOLERANCIAS DECLARADAS ANTES DE MEDIR
   esfera r=14:   BV a 1 % del exacto;  BS a 2 % del exacto  (medido a mano el

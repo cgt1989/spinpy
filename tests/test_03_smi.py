@@ -11,7 +11,7 @@ REFERENCIAS
 
 TOLERANCIAS DECLARADAS ANTES DE MEDIR
   El calculo va sobre la isosuperficie de marching cubes, que sobreestima el
-  area de una figura binaria un ~8.5 % (medido en validar_analitico.py). Como
+  area de una figura binaria un ~8.5 % (medido en validacion/validar_analitico.py). Como
   SMI ~ 1/BS^2, cabe esperar un deficit del orden del 15 % en las figuras
   curvas, y ninguno en la placa (su dBS/dr es cero). Por tanto:
 

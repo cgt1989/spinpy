@@ -1,0 +1,45 @@
+name: Propuesta de motor o elemento FEM
+description: Quieres añadir una biblioteca de elementos finitos, un elemento o un material
+labels: [fem, enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de empezar, lee `docs/AGREGAR_UN_MOTOR_FEM.md`: un motor es un archivo y una fila de una tabla.
+  - type: input
+    id: biblioteca
+    attributes:
+      label: Biblioteca o resolvedor
+      placeholder: "p. ej. FEniCS legacy, MFEM, un resolvedor propio"
+    validations:
+      required: true
+  - type: textarea
+    id: capacidades
+    attributes:
+      label: Qué resolvería
+      description: Mallas (hex8, TET10), lineal o no lineal, materiales, plato rígido, solver directo o iterativo.
+    validations:
+      required: true
+  - type: dropdown
+    id: instalacion
+    attributes:
+      label: Instalación
+      options:
+        - pip (todas las plataformas)
+        - pip (solo algunas plataformas)
+        - conda-forge
+        - Compilación propia
+    validations:
+      required: true
+  - type: input
+    id: licencia
+    attributes:
+      label: Licencia de la biblioteca
+      description: Cuenta para el ejecutable, que se distribuye como un solo programa.
+    validations:
+      required: true
+  - type: textarea
+    id: motivo
+    attributes:
+      label: Qué aporta frente a los motores que ya hay
+      description: Velocidad, memoria, un elemento que falta, un material, exactitud. Si tienes una medida, ponla.
