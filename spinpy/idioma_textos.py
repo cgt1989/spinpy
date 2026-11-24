@@ -169,13 +169,18 @@ EN = {
         "that, crop a cubic VOI (spinpy.voi.vois_por_tercios / extraer_cubo).",
 
     # -- recorte del VOI cubico --------------------------------------------
-    "Recortar VOI cubico": "Crop cubic VOI",
-    "Recortar VOI cubico…": "Crop cubic VOI…",
+    "Recortar VOI": "Crop VOI",
+    "Recortar VOI (cubo o cilindro)…": "Crop VOI (cube or cylinder)…",
+    "El VOI activo ya es un cilindro recortado. Vuelve a cargar el volumen "
+    "original para recortar otra region.":
+        "The active VOI is already a cropped cylinder. Reload the original "
+        "volume to crop another region.",
     "Orientando el hueso por PCA…": "Orienting the bone by PCA…",
-    "Muestra el hueso en 3D orientado por PCA y recorta un cubo del tamano "
-    "que pidas (lado o volumen absoluto), donde lo pongas":
-        "Shows the bone in 3D, oriented by PCA, and crops a cube of the size "
-        "you ask for (side or absolute volume), wherever you place it",
+    "Muestra el hueso en 3D orientado por PCA y recorta un cubo (lado o "
+    "volumen absoluto) o un cilindro (radio y altura), donde lo pongas":
+        "Shows the bone in 3D, oriented by PCA, and crops a cube (side or "
+        "absolute volume) or a cylinder (radius and height), wherever you "
+        "place it",
     "El hueso se orienta por PCA. <b>El sentido del eje es arbitrario</b>: "
     "los tramos van ordenados, pero cual es proximal lo decides tu. Pista: "
     "en estos sesamoideos la densidad crece de proximal a distal.":
@@ -193,14 +198,14 @@ EN = {
     "Eje 1-3": "Axes 1-3",
     "Transversal": "Transverse",
     "Hueso traslucido": "Translucent bone",
-    "Cortar por el centro del cubo": "Cut through the cube centre",
-    "Quita la mitad del hueso que da a la camara para ver el cubo por "
+    "Cortar por el centro de la region": "Cut through the region centre",
+    "Quita la mitad del hueso que da a la camara para ver la region por "
     "dentro.":
-        "Removes the half of the bone facing the camera so the cube can be "
+        "Removes the half of the bone facing the camera so the region can be "
         "seen from inside.",
-    "Arrastrar el cubo con el raton": "Drag the cube with the mouse",
-    "Muestra una esfera en el centro del cubo: arrastrala para moverlo.":
-        "Shows a sphere at the cube centre: drag it to move the cube.",
+    "Arrastrar la region con el raton": "Drag the region with the mouse",
+    "Muestra una esfera en el centro de la region: arrastrala para moverla.":
+        "Shows a sphere at the region centre: drag it to move it.",
     "La vista 3D no esta disponible en este equipo. Los mandos y los cortes "
     "siguen funcionando.":
         "The 3D view is not available on this machine. The controls and the "
@@ -208,7 +213,34 @@ EN = {
     "PC1 horizontal, PC2 vertical": "PC1 horizontal, PC2 vertical",
     "PC1 horizontal, PC3 vertical": "PC1 horizontal, PC3 vertical",
     "PC2 horizontal, PC3 vertical": "PC2 horizontal, PC3 vertical",
-    "Tamano del cubo": "Cube size",
+    "Forma y tamano": "Shape and size",
+    "Forma": "Shape",
+    "Cubo": "Cube",
+    "Cilindro": "Cylinder",
+    "Unidad": "Unit",
+    "Radio": "Radius",
+    "Altura": "Height",
+    "Eje del cilindro": "Cylinder axis",
+    "Eje PCA a lo largo del cual va el cilindro. En el VOI recortado es el "
+    "ultimo eje (z), el de la carga del ensayo.":
+        "PCA axis the cylinder runs along. In the cropped VOI it is the last "
+        "axis (z), the loading axis of the test.",
+    "Real: radio <b>{r:.0f} µm</b>, altura <b>{h:.0f} µm</b> ({na} vox, "
+    "impar) · <b>{v} µm³</b> en {nd:,} voxeles · voxel {vx:.2f} µm":
+        "Actual: radius <b>{r:.0f} µm</b>, height <b>{h:.0f} µm</b> ({na} "
+        "vox, odd) · <b>{v} µm³</b> in {nd:,} voxels · voxel {vx:.2f} µm",
+    "{p:+.1f} % respecto a la altura pedida: se redondea a un numero impar "
+    "de voxeles.":
+        "{p:+.1f} % relative to the requested height: it is rounded to an odd "
+        "number of voxels.",
+    "Radio de solo {n} voxeles: el cilindro puede ser demasiado pequeno para "
+    "medir la microestructura.":
+        "Radius of only {n} voxels: the cylinder may be too small to measure "
+        "the microstructure.",
+    "Solo se mide dentro del cilindro: el exterior de su caja no cuenta como "
+    "poro.":
+        "Measured inside the cylinder only: the outside of its bounding box "
+        "does not count as pore.",
     "Lado": "Side",
     "Volumen absoluto": "Absolute volume",
     "Admite notacion cientifica, por ejemplo 1.25e11":
@@ -233,20 +265,34 @@ EN = {
     "A {x:.2f} mm del extremo 1 de un hueso de {L:.2f} mm (eje mayor).":
         "{x:.2f} mm from end 1 of a {L:.2f} mm bone (major axis).",
     "Cubo actual": "Current cube",
+    "Cilindro actual": "Current cylinder",
     "{no:,} voxeles oseos de {nt:,}": "{no:,} bone voxels of {nt:,}",
     "{p:.1f} % del cubo cae fuera del volumen":
         "{p:.1f} % of the cube falls outside the volume",
-    "{p:.1f} % del cubo cae fuera del volumen: el BV/TV esta subestimado.":
-        "{p:.1f} % of the cube falls outside the volume: BV/TV is "
+    "{p:.1f} % de la region cae fuera del volumen: el BV/TV esta "
+    "subestimado.":
+        "{p:.1f} % of the region falls outside the volume: BV/TV is "
         "underestimated.",
     "posicion en PC1 (mm)": "position along PC1 (mm)",
     "BV/TV a lo largo del eje (hueco: cubo en parte fuera)":
         "BV/TV along the axis (hollow: cube partly outside)",
     "calculando perfil…": "computing profile…",
-    "VOI recortado: {et}, {lv}³ vox, BV/TV {b:.4f}. El volumen completo "
-    "ya no esta cargado.":
-        "VOI cropped: {et}, {lv}³ vox, BV/TV {b:.4f}. The full volume is "
-        "no longer loaded.",
+    "VOI recortado: {et}, {f}, BV/TV {b:.4f}. El volumen completo ya no "
+    "esta cargado.":
+        "VOI cropped: {et}, {f}, BV/TV {b:.4f}. The full volume is no longer "
+        "loaded.",
+    "VOI cilindrico: solo se mide la morfometria basica dentro del cilindro. "
+    "El ajuste, la homogeneizacion y el ensayo FE necesitan un cubo.":
+        "Cylindrical VOI: only basic morphometry is measured, inside the "
+        "cylinder. Fitting, homogenisation and the FE test need a cube.",
+    "Midiendo el cilindro…": "Measuring the cylinder…",
+    "Cilindro medido: BV/TV {b:.4f}.": "Cylinder measured: BV/TV {b:.4f}.",
+    "Medido solo dentro del cilindro. Tb.Th es 2·BV/BS (placas); la pared "
+    "curva subestima BS en torno a un 4 % (bloque 35). DA, Conn.D, SMI y EF "
+    "no se calculan con un dominio no cubico.":
+        "Measured inside the cylinder only. Tb.Th is 2·BV/BS (plates); the "
+        "curved wall underestimates BS by about 4 % (block 35). DA, Conn.D, "
+        "SMI and EF are not computed on a non-cubic domain.",
     "3 clases: aire / medula / hueso": "3 classes: air / marrow / bone",
     "2 clases: Otsu clasico": "2 classes: classic Otsu",
     "En una reconstruccion cruda el campo es aire en su mayor parte y hay "
@@ -553,8 +599,6 @@ EN = {
         'Confirm the batch',
     'Convergencia en {t} s — {n} de {tot} mallas resueltas.':
         'Convergence in {t} s — {n} of {tot} meshes solved.',
-    'Desempate mecanico':
-        'Mechanical tie-break',
     'El ajuste necesita un VOI de referencia. Cargalo primero.':
         'The fit needs a reference VOI. Load one first.',
     'El analisis comparado necesita las DOS: carga un VOI y genera el spinodoide.':

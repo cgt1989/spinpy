@@ -191,18 +191,26 @@ def contexto_pila(mask, spacing, ejes, centro, centro_pca, lado_mm,
             "origen": str(origen) if origen else None}
 
 
-def registro_recorte(pila, ejes, centro, centro_pca, lado_mm):
+def registro_recorte(pila, ejes, centro, centro_pca, lado_mm, region=None):
     """Lo que el documento guarda para rehacer el contexto desde el disco.
 
     `pila`: {"origen", "patron", "umbral", "tam_voxel_mm"} de la carga.
+    `region`: para un recorte que NO es un cubo (cilindro), el dict de
+    `voi.recortar`; entonces `lado_mm` es None y la forma queda declarada.
     """
-    return {"origen": str(pila.get("origen")), "patron": pila.get("patron"),
-            "umbral": pila.get("umbral"),
-            "tam_voxel_mm": pila.get("tam_voxel_mm"),
-            "ejes": np.asarray(ejes, float).tolist(),
-            "centro": np.asarray(centro, float).tolist(),
-            "centro_pca": np.asarray(centro_pca, float).tolist(),
-            "lado_mm": float(lado_mm)}
+    rec = {"origen": str(pila.get("origen")), "patron": pila.get("patron"),
+           "umbral": pila.get("umbral"),
+           "tam_voxel_mm": pila.get("tam_voxel_mm"),
+           "ejes": np.asarray(ejes, float).tolist(),
+           "centro": np.asarray(centro, float).tolist(),
+           "centro_pca": np.asarray(centro_pca, float).tolist(),
+           "lado_mm": None if lado_mm is None else float(lado_mm)}
+    if region is not None and region.get("forma") == "cilindro":
+        rec["forma"] = "cilindro"
+        rec["radio_mm"] = float(region["radio_mm"])
+        rec["altura_mm"] = float(region["altura_mm"])
+        rec["eje"] = int(region.get("eje", 0))
+    return rec
 
 
 def rehacer_contexto(rec):
@@ -210,6 +218,8 @@ def rehacer_contexto(rec):
     entera). None si el origen ya no esta o no se deja leer."""
     if not isinstance(rec, dict) or not rec.get("origen"):
         return None
+    if rec.get("forma") == "cilindro":
+        return None             # la figura 0 solo esta definida para el cubo
     try:
         from .voi import leer_pila_tiff
         BW, sp, _info = leer_pila_tiff(rec["origen"],
@@ -701,7 +711,7 @@ def componer_metodo(imagenes, familias, doc, destino, idioma="es", ctx=None,
     w = 0.17
     # Posiciones en pulgadas, pasadas a fraccion: cada fila mide lo mismo sea
     # cual sea el numero de filas.
-    arriba_in, hueco_in, alto_in = 0.30, 0.52, ALTO_FILA - 0.52
+    arriba_in, alto_in = 0.30, ALTO_FILA - 0.52
     letras = iter("abcdefghijklmnopqrstuvwxyz")
     mv = doc.get("morfometria_voi") if doc else None
     nombres = {"voi": ("VOI", "VOI"), "spinodoide": ("Spinodoide", "Spinodoid"),

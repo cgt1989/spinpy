@@ -44,7 +44,7 @@ TOLERANCIAS DECLARADAS ANTES DE MEDIR
 """
 import numpy as np
 
-from conftest import bola, cilindro, losa
+from conftest import bola, cilindro
 from spinpy.morphometry import area_superficie_partes, morfometria, tamano_poro
 
 BLOQUE = "10 Superficie interna/externa y tamano de poro"

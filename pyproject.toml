@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,8 @@ version = "2.3.0"
 description = "Ajuste de microestructuras espinodales a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Carlos Gonzalez-Torres", email = "carlos_gonzz@hotmail.es" },
     { name = "David Ortiz-Puerta" },
@@ -22,7 +23,6 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Physics",
@@ -87,6 +87,32 @@ spinpy-validar-exp = "spinpy.validacion_exp:main"
 
 [tool.setuptools]
 packages = ["spinpy", "spinpy.motores"]
+
+# ANALISIS ESTATICO. `ruff check spinpy tests` debe dar 0 avisos; lo exige el
+# flujo de pruebas. Se vigilan los errores reales (F: importaciones y variables
+# sin uso, nombres indefinidos; E9: sintaxis; B: trampas conocidas de Python).
+# Lo que se ignora esta justificado, no tolerado por inercia.
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["comparativa_febio", "comparativa_febio_tet", "comparativa_motores",
+                  "Test", "docs", "instalador", "matlab", "entornos"]
+
+[tool.ruff.lint]
+select = ["F", "E9", "E7", "B"]
+ignore = [
+    "E741",  # `I`, `l`, `O` como nombre: es la notacion de los textos citados (tensores, indices)
+    "E702",  # `a = 1; b = 2` en una linea: se usa para asignaciones paralelas cortas
+    "E731",  # `f = lambda ...` local y breve
+    "B905",  # zip sin `strict=`: todos los zip son de secuencias de igual largo por construccion
+    "B007",  # variable de bucle sin usar: nombra lo que se desempaqueta
+    "B023",  # revisado uno a uno: las funciones se llaman en la misma iteracion
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]          # `conftest` pone la raiz en sys.path antes de importar
+"visor.py" = ["E402"]         # el orden de importacion en la GUI es deliberado (DLL en Windows)
+"dialogo_*.py" = ["E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

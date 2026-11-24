@@ -23,7 +23,6 @@ LO QUE LA FORMULA DE ODGAARD PRESUPONE, Y SE COMPRUEBA A PROPOSITO
   la definicion, y conviene que quede demostrada en una prueba para que nadie
   lea un Conn.D negativo como "menos conectado".
 """
-import numpy as np
 
 from conftest import bola, cascara, dos_bolas, reticulo, toro
 from spinpy.morphometry import conectividad

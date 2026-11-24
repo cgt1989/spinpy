@@ -274,29 +274,28 @@ def seccion_modelos(doc, idioma, r, numero):
                 "The SMI is confounded by concavity "
                 f"{r.c('salmon2015')}: at high BV/TV it can be negative and "
                 "lose its plate/rod reading.")
-        if True:
-            par("El espesor local (y el tamaño de poro, aplicado a la fase "
-                "complementaria) es el diámetro de la mayor esfera inscrita "
-                f"que contiene cada punto {r.c('hildebrand1997thickness')}. "
-                "Se calcula con transformadas de distancia euclídea: con r(x) "
-                "la distancia al fondo, se recorren los radios desde el máximo "
-                "hacia abajo en pasos de h y cada vóxel toma el primer radio "
-                "cuya bola lo cubre. Po.Dm es la media de ese espesor sobre "
-                "los vóxeles de poro. Es también la magnitud de la figura de "
-                "distribuciones.",
-                "Local thickness (and pore size, applied to the complementary "
-                "phase) is the diameter of the largest inscribed sphere that "
-                f"contains each point {r.c('hildebrand1997thickness')}. It is "
-                "computed with Euclidean distance transforms: with r(x) the "
-                "distance to the background, radii are swept from the maximum "
-                "downwards in steps of h and every voxel takes the first "
-                "radius whose ball covers it. Po.Dm is the mean of that "
-                "thickness over pore voxels. It is also the quantity of the "
-                "distributions figure.")
-            eq(L, r"\tau(\mathbf{x})=2\,\max\left\lbrace r:\ \exists\,"
-                  r"\mathbf{c},\ \mathbf{x}\in S(\mathbf{c},r)\subseteq\Omega"
-                  r"\right\rbrace,\qquad Po.Dm=\frac{1}{|\Omega^{c}|}\sum_{"
-                  r"\mathbf{x}\in\Omega^{c}}\tau_{\Omega^{c}}(\mathbf{x})")
+        par("El espesor local (y el tamaño de poro, aplicado a la fase "
+            "complementaria) es el diámetro de la mayor esfera inscrita "
+            f"que contiene cada punto {r.c('hildebrand1997thickness')}. "
+            "Se calcula con transformadas de distancia euclídea: con r(x) "
+            "la distancia al fondo, se recorren los radios desde el máximo "
+            "hacia abajo en pasos de h y cada vóxel toma el primer radio "
+            "cuya bola lo cubre. Po.Dm es la media de ese espesor sobre "
+            "los vóxeles de poro. Es también la magnitud de la figura de "
+            "distribuciones.",
+            "Local thickness (and pore size, applied to the complementary "
+            "phase) is the diameter of the largest inscribed sphere that "
+            f"contains each point {r.c('hildebrand1997thickness')}. It is "
+            "computed with Euclidean distance transforms: with r(x) the "
+            "distance to the background, radii are swept from the maximum "
+            "downwards in steps of h and every voxel takes the first "
+            "radius whose ball covers it. Po.Dm is the mean of that "
+            "thickness over pore voxels. It is also the quantity of the "
+            "distributions figure.")
+        eq(L, r"\tau(\mathbf{x})=2\,\max\left\lbrace r:\ \exists\,"
+              r"\mathbf{c},\ \mathbf{x}\in S(\mathbf{c},r)\subseteq\Omega"
+              r"\right\rbrace,\qquad Po.Dm=\frac{1}{|\Omega^{c}|}\sum_{"
+              r"\mathbf{x}\in\Omega^{c}}\tau_{\Omega^{c}}(\mathbf{x})")
         if np.isfinite(float(m_voi.get("EF", np.nan) or np.nan)):
             par("El Ellipsoid Factor busca en cada punto el mayor elipsoide "
                 "contenido en el hueso que lo contiene (semiejes a ≤ b ≤ c) "

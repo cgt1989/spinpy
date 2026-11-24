@@ -61,12 +61,12 @@ from .fit import (ajustar_spinodoide, dir_a_euler, longitud_caracteristica,
 from .fit_dual import ajustar_dual_lattice
 from .io import leer_mat_voi, leer_voi, leer_vtk_voi
 from .lote import METRICAS, correr_lote, dispersion_semillas
-from .voi import (apilar, escribir_vtk_voi, extraer_cubo, marco_pca,
-                  vois_por_tercios)
+from .voi import (apilar, escribir_vtk_voi, extraer_cilindro, extraer_cubo,
+                  marco_pca, recortar, vois_por_tercios)
 from .morphometry import metricas_forma, morfometria_malla
 from .morphometry import (area_superficie, conectividad, fraccion_portante,
                           indice_smi, mayor_componente_6, morfometria,
-                          tensor_mil)
+                          morfometria_dominio, tensor_mil)
 from .resistencia import (capa_superficie, criterio_pistoia,
                           ensayo_compresion, ensayo_compresion_eje,
                           ensayo_triaxial, estadisticos_vm,
@@ -91,10 +91,11 @@ __all__ = [
     "metricas_mecanicas",
     "leer_mat_voi", "leer_voi", "leer_vtk_voi",
     "METRICAS", "correr_lote", "dispersion_semillas",
-    "apilar", "escribir_vtk_voi", "extraer_cubo", "marco_pca",
-    "vois_por_tercios",
+    "apilar", "escribir_vtk_voi", "extraer_cilindro", "extraer_cubo",
+    "marco_pca", "recortar", "vois_por_tercios",
     "area_superficie", "conectividad", "fraccion_portante", "indice_smi",
-    "mayor_componente_6", "morfometria", "tensor_mil",
+    "mayor_componente_6", "morfometria", "morfometria_dominio",
+    "morfometria_malla", "tensor_mil",
     "capa_superficie", "estadisticos_vm",
     "criterio_pistoia", "ensayo_compresion", "ensayo_compresion_eje",
     "ensayo_triaxial", "estudio_convergencia",

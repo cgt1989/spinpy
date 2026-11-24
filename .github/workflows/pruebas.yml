@@ -62,6 +62,15 @@ jobs:
           pip install -e ".[elastico,fem,malla,lote,test,informe]" tifffile
           pip freeze > entorno_congelado.txt
 
+      # Errores reales del codigo (importaciones y variables sin uso, nombres
+      # indefinidos, trampas de Python). La configuracion y lo que se ignora,
+      # con su razon, estan en `[tool.ruff]` de pyproject.toml.
+      - name: Analisis estatico (ruff)
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        run: |
+          pip install ruff
+          ruff check .
+
       # PyVista dibuja las figuras del informe con VTK: en un Linux sin pantalla
       # hace falta OpenGL por software y un servidor X virtual (si no, VTK
       # termina el proceso con una violacion de segmento).

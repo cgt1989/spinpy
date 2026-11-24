@@ -157,6 +157,104 @@ def area_superficie_partes(BW, spacing, metodo="lorensen"):
     return interna, max(total - interna, 0.0), total
 
 
+def area_superficie_dominio(BW, dominio, spacing, metodo="lorensen"):
+    """Area de la interfaz hueso-vacio DENTRO de un dominio no cubico.
+
+    POR QUE NO BASTA `area_superficie`. Sobre la caja envolvente de un cilindro,
+    el exterior del cilindro vale 0 y marching cubes dibujaria una pared
+    artificial a lo largo de toda la superficie curva: no es interfaz de nada,
+    es la huella del corte, y sumarla inflaria BS/BV y hundiria Tb.Th.
+
+    COMO SE EVITA. El exterior del dominio se rellena con el valor del voxel
+    del dominio mas cercano, de modo que el campo es continuo a traves de la
+    pared y no nace ninguna superficie ahi (una trabecula que cruza la pared
+    sigue de largo). Despues se suman los triangulos ponderados por la fraccion
+    de dominio en su centroide. Es la misma convencion que el cubo, que deja abiertas
+    las seis caras en lugar de cerrarlas: se mide la interfaz, no el corte.
+
+    Es una aproximacion en la propia pared (un triangulo que la cruza cuenta por la
+    fraccion de dominio de su centroide), de un orden de un voxel de espesor sobre el
+    perimetro; el test 35 la acota contra una solucion de area conocida.
+    """
+    BW = np.asarray(BW, dtype=bool)
+    dominio = np.asarray(dominio, dtype=bool)
+    if BW.shape != dominio.shape:
+        raise ValueError("BW y dominio deben tener la misma forma")
+    dentro = BW & dominio
+    if not dentro.any() or dentro[dominio].all():
+        return 0.0
+    if dominio.all():
+        return area_superficie(BW, spacing, metodo=metodo)
+    sp = np.atleast_1d(np.asarray(spacing, float)).ravel()
+    sp = tuple(float(x) for x in (np.repeat(sp, 3) if sp.size == 1 else sp))
+    # Indices del voxel del dominio mas cercano a cada voxel (0 si ya es dominio)
+    _, idx = ndimage.distance_transform_edt(~dominio, return_indices=True)
+    campo = dentro[tuple(idx)]
+    verts, faces, _, _ = measure.marching_cubes(
+        campo.astype(np.float32), level=0.5, spacing=sp, method=metodo)
+    a, b, c = verts[faces[:, 0]], verts[faces[:, 1]], verts[faces[:, 2]]
+    area = 0.5 * np.linalg.norm(np.cross(b - a, c - a), axis=1)
+    # Peso de cada triangulo = fraccion de dominio en su centroide (trilineal).
+    # Un redondeo al voxel mas cercano seria arbitrario justo donde importa: las
+    # caras de las trabeculas caen en x.5 y empatan entre un voxel de dentro y
+    # uno de fuera; el peso da 0.5 a ese empate, que es su valor esperado.
+    cen = ((a + b + c) / 3.0) / np.asarray(sp)
+    peso = ndimage.map_coordinates(dominio.astype(np.float32), cen.T,
+                                   order=1, mode="nearest")
+    return float((area * peso).sum())
+
+
+def morfometria_dominio(BW, dominio, spacing, modelo_tbth="plate",
+                        metodo_mc="lorensen"):
+    """Morfometria basica de un VOI cuya forma NO es la caja (p. ej. un cilindro).
+
+    Mide solo lo que se puede restringir al dominio sin reinterpretar la
+    metrica: BV/TV, BS, BS/BV, BS/TV, BS/PV y, a partir de ellos con las mismas
+    formulas que `morfometria` (Parfitt, placas), Tb.Th, Tb.Sp y Tb.N.
+
+    NO calcula DA, Conn.D, SMI, Ellipsoid Factor ni tamano de poro: el tensor MIL
+    lanza rayos que cruzarian el exterior, y la conectividad, el SMI y la
+    transformada de distancia tienen efectos de borde que, con una pared curva,
+    no estan validados. Esas claves salen NaN y `dominio` queda en True para que
+    quien lea el dict sepa por que. Es una limitacion declarada, no un olvido.
+
+    `TV` es el volumen del dominio, no el de la caja.
+    """
+    BW = np.asarray(BW, dtype=bool)
+    dominio = np.asarray(dominio, dtype=bool)
+    sp = np.atleast_1d(np.asarray(spacing, float)).ravel()
+    if sp.size == 1:
+        sp = np.repeat(sp, 3)
+    if BW.shape != dominio.shape:
+        raise ValueError("BW y dominio deben tener la misma forma")
+    n_dom = int(dominio.sum())
+    if n_dom == 0:
+        raise ValueError("el dominio esta vacio")
+    vox = float(np.prod(sp))
+    n_hueso = int((BW & dominio).sum())
+    m = {"dominio": True, "n_vox_dominio": n_dom}
+    m["BVTV"] = n_hueso / n_dom
+    m["PoTot"] = (1.0 - m["BVTV"]) * 100.0
+    m["TV"] = n_dom * vox
+    m["BV"] = n_hueso * vox
+    m.update({k: np.nan for k in (
+        "BS", "BSBV", "BSTV", "BSPV", "TbTh", "TbSp", "TbN", "DA", "DA2",
+        "FracPort", "ConnD", "SMI")})
+    m["MIL_valid"] = False
+    if m["BVTV"] <= 0.0 or m["BVTV"] >= 1.0:
+        return m
+    BS = area_superficie_dominio(BW, dominio, sp, metodo=metodo_mc)
+    if BS > 0:
+        m["BS"] = BS
+        m["BSBV"] = BS / m["BV"]
+        m["BSTV"] = BS / m["TV"]
+        m["BSPV"] = BS / (m["TV"] * (1.0 - m["BVTV"]))
+        m["TbTh"] = (4.0 if modelo_tbth == "rod" else 2.0) * m["BV"] / BS
+        m["TbSp"] = m["TbTh"] * ((1.0 / m["BVTV"]) - 1.0)
+        m["TbN"] = m["BVTV"] / m["TbTh"]
+    return m
+
+
 def tamano_poro(BW, spacing, n_radios=None, campo=False):
     """Tamano de poro Po.Dm: espesor local de la fase PORO, no de la osea.
 

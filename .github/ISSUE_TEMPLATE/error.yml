@@ -1,0 +1,52 @@
+name: Error
+description: Algo no funciona o da un número que no es el esperado
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar. Cuanto más pequeño sea el caso que reproduce el error, más rápido se arregla.
+  - type: dropdown
+    id: como
+    attributes:
+      label: Cómo usas spinpy
+      options:
+        - Ejecutable (Windows, macOS o Linux)
+        - Interfaz desde Python (visor.py)
+        - Biblioteca desde un script o cuaderno
+        - Línea de comandos
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión de spinpy y sistema operativo
+      placeholder: "V2.3.0, Ubuntu 24.04, Python 3.13"
+    validations:
+      required: true
+  - type: textarea
+    id: que
+    attributes:
+      label: Qué ocurre
+      description: El mensaje de error completo, o el número obtenido.
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Qué esperabas, y por qué
+      description: Una definición, una solución analítica o el resultado de otro programa. Si es un número, di de dónde sale el esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Cómo reproducirlo
+      description: Pasos o un script mínimo. Los VOIs de `datos/porcino_koria2020/` sirven si el error aparece con ellos.
+      render: shell
+  - type: textarea
+    id: autocomprobacion
+    attributes:
+      label: Autocomprobación
+      description: Pega el contenido de `autocomprobacion.txt` (ejecutable) o la salida de `python visor.py --autocomprobacion`.
+      render: text

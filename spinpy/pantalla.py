@@ -21,7 +21,7 @@ El tamano que el dialogo pedia (`resize`) se respeta mientras quepa.
 """
 from __future__ import annotations
 
-from PyQt5 import QtCore, QtGui, QtWidgets, sip
+from PyQt5 import QtCore, QtWidgets, sip
 
 # Fraccion maxima del area util que puede ocupar un dialogo al abrirse.
 FRACCION = 0.94

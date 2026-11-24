@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 33 blocks" src="https://img.shields.io/badge/verification-33%20blocks-5b6b7f">
+  <img alt="Verification: 35 blocks" src="https://img.shields.io/badge/verification-35%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -104,7 +104,7 @@ candidate**, and failure load by the Pistoia criterion.
 
 | Stage | What it includes |
 |---|---|
-| **Reads** | `.vtk` and `.mat` VOIs, and micro-CT TIFF stacks (folder of slices or multipage) with the scale read from the SkyScan *log*. Thresholds, frames by PCA and crops the cube on a 3D view of the bone: the cube is requested by its side or its absolute volume (µm, µm³), moved through the bone with sliders or by dragging, and its BV/TV, three sections with scale and the BV/TV profile along the axis are shown before confirming. |
+| **Reads** | `.vtk` and `.mat` VOIs, and micro-CT TIFF stacks (folder of slices or multipage) with the scale read from the SkyScan *log*. Thresholds, frames by PCA and crops, on a 3D view of the bone, a **cube** (by its side or its absolute volume, µm, µm³) or a **cylinder** (by its radius and height, with its axis along PC1, PC2 or PC3). The shape is moved through the bone with sliders or by dragging, and its BV/TV, three sections with scale and the BV/TV profile along the axis are shown before confirming. With a cylinder, measurement is restricted to its domain (the outside of its bounding box does not count as pore) and only basic morphometry is computed; fitting and the FE test need a cube. |
 | **Generates** | Spinodoids from a Gaussian random field (Kumar et al. 2020), with both wave-sampling conventions found in the literature, and *dual-lattice* (Vafaeefar et al. 2022). |
 | **Measures** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, MIL tensor and DA, Conn.D, SMI, local thickness, pore size, **Ellipsoid Factor** and principal curvatures of the interface. |
 | **Fits** | The parameters that best reproduce a real VOI: staged search, replicas with fresh seeds, self-consistent noise floor and optional mechanical tie-break. |
@@ -341,7 +341,7 @@ macOS with 3.13), and building the installer requires it to pass. Each run
 stores as an artifact the tolerance log and the exact environment
 (`pip freeze`) it was measured with.
 
-33 blocks with tolerances **declared before measuring**: topology, SMI,
+35 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
 Mises surface layer… A failure here is a finding, not a bug in the suite.
@@ -716,6 +716,22 @@ generated from the code itself (`python docs/generar_manual.py`). The
 docstrings of this project are not a summary: they carry the design
 decisions, the measured biases and the pitfalls that took effort to find.
 Code, docstrings and reports are in Spanish.
+
+---
+
+## Try the code and contribute
+
+- **Nothing to install**: open
+  [`ejemplos/spinpy_inicio.ipynb`](ejemplos/spinpy_inicio.ipynb) in Colab
+  ([![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/cgt1989/spinpy/blob/main/ejemplos/spinpy_inicio.ipynb)),
+  or "Reopen in Container" in VS Code or GitHub Codespaces
+  (`.devcontainer/`).
+- **Code map**: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) (Spanish).
+- **How to contribute**: [`CONTRIBUTING.md`](CONTRIBUTING.md), with an English
+  summary. Anyone who knows finite elements can add an engine with one file and
+  one table row: [`docs/AGREGAR_UN_MOTOR_FEM.md`](docs/AGREGAR_UN_MOTOR_FEM.md).
+- **Bugs**: open an issue with the "Error" form (it asks for a minimal VOI and
+  the self-check).
 
 ---
 

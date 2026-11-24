@@ -21,7 +21,7 @@ QUE SE VE
 * el contenido del cubo, opaco y de otro color, a resolucion COMPLETA y tal y
   como lo recorta `extraer_cubo`: lo que se ve ahi es lo que se va a medir;
 * el cubo como caja con aristas y caras tenues, con su lado en la propia
-  escena;
+  escena, o el cilindro (radio y altura) con las aristas de sus tapas;
 * los tres tramos sugeridos, numerados.
 
 La malla del hueso sale de un volumen reducido por bloques, asi que es una
@@ -34,7 +34,7 @@ from __future__ import annotations
 import numpy as np
 import pyvista as pv
 
-from .voi import _spacing3, cubo_a_pca, mundo_a_pca
+from .voi import _spacing3, cilindro_a_pca, cubo_a_pca, mundo_a_pca
 
 COLOR_HUESO = "#d9c7a0"
 COLOR_CUBO = "#ff8a1f"
@@ -67,28 +67,67 @@ def malla_hueso_pca(reducido, spacing, ejes, centro):
                              consistent_normals=False)
 
 
-def malla_cubo_pca(cubo, spacing, centro_pca):
-    """Superficie del contenido del cubo, en el marco PCA y a resolucion plena.
+def _isosuperficie_cerrada(volumen):
+    """Isosuperficie 0.5 de un bool 3D, en indices de voxel, CERRADA en los bordes.
 
-    Se rodea de una capa de ceros para que la isosuperficie CIERRE en las caras
-    del cubo: se ve un bloque macizo, como la probeta que se va a medir, en
-    vez de una piel abierta por los seis lados.
+    Se rodea de una capa de ceros para que la superficie cierre en las caras del
+    volumen: se ve un bloque macizo, como la probeta que se va a medir, en vez
+    de una piel abierta por los seis lados. El -1 deshace el relleno; el borde
+    queda medio voxel por fuera del ultimo centro, que es lo que ocupa el voxel.
+    Devuelve None si no hay superficie.
     """
-    cubo = np.asarray(cubo, bool)
-    if not cubo.any():
-        return pv.PolyData()
-    n = cubo.shape[0]
-    pad = np.pad(cubo, 1).astype(np.float32)
+    pad = np.pad(np.asarray(volumen, bool), 1).astype(np.float32)
     grid = pv.ImageData(dimensions=pad.shape, spacing=(1, 1, 1))
     grid.point_data["v"] = pad.flatten(order="F")
     m = grid.contour([0.5], scalars="v")
     if not m.n_points:
-        return pv.PolyData()
-    # -1 deshace el relleno; el borde queda medio voxel por fuera del ultimo
-    # centro, que es lo que ocupa el voxel.
-    m.points = cubo_a_pca(m.points - 1.0, n, spacing, centro_pca)
+        return None
+    m.points = m.points - 1.0
+    return m
+
+
+def _con_normales(m):
     return m.compute_normals(auto_orient_normals=True,
                              consistent_normals=False)
+
+
+def malla_cubo_pca(cubo, spacing, centro_pca):
+    """Superficie del contenido del cubo, en el marco PCA y a resolucion plena."""
+    cubo = np.asarray(cubo, bool)
+    if not cubo.any():
+        return pv.PolyData()
+    m = _isosuperficie_cerrada(cubo)
+    if m is None:
+        return pv.PolyData()
+    m.points = cubo_a_pca(m.points, cubo.shape[0], spacing, centro_pca)
+    return _con_normales(m)
+
+
+def malla_cilindro_pca(volumen, dominio, spacing, centro_pca, eje):
+    """Superficie del contenido del cilindro, en el marco PCA y a resolucion plena.
+
+    `volumen` y `dominio` son los de `voi.extraer_cilindro`. Se cierra contra la
+    pared curva, no contra la caja: lo que se ve es el cilindro de hueso que se
+    va a medir.
+    """
+    volumen = np.asarray(volumen, bool) & np.asarray(dominio, bool)
+    if not volumen.any():
+        return pv.PolyData()
+    m = _isosuperficie_cerrada(volumen)
+    if m is None:
+        return pv.PolyData()
+    m.points = cilindro_a_pca(m.points, volumen.shape, spacing, centro_pca,
+                              eje)
+    return _con_normales(m)
+
+
+def malla_region_pca(recorte, spacing):
+    """Superficie del contenido de un recorte de `voi.recortar` (cubo o cilindro)."""
+    reg = recorte["region"]
+    if reg["forma"] == "cilindro":
+        return malla_cilindro_pca(recorte["cubo"], recorte["dominio"], spacing,
+                                  recorte["centro_pca"], reg.get("eje", 0))
+    return malla_cubo_pca(recorte["cubo"], spacing, recorte["centro_pca"])
 
 
 def _limites(centro_pca, lado_mm):
@@ -159,21 +198,47 @@ class EscenaRecorte:
         self._pintar_contenido()
         self.p.render()
 
-    # -- cubo ----------------------------------------------------------------
+    # -- cubo y cilindro ---------------------------------------------------------
     def poner_cubo(self, centro_pca, lado_mm, texto=None, render=True):
         """Mueve la caja del cubo. Barato: se puede llamar mientras se arrastra."""
         self._centro = np.asarray(centro_pca, float)
         self._lado = float(lado_mm)
         caja = pv.Box(bounds=_limites(self._centro, self._lado))
-        self.p.add_mesh(caja, name="caja", color=COLOR_CUBO, opacity=0.05,
+        self._dibujar_forma(caja, _limites(self._centro, self._lado), texto,
+                            render)
+
+    def poner_cilindro(self, centro_pca, radio_mm, altura_mm, eje, texto=None,
+                       render=True):
+        """Mueve el cilindro (su eje es el eje PCA `eje`: 0 = PC1, 1 = PC2...)."""
+        self._centro = np.asarray(centro_pca, float)
+        self._lado = 2.0 * float(radio_mm)
+        direccion = [0.0, 0.0, 0.0]
+        direccion[int(eje)] = 1.0
+        cil = pv.Cylinder(center=tuple(self._centro), direction=direccion,
+                          radius=float(radio_mm), height=float(altura_mm),
+                          resolution=64, capping=True)
+        semi = np.full(3, float(radio_mm))
+        semi[int(eje)] = 0.5 * float(altura_mm)
+        b = (self._centro[0] - semi[0], self._centro[0] + semi[0],
+             self._centro[1] - semi[1], self._centro[1] + semi[1],
+             self._centro[2] - semi[2], self._centro[2] + semi[2])
+        self._dibujar_forma(cil, b, texto, render)
+
+    def _dibujar_forma(self, malla, limites, texto, render):
+        """Caja o cilindro, con aristas y etiqueta. Los actores se reemplazan
+        por nombre, asi que cambiar de forma no deja restos de la anterior."""
+        self.p.add_mesh(malla, name="caja", color=COLOR_CUBO, opacity=0.05,
                         lighting=False, render=False)
-        self.p.add_mesh(caja.extract_all_edges(), name="aristas",
-                        color=COLOR_CUBO, line_width=3, lighting=False,
-                        render=False)
+        # Aristas: las del cubo son todas; del cilindro, solo las de las tapas
+        # (angulo de 30 grados: la pared curva es una superficie suave).
+        aristas = (malla.extract_feature_edges(feature_angle=30.0)
+                   if malla.n_cells > 6 else malla.extract_all_edges())
+        self.p.add_mesh(aristas, name="aristas", color=COLOR_CUBO,
+                        line_width=3, lighting=False, render=False)
         if texto:
             # La etiqueta cuelga de una esquina superior para no tapar el
             # contenido.
-            b = _limites(self._centro, self._lado)
+            b = limites
             self.p.add_point_labels(
                 [[b[0], b[3], b[5]]], [texto], name="etiqueta_cubo",
                 font_size=16, text_color=COLOR_CUBO, shape=None,

@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 33 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-33%20bloques-5b6b7f">
+  <img alt="Verificación: 35 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-35%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
 </p>
 
@@ -109,7 +109,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 
 | Etapa | Qué incluye |
 |---|---|
-| **Lee** | VOIs `.vtk` y `.mat`, y pilas TIFF de micro-CT (carpeta de rebanadas o multipágina) con la escala leída del *log* SkyScan. Umbraliza, encuadra por PCA y recorta el cubo sobre una vista 3D del hueso: el cubo se pide por su lado o por su volumen absoluto (µm, µm³), se desplaza por el hueso con mandos o arrastrándolo, y se ve su BV/TV, tres cortes con escala y el perfil de BV/TV a lo largo del eje antes de confirmar. |
+| **Lee** | VOIs `.vtk` y `.mat`, y pilas TIFF de micro-CT (carpeta de rebanadas o multipágina) con la escala leída del *log* SkyScan. Umbraliza, encuadra por PCA y recorta sobre una vista 3D del hueso un **cubo** (por su lado o por su volumen absoluto, µm, µm³) o un **cilindro** (por su radio y su altura, con el eje a lo largo de PC1, PC2 o PC3). La forma se desplaza por el hueso con mandos o arrastrándola, y se ve su BV/TV, tres cortes con escala y el perfil de BV/TV a lo largo del eje antes de confirmar. Con un cilindro la medida se restringe a su dominio (el exterior de su caja no cuenta como poro) y solo se calcula la morfometría básica; el ajuste y el ensayo FE necesitan un cubo. |
 | **Genera** | Espinodales por campo aleatorio gaussiano (Kumar et al. 2020), con las dos convenciones de muestreo de ondas de la literatura, y *dual-lattice* (Vafaeefar et al. 2022). |
 | **Mide** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, tensor MIL y DA, Conn.D, SMI, espesor local, tamaño de poro, **Ellipsoid Factor** y curvaturas principales de la interfaz. |
 | **Ajusta** | Los parámetros que mejor reproducen un VOI real: búsqueda escalonada, réplicas con semillas nuevas, suelo de ruido autoconsistente y desempate mecánico opcional. |
@@ -339,7 +339,7 @@ macOS con 3.13), y la construcción del instalador exige que pase. Cada
 ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
 (`pip freeze`) con que se midió.
 
-33 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+35 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
@@ -717,6 +717,22 @@ y la comparación de los motores FEM internos en
 del propio código (`python docs/generar_manual.py`). Los docstrings de este
 proyecto no son un resumen: llevan las decisiones de diseño, los sesgos
 medidos y las trampas que costó encontrar.
+
+---
+
+## Probar el código y contribuir
+
+- **Sin instalar nada**: abre
+  [`ejemplos/spinpy_inicio.ipynb`](ejemplos/spinpy_inicio.ipynb) en Colab
+  ([![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/cgt1989/spinpy/blob/main/ejemplos/spinpy_inicio.ipynb)),
+  o «Reabrir en contenedor» en VS Code o GitHub Codespaces
+  (`.devcontainer/`).
+- **Mapa del código**: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+- **Cómo contribuir**: [`CONTRIBUTING.md`](CONTRIBUTING.md). Quien sabe de
+  elementos finitos puede añadir un motor con un archivo y una fila de una
+  tabla: [`docs/AGREGAR_UN_MOTOR_FEM.md`](docs/AGREGAR_UN_MOTOR_FEM.md).
+- **Errores**: un *issue* con el formulario «Error» (pide un VOI mínimo y la
+  autocomprobación).
 
 ---
 
