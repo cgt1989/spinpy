@@ -14,6 +14,7 @@
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
   <img alt="Verification: 35 blocks" src="https://img.shields.io/badge/verification-35%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
+  <img alt="Built with Claude (vibecoding)" src="https://img.shields.io/badge/built%20with-Claude%20(vibecoding)-d97757?logo=claude&logoColor=white">
 </p>
 
 <p align="center">
@@ -39,14 +40,30 @@ implementation.
 Developed on equine sesamoid bones scanned at 51.489 µm, with support also
 for porcine, mouse-vertebra and femur volumes.
 
+spinpy has been developed through *vibecoding* with
+[Claude](https://claude.ai) (Anthropic): the assistant writes the code from the
+author's instructions, and its correctness is checked with the verification
+suite (35 blocks), against analytical solutions and against the original
+MATLAB implementation.
+
+> **First step of the analysis: cropping the volume.** Simply load a **folder
+> of micro-CT TIFF slices** to crop, on a 3D view of the bone, a **cube** (by
+> its side or its absolute volume) or a **cylinder** (by its radius and
+> height, with its axis along PC1, PC2 or PC3). The shape is moved through the
+> bone, and its BV/TV, three sections and the BV/TV profile are shown before
+> confirming. The cube enables the whole downstream workflow; the cylinder
+> gives basic morphometry restricted to its domain. More detail in
+> [What it does](#what-it-does).
+
 <table>
 <tr>
 <td>
 
 ```
-micro-CT TIFF stack
+folder of micro-CT TIFFs
  → segmentation, PCA framing
- → cubic VOI
+ → VOI crop
+     cube or cylinder
  → morphometry
      BV/TV, Tb.Th, DA, Conn.D,
      SMI, Ellipsoid Factor

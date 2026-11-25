@@ -14,6 +14,7 @@
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
   <img alt="Verificación: 35 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-35%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
+  <img alt="Desarrollado con Claude (vibecoding)" src="https://img.shields.io/badge/desarrollado%20con-Claude%20(vibecoding)-d97757?logo=claude&logoColor=white">
 </p>
 
 <p align="center">
@@ -38,6 +39,21 @@ soluciones analíticas y contra la implementación MATLAB original.
 Desarrollado sobre huesos sesamoideos equinos escaneados a 51,489 µm, con
 soporte también para volúmenes porcinos, de vértebra de ratón y de fémur.
 
+spinpy se ha desarrollado mediante *vibecoding* con
+[Claude](https://claude.ai) (Anthropic): el código lo escribe el asistente a
+partir de las instrucciones del autor, y su corrección se comprueba con la
+batería de verificación (35 bloques), con soluciones analíticas y con la
+implementación MATLAB original.
+
+> **Primer paso del análisis: recortar el volumen.** Basta con cargar una
+> **carpeta de rebanadas TIFF** de micro-CT para recortar, sobre una vista 3D
+> del hueso, un **cubo** (por su lado o por su volumen absoluto) o un
+> **cilindro** (por su radio y su altura, con el eje a lo largo de PC1, PC2 o
+> PC3). La forma se desplaza por el hueso y se ve su BV/TV, tres cortes y el
+> perfil de BV/TV antes de confirmar. El cubo habilita todo el flujo
+> posterior; con el cilindro se obtiene la morfometría básica restringida a su
+> dominio. Más detalle en [Qué hace](#qué-hace).
+
 > *In English:* spinpy fits spinodoid and dual-lattice surrogate
 > microstructures to trabecular-bone VOIs from micro-CT, then measures them
 > (BV/TV, Tb.Th, DA, Conn.D, SMI, Ellipsoid Factor…), homogenizes their
@@ -49,9 +65,10 @@ soporte también para volúmenes porcinos, de vértebra de ratón y de fémur.
 <td>
 
 ```
-pila TIFF de micro-CT
+carpeta de TIFF de micro-CT
  → segmentación, encuadre PCA
- → VOI cúbico
+ → recorte del VOI
+     cubo o cilindro
  → morfometría
      BV/TV, Tb.Th, DA, Conn.D,
      SMI, Ellipsoid Factor
