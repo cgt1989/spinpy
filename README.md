@@ -39,12 +39,6 @@ soluciones analíticas y contra la implementación MATLAB original.
 Desarrollado sobre huesos sesamoideos equinos escaneados a 51,489 µm, con
 soporte también para volúmenes porcinos, de vértebra de ratón y de fémur.
 
-spinpy se ha desarrollado mediante *vibecoding* con
-[Claude](https://claude.ai) (Anthropic): el código lo escribe el asistente a
-partir de las instrucciones del autor, y su corrección se comprueba con la
-batería de verificación (35 bloques), con soluciones analíticas y con la
-implementación MATLAB original.
-
 > **Primer paso del análisis: recortar el volumen.** Basta con cargar una
 > **carpeta de rebanadas TIFF** de micro-CT para recortar, sobre una vista 3D
 > del hueso, un **cubo** (por su lado o por su volumen absoluto) o un
@@ -52,7 +46,7 @@ implementación MATLAB original.
 > PC3). La forma se desplaza por el hueso y se ve su BV/TV, tres cortes y el
 > perfil de BV/TV antes de confirmar. El cubo habilita todo el flujo
 > posterior; con el cilindro se obtiene la morfometría básica restringida a su
-> dominio. Más detalle en [Qué hace](#qué-hace).
+> dominio. Se ve en funcionamiento en [La aplicación en movimiento](#la-aplicación-en-movimiento).
 
 > *In English:* spinpy fits spinodoid and dual-lattice surrogate
 > microstructures to trabecular-bone VOIs from micro-CT, then measures them
@@ -95,7 +89,20 @@ carpeta de TIFF de micro-CT
 Las animaciones son capturas de la propia interfaz pulsando sus botones, y se
 regeneran con `python docs/media/hacer_medios.py`: no son maquetas.
 
-### 1 · Explorar el espacio de diseño
+### 1 · Cargar una carpeta de TIFF y recortar el VOI
+
+Es el primer paso del análisis. Se indica la carpeta de rebanadas de micro-CT y
+su tamaño de voxel, y la aplicación orienta el hueso por PCA y muestra, sobre
+una vista 3D, un **cubo** (por su lado o por su volumen absoluto) o un
+**cilindro** (por su radio y su altura, con el eje a lo largo de PC1, PC2 o
+PC3). La forma se desplaza por el hueso y, antes de confirmar, se ven su BV/TV,
+tres cortes con escala y el perfil de BV/TV a lo largo del eje. La animación
+usa el VOI porcino real de `datos/porcino_koria2020/` escrito como rebanadas
+TIFF.
+
+<p align="center"><img src="docs/media/00_recorte.gif" alt="Carga de una carpeta de TIFF y recorte de un cubo y de un cilindro" width="100%"></p>
+
+### 2 · Explorar el espacio de diseño
 
 La densidad, el número de onda y los tres ángulos de cono definen la
 estructura. Cada cambio se regenera al momento, de la clase isótropa a la
@@ -103,7 +110,7 @@ columnar, la lamelar o la ajustada a un hueso real.
 
 <p align="center"><img src="docs/media/01_explorar.gif" alt="Explorando clases de spinodoide en el visor" width="100%"></p>
 
-### 2 · Ajustar al VOI de micro-CT
+### 3 · Ajustar al VOI de micro-CT
 
 Se carga el VOI (`.vtk`, `.mat`, carpeta de rebanadas TIFF o TIFF
 multipágina), se ajusta la microestructura por búsqueda escalonada y la tabla
@@ -112,7 +119,7 @@ sincronizadas.
 
 <p align="center"><img src="docs/media/02_ajuste.gif" alt="Ajuste de un spinodoide a un VOI equino" width="100%"></p>
 
-### 3 · Ensayar a compresión
+### 4 · Ensayar a compresión
 
 Ensayo de elementos finitos en X, Y, Z o los tres ejes, con campo de
 deformación efectiva y de tensión de von Mises, **en la misma escala de color

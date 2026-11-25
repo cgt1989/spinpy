@@ -40,20 +40,14 @@ implementation.
 Developed on equine sesamoid bones scanned at 51.489 µm, with support also
 for porcine, mouse-vertebra and femur volumes.
 
-spinpy has been developed through *vibecoding* with
-[Claude](https://claude.ai) (Anthropic): the assistant writes the code from the
-author's instructions, and its correctness is checked with the verification
-suite (35 blocks), against analytical solutions and against the original
-MATLAB implementation.
-
 > **First step of the analysis: cropping the volume.** Simply load a **folder
 > of micro-CT TIFF slices** to crop, on a 3D view of the bone, a **cube** (by
 > its side or its absolute volume) or a **cylinder** (by its radius and
 > height, with its axis along PC1, PC2 or PC3). The shape is moved through the
 > bone, and its BV/TV, three sections and the BV/TV profile are shown before
 > confirming. The cube enables the whole downstream workflow; the cylinder
-> gives basic morphometry restricted to its domain. More detail in
-> [What it does](#what-it-does).
+> gives basic morphometry restricted to its domain. See it running in
+> [The application in motion](#the-application-in-motion).
 
 <table>
 <tr>
@@ -91,7 +85,20 @@ The animations are screen captures of the interface itself pressing its own
 buttons, and they are regenerated with
 `python docs/media/hacer_medios.py --idioma en`: they are not mock-ups.
 
-### 1 · Exploring the design space
+### 1 · Loading a folder of TIFFs and cropping the VOI
+
+This is the first step of the analysis. The folder of micro-CT slices and its
+voxel size are given, and the application orients the bone by PCA and shows,
+on a 3D view, a **cube** (by its side or its absolute volume) or a
+**cylinder** (by its radius and height, with its axis along PC1, PC2 or PC3).
+The shape is moved through the bone and, before confirming, its BV/TV, three
+sections with scale and the BV/TV profile along the axis are shown. The
+animation uses the real porcine VOI in `datos/porcino_koria2020/`, written as
+TIFF slices.
+
+<p align="center"><img src="docs/media/00_recorte_en.gif" alt="Loading a folder of TIFFs and cropping a cube and a cylinder" width="100%"></p>
+
+### 2 · Exploring the design space
 
 Density, wave number and the three cone angles define the structure. Every
 change is regenerated on the spot, from the isotropic class to the columnar,
@@ -99,7 +106,7 @@ the lamellar or one fitted to a real bone.
 
 <p align="center"><img src="docs/media/01_explorar_en.gif" alt="Exploring spinodoid classes in the viewer" width="100%"></p>
 
-### 2 · Fitting to the micro-CT VOI
+### 3 · Fitting to the micro-CT VOI
 
 The VOI is loaded (`.vtk`, `.mat`, a folder of TIFF slices or a multipage
 TIFF), the microstructure is fitted by a staged search, and the table
@@ -107,7 +114,7 @@ compares bone and candidate metric by metric. Both views rotate in sync.
 
 <p align="center"><img src="docs/media/02_ajuste_en.gif" alt="Fitting a spinodoid to an equine VOI" width="100%"></p>
 
-### 3 · Compression testing
+### 4 · Compression testing
 
 Finite-element test along X, Y, Z or all three axes, with effective-strain
 and von Mises stress fields, **on the same colour scale for the bone and the
