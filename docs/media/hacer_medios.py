@@ -32,6 +32,12 @@ de la cabecera no lleva texto y es el mismo para los dos README.
 El GIF de ajuste necesita un VOI; por defecto busca
 `../H4/Segmentadas/VOI_proximal_cubico.vtk` y se puede pasar otro con
 `--voi ruta.vtk`.
+
+El GIF de recorte (`00_recorte.gif`) parte de una CARPETA DE TIFF. Si no se
+pasa `--pila carpeta`, la escribe el propio script con las rebanadas del VOI
+porcino real de `datos/porcino_koria2020/VOI_C1.mat` (CC BY 4.0, 16 um/voxel),
+que esta en el repositorio: el GIF se puede regenerar sin datos externos.
+`--solo recorte` regenera solo esa animacion.
 """
 from pathlib import Path
 import argparse
@@ -75,6 +81,16 @@ TEXTOS = {
         "medido": "3 · Candidato ajustado y medido",
         "ensayo": "4 · Ensayo de compresión en Z",
         "vm": "5 · Tensión de von Mises",
+        "r_carpeta": "1 · Carpeta de rebanadas TIFF",
+        "r_escala": "2 · Tamaño de voxel",
+        "r_cargada": "3 · Pila cargada",
+        "r_cubo": "4 · Cubo sobre el hueso",
+        "r_mover": "5 · Se desplaza por el hueso",
+        "r_lado": "6 · Tamaño por lado",
+        "r_vol": "7 · Tamaño por volumen absoluto",
+        "r_cil": "8 · Cilindro",
+        "r_eje": "9 · Eje del cilindro: {eje}",
+        "r_fin": "10 · VOI recortado",
     },
     "en": {
         "lema1": "Spinodal microstructures fitted",
@@ -89,6 +105,16 @@ TEXTOS = {
         "medido": "3 · Fitted candidate, measured",
         "ensayo": "4 · Compression test along Z",
         "vm": "5 · von Mises stress",
+        "r_carpeta": "1 · Folder of TIFF slices",
+        "r_escala": "2 · Voxel size",
+        "r_cargada": "3 · Stack loaded",
+        "r_cubo": "4 · Cube over the bone",
+        "r_mover": "5 · Moved through the bone",
+        "r_lado": "6 · Size by side",
+        "r_vol": "7 · Size by absolute volume",
+        "r_cil": "8 · Cylinder",
+        "r_eje": "9 · Cylinder axis: {eje}",
+        "r_fin": "10 · Cropped VOI",
     },
 }
 
@@ -104,6 +130,14 @@ def _fuente(n, negrita=False):
         f = _FUENTES / nombre
         if f.exists():
             return ImageFont.truetype(str(f), n)
+    # Linux (donde se corre en un servidor virtual): DejaVu o Liberation.
+    for ruta in (("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                  "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf")
+                 if negrita else
+                 ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                  "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf")):
+        if Path(ruta).exists():
+            return ImageFont.truetype(ruta, n)
     return ImageFont.load_default()
 
 
@@ -331,12 +365,25 @@ class Grabador:
         self.scroll.ensureWidgetVisible(w, 0, 60)
         self.esperar(0.1)
 
-    def foto(self, rotulo, resalta=None, ms=90, n=1):
-        pix = self.app.primaryScreen().grabWindow(int(self.v.winId()))
+    def foto(self, rotulo, resalta=None, ms=90, n=1, region=False,
+             pos="abajo-der"):
+        """Un cuadro. `region=True` captura el RECTANGULO de la ventana
+        principal desde la pantalla, de modo que un dialogo colocado encima
+        sale en la imagen (con `grabWindow(winId)` solo saldria la ventana)."""
+        if region:
+            g = self.v.geometry()
+            pix = self.app.primaryScreen().grabWindow(
+                0, g.x(), g.y(), g.width(), g.height())
+        else:
+            pix = self.app.primaryScreen().grabWindow(int(self.v.winId()))
         im = _a_pil(pix)
         d = ImageDraw.Draw(im, "RGBA")
         if resalta is not None:
-            p = resalta.mapTo(self.v, self.QtCore.QPoint(0, 0))
+            if region:
+                p = (resalta.mapToGlobal(self.QtCore.QPoint(0, 0))
+                     - self.v.mapToGlobal(self.QtCore.QPoint(0, 0)))
+            else:
+                p = resalta.mapTo(self.v, self.QtCore.QPoint(0, 0))
             r = [p.x() - 5, p.y() - 5, p.x() + resalta.width() + 5,
                  p.y() + resalta.height() + 5]
             d.rounded_rectangle(r, radius=8, outline=ACENTO + (255,), width=4)
@@ -344,6 +391,8 @@ class Grabador:
             f = _fuente(30, negrita=True)
             tw = d.textlength(rotulo, font=f)
             x, y = im.width - tw - 60, im.height - 110
+            if pos == "arriba":
+                x, y = (im.width - tw) / 2, 64
             d.rounded_rectangle([x - 22, y - 12, x + tw + 22, y + 50],
                                 radius=12, fill=FONDO + (228,))
             d.text((x, y), rotulo, font=f, fill=TINTA)
@@ -434,13 +483,149 @@ class Grabador:
         self.girar(T["vm"], pasos=36, grados=10)
         self.guardar("03_mecanica.gif")
 
+    # -- recorte: carpeta de TIFF -> cubo / cilindro ---------------------------
+
+    def _centrar(self, d):
+        """Pone un dialogo en el centro de la ventana principal."""
+        g = self.v.geometry()
+        d.move(g.x() + (g.width() - d.width()) // 2,
+               g.y() + (g.height() - d.height()) // 2)
+
+    def _exec_pila(self, d):
+        """Sustituye a `DialogoPilaTiff.exec_`: rellena el dialogo como lo haria
+        quien carga, y lo acepta."""
+        T = self.T
+        d.show()
+        d.adjustSize()
+        self._centrar(d)
+        d.raise_()
+        self.esperar(0.6)
+        self.foto(T["r_carpeta"], resalta=d.ed_origen, ms=900, region=True,
+                  pos="arriba")
+        d.ed_origen.setText(str(self.pila))
+        d._buscar_escala(str(self.pila))     # sin *_rec.log: avisa y pide la escala
+        d.sp_tam.setValue(16.0)
+        self.esperar(0.4)
+        self.foto(T["r_escala"], resalta=d.sp_tam, ms=1800, region=True,
+                  pos="arriba")
+        d.accept()
+        return self.QtWidgets.QDialog.Accepted
+
+    def _exec_recorte(self, d):
+        """Sustituye a `DialogoRecorte.exec_`: usa los mandos reales del dialogo."""
+        T = self.T
+        v = self.v
+        d.show()
+        d.raise_()
+        g = v.geometry()
+        d.resize(g.width(), g.height())      # tras show(): antes lo recoloca
+        d.move(g.x(), g.y())
+        self.esperar(3.0)                    # malla 3D, cubo y perfil
+        print("dialogo", d.geometry(), "ventana", g)
+
+        def f(rot, res=None, ms=700, esp=0.45):
+            self.esperar(esp)
+            self.foto(rot, resalta=res, ms=ms, region=True, pos="arriba")
+
+        # 1. cubo por defecto
+        f(T["r_cubo"], d.cmb_forma, ms=1600, esp=0.6)
+        # 2. se desplaza por el hueso con el mando de posicion
+        d.m_t.fijar(12.0)
+        d._posicion_editada(0)
+        f(T["r_mover"], d.m_t, ms=900, esp=0.7)
+        for x in (24, 36, 48, 60, 72, 84):
+            d.m_t.fijar(float(x))
+            d._posicion_editada(0)
+            f(T["r_mover"], d.m_t, ms=380, esp=0.5)
+        d.m_o2.fijar(d.m_o2.sp.maximum() * 0.25)
+        d._posicion_editada(0)
+        f(T["r_mover"], d.m_o2, ms=700, esp=0.5)
+        # de vuelta al centro del hueso: los tamanos se ensenan sobre hueso
+        # y no sobre el borde, donde el BV/TV saldria subestimado
+        d.m_t.fijar(50.0)
+        d.m_o2.fijar(0.0)
+        d._posicion_editada(0)
+        f(T["r_mover"], d.m_t, ms=900, esp=0.7)
+        # 3. tamano por lado
+        d.sp_lado.setValue(1200.0)
+        f(T["r_lado"], d.sp_lado, ms=1200, esp=0.6)
+        # 4. tamano por volumen absoluto
+        d.rb_vol.setChecked(True)
+        d.ed_vol.setText("1.2e9")
+        d._tamano_editado()
+        f(T["r_vol"], d.ed_vol, ms=1600, esp=0.7)
+        # 5. cilindro
+        d.cmb_forma.setCurrentIndex(1)
+        f(T["r_cil"], d.cmb_forma, ms=1600, esp=2.2)
+        d.sp_radio.setValue(500.0)
+        d.sp_alto.setValue(1400.0)
+        f(T["r_cil"], d.sp_radio, ms=1000, esp=1.6)
+        for k, eje in enumerate(("PC2", "PC3", "PC1")):
+            d.cmb_eje_cil.setCurrentIndex((k + 1) % 3)
+            f(T["r_eje"].format(eje=eje), d.cmb_eje_cil, ms=1300, esp=1.4)
+        # 6. aceptar: el VOI recortado pasa a la ventana principal
+        self.foto(T["r_fin"], resalta=d.findChild(
+            self.QtWidgets.QDialogButtonBox), ms=1200, region=True,
+            pos="arriba")
+        d._aceptar()
+        self._recorte_listo = True
+        return self.QtWidgets.QDialog.Accepted
+
+    def recortar(self, pila):
+        import visor
+        v, T = self.v, self.T
+        # El dialogo de recorte necesita mas sitio que la ventana de los otros
+        # GIF (su 3D, tres cortes y los mandos): se agranda la ventana.
+        v.resize(1500, 1080)
+        v.move(20, 20)
+        self.esperar(0.5)
+        self.pila = Path(pila)
+        visor.DialogoPilaTiff.exec_ = lambda d: self._exec_pila(d)
+        visor.DialogoRecorte.exec_ = lambda d: self._exec_recorte(d)
+        self._recorte_listo = False
+        v.cargar_pila_tiff()
+        t0 = time.time()
+        while v.VOI is None and time.time() - t0 < 60:
+            self.esperar(0.2)
+        self.esperar(1.0)
+        self.foto(T["r_cargada"], resalta=v.b_recorte, ms=1800)
+        v.recortar_voi()
+        t0 = time.time()
+        while not self._recorte_listo and time.time() - t0 < 180:
+            self.app.processEvents()
+            time.sleep(0.05)
+        self.esperar(1.5)
+        self.foto(T["r_fin"], ms=2200, pos="arriba")
+        self.guardar("00_recorte.gif")
+
     def cerrar(self):
         self.v.close()
 
 
-def hacer_gif(voi, idioma="es"):
+def _pila_de_ejemplo(destino):
+    """Escribe como rebanadas TIFF el VOI porcino real del repositorio.
+
+    Se guarda como (fila, columna) = (y, x), que es lo que escribe un escaner
+    (el lector traspone al leer; ver tests/test_08_pila_tiff.py).
+    """
+    import tifffile
+    VOI, _sp = leer_voi(str(RAIZ / "datos" / "porcino_koria2020" / "VOI_C1.mat"))
+    destino.mkdir(parents=True, exist_ok=True)
+    for k in range(VOI.shape[2]):
+        tifffile.imwrite(destino / f"C1_{k:05d}.tif",
+                         VOI[:, :, k].T.astype(np.uint8) * 255)
+    return destino
+
+
+def hacer_gif(voi, idioma="es", pila=None, solo=None):
+    import tempfile
     g = Grabador(voi, idioma)
     try:
+        if solo in (None, "recorte"):
+            with tempfile.TemporaryDirectory() as tmp:
+                g.recortar(pila or _pila_de_ejemplo(Path(tmp) / "pila"))
+        if solo == "recorte":
+            return
         g.explorar()
         if g.ajustar():
             g.mecanica()
@@ -453,13 +638,20 @@ def main():
     ap.add_argument("--banner", action="store_true")
     ap.add_argument("--gif", action="store_true")
     ap.add_argument("--voi", default=str(VOI_DEFECTO))
+    ap.add_argument("--pila", default=None,
+                    help="carpeta de TIFF para el GIF de recorte")
+    ap.add_argument("--solo", choices=["recorte"], default=None,
+                    help="regenera solo esa animacion")
     ap.add_argument("--idioma", choices=sorted(TEXTOS), default="es")
     a = ap.parse_args()
+    if a.solo:
+        hacer_gif(a.voi, a.idioma, a.pila, a.solo)
+        return
     todo = not (a.banner or a.gif)
     if a.banner or todo:
         hacer_banner(a.voi, a.idioma)
     if a.gif or todo:
-        hacer_gif(a.voi, a.idioma)
+        hacer_gif(a.voi, a.idioma, a.pila)
 
 
 if __name__ == "__main__":
