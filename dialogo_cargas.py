@@ -6,7 +6,7 @@ POR QUÉ ESTA VENTANA
 «Resolver y estimar el fallo» hace una pregunta fija: compresión axial entre dos
 platos. Aquí la pregunta la formula quien mira el cubo: dónde se apoya, dónde
 se empuja o se tira, con qué fuerza y en qué dirección. Se elige sobre el VOI
-del hueso, el espinodoide o el dual-lattice, con el mismo cubo y el mismo caso
+del hueso, el espinodoide, el dual-lattice o el level-set foam, con el mismo cubo y el mismo caso
 de carga, para poder comparar las tres estructuras bajo la misma solicitación.
 
 DISTRIBUCIÓN

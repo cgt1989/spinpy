@@ -1178,7 +1178,6 @@ EN = {
     'Familia': 'Family',
     'Familia:': 'Family:',
     'Familia: {f}': 'Family: {f}',
-    'Ambas': 'Both',
     'Dual-lattice': 'Dual-lattice',
     'Dual-lattice (vista)': 'Dual-lattice (view)',
     'Dual-lattice ajustado ({m})': 'Fitted dual-lattice ({m})',
@@ -1193,8 +1192,6 @@ EN = {
     'Exportar el dual-lattice como solido': 'Export the dual-lattice as a solid',
     'Ajustando con los dos metodos comparables…':
         'Fitting with the two comparable methods…',
-    'Spinodoide: conjunto de nivel de un campo aleatorio gaussiano\n(Kumar et al. 2020).\nDual-lattice: red dual de una teselacion de Delaunay, con cuatro\nbarras por nudo (Vafaeefar et al. 2022).\n\nAmbas: se generan, miden y ajustan las DOS a la vez, con un panel\n3D y una columna de la tabla por familia. Las acciones pesadas\n(tensor, ensayo, exportacion, lote) se hacen una familia detras\nde otra, con el mismo material y la misma resolucion.':
-        'Spinodoid: level set of a Gaussian random field\n(Kumar et al. 2020).\nDual-lattice: dual network of a Delaunay tessellation, with four\nstruts per node (Vafaeefar et al. 2022).\n\nBoth: the TWO are generated, measured and fitted together, with one\n3D panel and one table column per family. Heavy actions (tensor,\ntest, export, batch) run one family after the other, with the same\nmaterial and the same resolution.',
     'Red dual de una teselacion de Delaunay (Vafaeefar et al. 2022):\nel centroide de cada tetraedro unido a los de sus cuatro caras,\nengrosado hasta la densidad pedida. Cuatro barras por nudo.':
         'Dual network of a Delaunay tessellation (Vafaeefar et al. 2022):\nthe centroid of each tetrahedron joined to those of its four faces,\nthickened up to the requested density. Four struts per node.',
     'El estiramiento alarga la MALLA antes de engrosarla: el eje estirado es el eje rigido. Con 2.5 en un eje el DA ronda 1.5, el del VOI proximal equino. El grosor de las barras no se elige: sale de la densidad.':
@@ -1408,10 +1405,6 @@ EN = {
         'Model measured on the development machine and corrected with {n} run(s) on this machine. It is usually within ±20 %; on a new machine, up to a factor of 2 until it has run once.',
     'Modelo medido en el equipo de desarrollo; aun no hay ejecuciones en este equipo para corregirlo, asi que puede errar hasta un factor 2. Se ajusta solo al terminar cada etapa.':
         'Model measured on the development machine; there are no runs on this machine yet to correct it, so it may be off by up to a factor of 2. It adjusts itself as each stage finishes.',
-    'Ambas (VOI / Spinodoide / Dual-lattice)':
-        'Both (VOI / Spinodoid / Dual-lattice)',
-    'Con «Ambas» cada etapa se corre para las dos familias, las figuras las muestran lado a lado y el informe añade una tabla VOI / Spinodoide / Dual-lattice. El tiempo casi se duplica.':
-        'With «Both» every stage runs for the two families, the figures show them side by side and the report adds a VOI / Spinodoid / Dual-lattice table. The time nearly doubles.',
     'Figuras 3D del informe':
         '3D figures of the report',
     'Estilos':
@@ -1549,22 +1542,16 @@ EN = {
         'Fitting with the comparable methods…',
 
     # --- Pantalla de bienvenida -------------------------------------------
-    'spinpy — visor de spinodoides y VOIs':
-        'spinpy — spinodoid and VOI viewer',
+    'spinpy — visor de microestructuras y VOIs':
+        'spinpy — microstructure and VOI viewer',
     'Bienvenido a spinpy':
         'Welcome to spinpy',
     'Acerca de spinpy…':
         'About spinpy…',
-    'Ajuste de microestructuras espinodales a VOIs de hueso trabecular':
-        'Fitting spinodoid microstructures to trabecular bone VOIs',
+    'Ajuste de microestructuras sinteticas a VOIs de hueso trabecular':
+        'Fitting synthetic microstructures to trabecular bone VOIs',
     'AUTORES':
         'AUTHORS',
-    'Dos familias':
-        'Two families',
-    'Spinodoide (campo aleatorio gaussiano) y dual-lattice, sobre la misma '
-    'rejilla de vóxeles. Se ajustan y se comparan a la vez.':
-        'Spinodoid (Gaussian random field) and dual-lattice, on the same voxel '
-        'grid. They are fitted and compared at once.',
     'Morfometría':
         'Morphometry',
     'BV/TV, BS/BV, Tb.Th, Tb.Sp, Tb.N, anisotropía por tensor MIL, Conn.D, '
@@ -2327,4 +2314,48 @@ EN = {
         'custom',
     '%s%s sobre %s':
         '%s%s on %s',
+    '<b>Aviso:</b> el level-set foam actual no procede de un ajuste al VOI. A densidad igual, el estiramiento por eje decide en que eje es rigido: ajusta al VOI antes de comparar, o estaras midiendo la orientacion que dejaron los deslizadores.':
+        '<b>Warning:</b> the current level-set foam does not come from a fit to the VOI. At equal density, the per-axis stretch decides which axis is stiff: fit to the VOI before comparing, or you will be measuring the orientation the sliders left.',
+    '<p><b>Orientacion del eje principal</b> (MIL, medido sobre la malla que se ensaya): VOI a {av}° del eje Z (DA {dav}), level-set foam a {as_}° (DA {das}). <b>Angulo entre ambos: {ang}°.</b></p>':
+        '<p><b>Orientation of the principal axis</b> (MIL, measured on the mesh being tested): VOI at {av}° from the Z axis (DA {dav}), level-set foam at {as_}° (DA {das}). <b>Angle between the two: {ang}°.</b></p>',
+    'Con «Todas» cada etapa se corre para las tres familias, las figuras las muestran lado a lado y el informe añade una tabla VOI / Spinodoide / Dual-lattice / Level-set foam. El tiempo se multiplica por el numero de familias.':
+        'With «All» every stage runs for the three families, the figures show them side by side and the report adds a VOI / Spinodoid / Dual-lattice / Level-set foam table. The time is multiplied by the number of families.',
+    'Curvatura de la seccion':
+        'Section curvature',
+    'Engrosamiento de nodos c1':
+        'Node thickening c1',
+    'Engrosamiento de nodos c2':
+        'Node thickening c2',
+    'Espuma de celda abierta como conjunto de nivel de campos de\ndistancia de elipsoides empaquetados (Sonon et al. 2015; Kilingar\net al. 2019), implementada en morphoGen. Los puntales siguen las\naristas de la teselacion de las semillas.':
+        'Open-cell foam as the level set of the distance fields of\npacked ellipsoids (Sonon et al. 2015; Kilingar et al. 2019),\nimplemented in morphoGen. The struts follow the edges of the\ntessellation of the seeds.',
+    'Exportar el level-set foam como solido':
+        'Export the level-set foam as a solid',
+    'Level-set foam':
+        'Level-set foam',
+    'Level-set foam (vista)':
+        'Level-set foam (view)',
+    'Level-set foam ajustado':
+        'Fitted level-set foam',
+    'Level-set foam ajustado ({m})':
+        'Fitted level-set foam ({m})',
+    'No hay rotacion: la orientacion la da el estiramiento por eje (el eje alargado es el de las trabeculas). La densidad es exacta y el espesor del puntal sale de ella. Con pocas celdas y mucho estiramiento el empaquetado no cabe y no se genera. Generar tarda unos segundos aunque la resolucion sea baja.':
+        'There is no rotation: the orientation is given by the per-axis stretch (the elongated axis is that of the trabeculae). The density is exact and the strut thickness follows from it. With few cells and a lot of stretch the packing does not fit and is not generated. Generating takes a few seconds even at low resolution.',
+    'Numero de celdas':
+        'Number of cells',
+    'Orientacion por permutacion de ejes del estiramiento (eje principal a {ang}° del VOI).':
+        'Orientation by permutation of the stretch axes (principal axis at {ang}° from the VOI).',
+    'Parametros del level-set foam':
+        'Level-set foam parameters',
+    'Spinodoide (campo aleatorio gaussiano), dual-lattice y level-set foam (morphoGen, opcional), sobre la misma rejilla de vóxeles. Se ajustan y se comparan a la vez.':
+        'Spinodoid (Gaussian random field), dual-lattice and level-set foam (morphoGen, optional), on the same voxel grid. They are fitted and compared at once.',
+    'Spinodoide: conjunto de nivel de un campo aleatorio gaussiano\n(Kumar et al. 2020).\nDual-lattice: red dual de una teselacion de Delaunay, con cuatro\nbarras por nudo (Vafaeefar et al. 2022).\nLevel-set foam: espuma de celda abierta como conjunto de nivel de\ncampos de distancia de elipsoides empaquetados (Sonon et al. 2015;\nKilingar et al. 2019), de la libreria morphoGen (opcional).\n\nTodas: se generan, miden y ajustan las TRES a la vez, con un panel\n3D y una columna de la tabla por familia (el VOI y tres candidatos:\ncuatro vistas). Las acciones pesadas (tensor, ensayo, exportacion,\nlote) se hacen una familia detras de otra, con el mismo material y\nla misma resolucion.':
+        'Spinodoid: level set of a Gaussian random field\n(Kumar et al. 2020).\nDual-lattice: dual network of a Delaunay tessellation, with four\nstruts per node (Vafaeefar et al. 2022).\nLevel-set foam: open-cell foam as the level set of the distance\nfields of packed ellipsoids (Sonon et al. 2015; Kilingar et al.\n2019), from the morphoGen library (optional).\n\nAll: the THREE are generated, measured and fitted at once, with one\n3D panel and one table column per family (the VOI and three\ncandidates: four views). The heavy actions (tensor, test, export,\nbatch) run one family after another, with the same material and the\nsame resolution.',
+    'Todas':
+        'All',
+    'Todas (VOI / Spinodoide / Dual-lattice / Level-set foam)':
+        'All (VOI / Spinodoid / Dual-lattice / Level-set foam)',
+    'Tres familias':
+        'Three families',
+    'level-set foam vs VOI':
+        'level-set foam vs VOI',
 }

@@ -68,7 +68,18 @@ def gen(familia, n):
     n = float(n)
     if familia == "dual-lattice":
         return 1.30 * (n / 96.0) ** 1.11
+    if familia == "level-set-foam":
+        # Un coste FIJO (~4 s: morphoGen aprende los puntales en una rejilla
+        # propia, de unos 8 voxeles por semieje corto, que no depende de n) mas
+        # la evaluacion del campo en la rejilla del candidato, que si crece
+        # con n^3. Medido a 32-128^3 (4 nucleos, 134 celdas).
+        return 4.0 + 0.58 * (n / 96.0) ** 3
     return 8.75 * (n / 96.0) ** 2.81
+
+
+def forma(vox_lado):
+    """Medidas de forma del objetivo ampliado (espesor, poro, curvatura, Conn.D)."""
+    return 3.42 * (float(vox_lado) / 96.0) ** 3.15
 
 
 def morfo(vox, extra=False, poro=False, ef=False):
@@ -98,12 +109,20 @@ def comparado(n):
 
 # Evaluaciones equivalentes de un ajuste completo por familia: los metodos
 # comparables mas las replicas de incertidumbre.
-EVAL_AJUSTE = {"spinodoide": 127.6, "dual-lattice": 80.0}
+EVAL_AJUSTE = {"spinodoide": 127.6, "dual-lattice": 80.0,
+               # rapido (15) + completo (60) + 2 x 5 replicas; la alineacion por
+               # permutacion anade unas pocas mas, ya dentro del margen
+               "level-set-foam": 85.0}
 
 
 def ajuste(familia, n_fit, vox_voi):
-    return (EVAL_AJUSTE.get(familia, 127.6)
-            * (gen(familia, n_fit) + morfo(int(n_fit) ** 3))
+    por_eval = gen(familia, n_fit) + morfo(int(n_fit) ** 3)
+    if familia == "level-set-foam":
+        # Su objetivo mide ademas espesor, poro, curvatura y Conn.D en CADA
+        # evaluacion, y el VOI se mide tambien al voxel del candidato.
+        por_eval += forma(n_fit)
+        return EVAL_AJUSTE[familia] * por_eval + morfo(vox_voi) + forma(n_fit)
+    return (EVAL_AJUSTE.get(familia, 127.6) * por_eval
             + morfo(vox_voi))
 
 

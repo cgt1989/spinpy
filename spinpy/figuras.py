@@ -47,9 +47,16 @@ todos los numeros estan en la tabla del informe.
 COLOR
 -----
 Identidad por estructura, fija: VOI azul, spinodoide naranja, dual-lattice
-aguamarina. Son las tres primeras posiciones de una paleta categorica validada
-para daltonismo con todos los pares a la vez (distancia CVD >= 9). El color no
-va nunca solo: hay leyenda, etiqueta de valor y, para la citabilidad, rayado.
+aguamarina, level-set foam ambar. Las tres primeras son las primeras posiciones
+de una paleta categorica validada para daltonismo con todos los pares a la vez
+(distancia CVD >= 9). El ambar, cuarto, se valido con `validate_palette.js`
+(habilidad `dataviz`) y PASA con los pares ADYACENTES en claro y en oscuro (CVD
+>= 9.2, suelo de vision normal >= 21), pero NO con todos los pares: ambar frente
+a naranja queda en 15.0, en el limite del suelo. Es lo que la propia regla
+permite con codificacion secundaria, y aqui la hay siempre: el color no va
+nunca solo, hay leyenda, etiqueta de valor y, para la citabilidad, rayado. El
+contraste del aguamarina (2.82) y del ambar (2.05) con el blanco queda bajo 3:1:
+por eso los valores van tambien en la tabla del informe.
 
 HILOS
 -----
@@ -71,7 +78,12 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-COLOR = {"voi": "#2a78d6", "spinodoide": "#eb6834", "dual-lattice": "#1baf7a"}
+from .familias import FAMILIAS as _FAMILIAS
+from .familias import clave_morfometria as _clave_morf
+from .familias import sufijo as _sufijo_fam
+
+COLOR = {"voi": "#2a78d6", "spinodoide": "#eb6834", "dual-lattice": "#1baf7a",
+         "level-set-foam": "#f2a600"}
 TINTA = "#0b0b0b"
 TINTA_2 = "#52514e"
 REJILLA = "#e1e0d9"
@@ -80,10 +92,14 @@ FONDO = "#ffffff"
 
 DPI = 600
 LADO_3D = 2400
-ORDEN = ("voi", "spinodoide", "dual-lattice")
+ORDEN = ("voi", "spinodoide", "dual-lattice", "level-set-foam")
 
 NOMBRES = {"voi": ("VOI", "VOI"), "spinodoide": ("Spinodoide", "Spinodoid"),
-           "dual-lattice": ("Dual-lattice", "Dual-lattice")}
+           "dual-lattice": ("Dual-lattice", "Dual-lattice"),
+           "level-set-foam": ("Level-set foam", "Level-set foam")}
+
+# Familias y sufijos de sus claves de resultados (`spinpy.familias`).
+FAM_SUF = tuple((_f, _sufijo_fam(_f)) for _f in _FAMILIAS)
 
 METRICAS = (("BVTV", "BV/TV", ""), ("BSBV", "BS/BV", "mm⁻¹"),
             ("TbTh", "Tb.Th", "mm"), ("TbSp", "Tb.Sp", "mm"),
@@ -148,9 +164,8 @@ def fig_morfometria(doc, destino, idioma="es"):
     """Cociente candidato/VOI por metrica. Devuelve [png, pdf] o [] si no hay."""
     i = _i(idioma)
     m_v = doc.get("morfometria_voi") or {}
-    cands = [(f, doc.get(k)) for f, k in (("spinodoide", "morfometria_spin"),
-                                          ("dual-lattice", "morfometria_dual"))
-             if doc.get(k)]
+    cands = [(f, doc.get(_clave_morf(f))) for f in _FAMILIAS
+             if doc.get(_clave_morf(f))]
     filas = []
     for clave, etq, uni in METRICAS:
         v = _f(m_v, clave)
@@ -217,7 +232,7 @@ def fig_mecanica(doc, items, destino, idioma="es"):
     paneles = []
 
     serie = {}
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         rec = res.get("elastico" + suf)
         if not isinstance(rec, dict):
             continue
@@ -236,7 +251,7 @@ def fig_mecanica(doc, items, destino, idioma="es"):
                         ["Ex", "Ey", "Ez"], serie, None))
 
     serie = {}
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         rec = res.get("resistencia" + suf)
         if not isinstance(rec, dict):
             continue
@@ -571,7 +586,7 @@ def panel_3d(rutas, estructuras, destino, idioma="es"):
         ax = fig.add_subplot(1, k, j + 1)
         ax.imshow(imread(ruta))
         ax.set_axis_off()
-        ax.set_title(f"({'abc'[j]}) {NOMBRES[est][i]}", fontsize=8.5,
+        ax.set_title(f"({'abcd'[j]}) {NOMBRES[est][i]}", fontsize=8.5,
                      color=TINTA, loc="left")
     fig.tight_layout()
     return _guardar(fig, destino, pdf=False)[0]
@@ -748,9 +763,10 @@ def fig_anisotropia(doc, destino, idioma="es"):
     res = doc.get("resultados") or {}
     morf = {"voi": doc.get("morfometria_voi"),
             "spinodoide": doc.get("morfometria_spin"),
-            "dual-lattice": doc.get("morfometria_dual")}
+            "dual-lattice": doc.get("morfometria_dual"),
+            "level-set-foam": doc.get("morfometria_ls")}
     rig = {}
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         pe = (res.get("elastico" + suf) or {}).get("por_estructura") or {}
         for k, v in pe.items():
             est = "voi" if k == "voi" else fam
@@ -998,7 +1014,7 @@ def panel_von_mises(rutas, clim, destino, idioma="es", carga_N=100.0):
                            0.86])
         ax.imshow(imread(rutas[est]))
         ax.set_axis_off()
-        ax.set_title(f"({'abc'[j]}) {NOMBRES[est][i]}", fontsize=8.5,
+        ax.set_title(f"({'abcd'[j]}) {NOMBRES[est][i]}", fontsize=8.5,
                      color=TINTA, loc="left")
     cax = fig.add_axes([0.9, 0.14, 0.022, 0.64])
     barra = fig.colorbar(cm.ScalarMappable(norm=Normalize(*clim),
@@ -1056,7 +1072,8 @@ def fig_convergencia(doc, items, destino, idioma="es"):
     est = estructura_de(rec.get("estructura_codigo") or rec.get("estructura"),
                         doc)
     m = doc.get({"voi": "morfometria_voi", "spinodoide": "morfometria_spin",
-                 "dual-lattice": "morfometria_dual"}[est]) or {}
+                 "dual-lattice": "morfometria_dual",
+                 "level-set-foam": "morfometria_ls"}[est]) or {}
     tbth = _f(m, "TbTh")
     if tbth:
         x = np.array([tbth / float(p["h"]) for p in val])
@@ -1157,7 +1174,7 @@ def separaciones(doc):
     res = doc.get("resultados") or {}
     m_voi = doc.get("morfometria_voi") or {}
     out = {}
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         z = {}
         inc = (res.get("ajuste" + suf) or {}).get("incertidumbre") or {}
         for k, d in (inc.get("metricas") or {}).items():
@@ -1186,7 +1203,7 @@ def fig_incertidumbre(doc, items, destino, idioma="es"):
     i = _i(idioma)
     res = doc.get("resultados") or {}
     fams = []
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         rec = res.get("ajuste" + suf) or {}
         inc = rec.get("incertidumbre") or {}
         errs = [float(e) for e in (inc.get("errores") or [])
@@ -1329,7 +1346,7 @@ def cuantiles_superficie(doc):
     se toma una vez, del primer registro que lo tenga (como la figura 8)."""
     res = doc.get("resultados") or {}
     out = {}
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         rec = res.get("analisis_comparado" + suf)
         if not isinstance(rec, dict):
             continue

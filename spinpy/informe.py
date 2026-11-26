@@ -75,6 +75,11 @@ from pathlib import Path
 import numpy as np
 
 from . import procedencia
+from .error import PESOS_LEVEL_SET
+from .familias import FAMILIAS as _FAMILIAS
+from .familias import clave_morfometria as _clave_morf
+from .familias import con_sufijos as _con_sufijos
+from .familias import sufijo as _sufijo_fam
 from .avisos import DA_MIN_EJE, desalineacion, voi_no_trabecular
 from .incertidumbre import K_MIN
 from .resistencia import (CONV_DERIVA_RHO_MAX, CONV_ERROR_EXTRAPOLADO_MAX,
@@ -474,7 +479,13 @@ MAGNITUDES = {
 
 ESTRUCTURAS = {"documento": ("documento", "document"), "voi": ("VOI", "VOI"),
                "spinodoide": ("spinodoide", "spinodoid"),
-               "dual-lattice": ("dual-lattice", "dual-lattice")}
+               "dual-lattice": ("dual-lattice", "dual-lattice"),
+               "level-set-foam": ("level-set foam", "level-set foam")}
+
+# Las familias y sus sufijos de claves de resultados, de `spinpy.familias`:
+# `("", "_dual", "_ls")`. Todos los bucles «por familia» recorren estas tuplas.
+SUF_FAM = tuple(_sufijo_fam(_f) for _f in _FAMILIAS)
+FAM_SUF = tuple((_f, _sufijo_fam(_f)) for _f in _FAMILIAS)
 
 # Referencias con DOI: copiadas de `paper/paper.bib`, donde se contrastaron con
 # los registros de las editoriales. Las que no tienen DOI comprobado lo dicen.
@@ -494,6 +505,26 @@ REFERENCIAS = {
                       "algorithms as structural models of trabecular bone. "
                       "Journal of the Mechanical Behavior of Biomedical "
                       "Materials 138:105584.", "10.1016/j.jmbbm.2022.105584"),
+    # Level-set foam. Las dos primeras se comprobaron en SciSpace (registro
+    # completo con DOI, 2026-11); la tercera es el software y su DOI es el de
+    # todas las versiones, de `CITATION.cff` de morphoGen. NO se citan aqui
+    # Sonon et al. 2012 ni Degdeg y Dirrenberger 2026, que la documentacion de
+    # morphoGen cita pero no se pudieron comprobar en ninguna base.
+    "sonon2015": ("Sonon B, François B, Massart T (2015). An advanced "
+                  "approach for the generation of complex cellular material "
+                  "representative volume elements using distance fields and "
+                  "level sets. Computational Mechanics, agosto de 2015.",
+                  "10.1007/s00466-015-1168-8"),
+    "kilingar2019": ("Kilingar NG, Kamel KEM, Sonon B, Massart T, Noels L "
+                     "(2019). Computational generation of open-foam "
+                     "representative volume elements with morphological "
+                     "control using distance fields. European Journal of "
+                     "Mechanics A/Solids, noviembre de 2019.",
+                     "10.1016/j.euromechsol.2019.103847"),
+    "dirrenberger2026": ("Dirrenberger J (2026). morphoGen: morphological "
+                         "modelling and generation of virtual microstructures "
+                         "(software, GPL-3.0-or-later). Zenodo, todas las "
+                         "versiones.", "10.5281/zenodo.24340315"),
     # Las siete siguientes, para la seccion de modelos. Las tres primeras
     # estan en paper/paper.bib; las otras cuatro se comprobaron en Crossref.
     "hildebrand1997thickness": ("Hildebrand T, Rüegsegger P (1997). A new "
@@ -704,7 +735,10 @@ def _regenerar(par, completo=False):
     el umbral, y asi no se llama dos veces al generador.
     """
     kw = procedencia.kwargs_generador(par)
-    if par.get("familia") == "dual-lattice":
+    if par.get("familia") == "level-set-foam":
+        from .level_set import generar_level_set
+        BW, c, inf = generar_level_set(**kw)
+    elif par.get("familia") == "dual-lattice":
         from .dual_lattice import generar_dual_lattice
         BW, c, inf = generar_dual_lattice(**kw)
     else:
@@ -724,7 +758,8 @@ def _lado_voi(doc):
 
 def _morf(doc, estructura):
     return doc.get({"voi": "morfometria_voi", "spinodoide": "morfometria_spin",
-                    "dual-lattice": "morfometria_dual"}[estructura])
+                    "dual-lattice": "morfometria_dual",
+                    "level-set-foam": "morfometria_ls"}[estructura])
 
 
 # ---------------------------------------------------------------------------
@@ -827,7 +862,7 @@ def comprobar(doc):
                 or "voxel")
 
     # --- morfometria ---
-    for est in ("voi", "spinodoide", "dual-lattice"):
+    for est in ("voi",) + tuple(_FAMILIAS):
         m = _morf(doc, est)
         if not m:
             continue
@@ -855,7 +890,7 @@ def comprobar(doc):
                                ["da_sin_eje"], {"DA": da}))
 
     # --- ajustes ---
-    for clave, fam in (("ajuste", "spinodoide"), ("ajuste_dual", "dual-lattice")):
+    for fam, clave in _con_sufijos("ajuste"):
         rec = res.get(clave)
         if not isinstance(rec, dict) or not rec.get("parametros"):
             continue
@@ -875,6 +910,10 @@ def comprobar(doc):
             valor = {"rho": _f(par, "densidad"),
                      "beta/pi": _f(par, "wave_number_pi"),
                      "N": _f(par, "num_waves")}
+        elif fam == "level-set-foam":
+            valor = {"rho": _f(par, "densidad"),
+                     "celdas": _f(par, "n_celdas"),
+                     "K_c": _f(par, "curvatura")}
         else:
             valor = {"rho": _f(par, "densidad"), "celdas": _f(par, "celdas")}
         diag = rec.get("diagnostico") or {}
@@ -905,7 +944,7 @@ def comprobar(doc):
             return ["desalineado"], {"angulo": d["angulo_deg"]}
         return [], {}
 
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         rec = res.get("elastico" + suf)
         if isinstance(rec, dict):
             n = _i(rec.get("resolucion"))
@@ -1142,6 +1181,8 @@ def estructura_de(codigo, doc):
         return "voi" if doc.get("voi") else "spinodoide"
     if txt.strip() == "voi":
         return "voi"
+    if "level" in txt or "foam" in txt:
+        return "level-set-foam"
     return "dual-lattice" if "dual" in txt else "spinodoide"
 
 
@@ -1214,7 +1255,7 @@ def _semilla_ajuste(rec):
 
 def _items_dispersion(doc, res):
     items = []
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         rec = res.get("dispersion" + suf)
         if isinstance(rec, dict) and rec.get("resumen"):
             K = _i(rec.get("n_semillas")) or 0
@@ -1451,7 +1492,7 @@ def parrafos_metodos(doc, idioma="es", r=None):
         npv=proc.get("numpy") or np.__version__, c=r.c("harris2020")))
 
     m_voi = doc.get("morfometria_voi")
-    hay_cand = bool(doc.get("morfometria_spin") or doc.get("morfometria_dual"))
+    hay_cand = any(doc.get(_clave_morf(_f)) for _f in _FAMILIAS)
     forma, sp = voi.get("forma"), voi.get("spacing_mm")
     if forma and sp:
         P.append(r.t(
@@ -1516,7 +1557,7 @@ def parrafos_metodos(doc, idioma="es", r=None):
                 "equally.")
         P.append(txt)
 
-    for clave, fam in (("ajuste", "spinodoide"), ("ajuste_dual", "dual-lattice")):
+    for fam, clave in _con_sufijos("ajuste"):
         rec = res.get(clave)
         if not isinstance(rec, dict) or not rec.get("parametros"):
             continue
@@ -1556,6 +1597,36 @@ def parrafos_metodos(doc, idioma="es", r=None):
                 brad=r.n(onda["wave_number_rad"], ".6g"),
                 rho=r.n(par.get("densidad"), ".4g"),
                 res=_i(par.get("resolucion")), sem=_i(par.get("semilla")))
+        elif fam == "level-set-foam":
+            est = par.get("estiramiento") or [None] * 3
+            sep = "; " if idioma == "es" else ", "
+            txt = r.t(
+                "Se ajustó al VOI una espuma de celda abierta definida como "
+                "el conjunto de nivel de los campos de distancia de "
+                "elipsoides empaquetados {c} (level-set foam), generada con "
+                "morphoGen {m}: {cel} semillas, estiramiento ({est}), "
+                "curvatura de la sección de los puntales K_c = {kc}, "
+                "engrosamiento hacia los nodos (c1 = {c1}, c2 = {c2}) y "
+                "densidad relativa ρ = {rho}, fijada al BV/TV medido del VOI "
+                "(el espesor del puntal se resuelve para esa fracción). Se "
+                "generó a {res}³ vóxeles con semilla {sem} y se escaló al "
+                "lado del VOI.",
+                "An open-cell foam defined as the level set of the distance "
+                "fields of packed ellipsoids {c} (level-set foam) was fitted "
+                "to the VOI, generated with morphoGen {m}: {cel} seeds, "
+                "stretch ({est}), strut cross-section curvature K_c = {kc}, "
+                "node thickening (c1 = {c1}, c2 = {c2}) and relative density "
+                "ρ = {rho}, fixed to the measured BV/TV of the VOI (the strut "
+                "thickness is solved for that fraction). It was generated at "
+                "{res}³ voxels with seed {sem} and scaled to the side of the "
+                "VOI.",
+                c=r.c("sonon2015", "kilingar2019"), m=r.c("dirrenberger2026"),
+                cel=r.n(par.get("n_celdas"), ".4g"),
+                est=sep.join(r.n(e, ".3g") for e in est),
+                kc=r.n(par.get("curvatura"), ".3g"),
+                c1=r.n(par.get("c1"), ".3g"), c2=r.n(par.get("c2"), ".3g"),
+                rho=r.n(par.get("densidad"), ".4g"),
+                res=_i(par.get("resolucion")), sem=_i(par.get("semilla")))
         else:
             est = par.get("estiramiento") or [None] * 3
             sep = "; " if idioma == "es" else ", "
@@ -1585,8 +1656,13 @@ def parrafos_metodos(doc, idioma="es", r=None):
             "Parameters were chosen by spinpy's staged search minimising a "
             "weighted morphometric error{pes}; the error of the returned "
             "candidate was {err}.",
-            pes=(r.t(" con pesos modificados ({p})", " with modified weights "
-                     "({p})", p=json.dumps(pesos, ensure_ascii=False))
+            pes=(r.t(" con los pesos propios de esta familia ({p})",
+                     " with this family's own weights ({p})",
+                     p=json.dumps(pesos, ensure_ascii=False))
+                 if fam == "level-set-foam" and pesos == dict(PESOS_LEVEL_SET)
+                 else r.t(" con pesos modificados ({p})", " with modified "
+                          "weights ({p})", p=json.dumps(pesos,
+                                                        ensure_ascii=False))
                  if pesos else
                  r.t(" con los pesos por omisión", " with the default weights")),
             err=r.n(rec.get("error"), ".4g"))
@@ -1610,7 +1686,15 @@ def parrafos_metodos(doc, idioma="es", r=None):
                 "estocástico.",
                 "The error corresponds to a single realisation of the "
                 "stochastic generator.")
-        if rec.get("alineacion"):
+        if rec.get("alineacion") and fam == "level-set-foam":
+            txt += " " + r.t(
+                "Esta familia no admite rotación: la orientación se resolvió "
+                "permutando los ejes del estiramiento hasta que el tensor de "
+                "fábrica (MIL) del candidato se pareciera al del VOI.",
+                "This family does not admit rotation: the orientation was "
+                "resolved by permuting the stretch axes until the candidate's "
+                "fabric (MIL) tensor resembled that of the VOI.")
+        elif rec.get("alineacion"):
             txt += " " + r.t(
                 "La orientación del candidato se impuso a partir del marco del "
                 "tensor MIL del VOI; la matriz de rotación usada consta en el "
@@ -1622,7 +1706,7 @@ def parrafos_metodos(doc, idioma="es", r=None):
 
     tbth_v = _f(m_voi or {}, "TbTh")
     lado = _lado_voi(doc)
-    for suf in ("", "_dual"):
+    for suf in SUF_FAM:
         rec = res.get("elastico" + suf)
         if not isinstance(rec, dict):
             continue
@@ -1660,7 +1744,7 @@ def parrafos_metodos(doc, idioma="es", r=None):
     # ensayaron igual la frase sale identica y se deja una sola, y el rango de
     # la capa superficial se junta en uno.
     textos, n_sup = [], []
-    for suf in ("", "_dual"):
+    for suf in SUF_FAM:
         rec = res.get("resistencia" + suf)
         if not isinstance(rec, dict):
             continue
@@ -1712,7 +1796,7 @@ def parrafos_metodos(doc, idioma="es", r=None):
             "that percentile does.",
             lo=r.n(min(n_sup), ".0f"), hi=r.n(max(n_sup), ".0f")))
 
-    recs = [res.get("analisis_comparado" + suf) for suf in ("", "_dual")]
+    recs = [res.get("analisis_comparado" + suf) for suf in SUF_FAM]
     recs = [x for x in recs if isinstance(x, dict)]
     textos = []
     for rec in recs:
@@ -1847,7 +1931,7 @@ def _paquete(doc, regenerar=True, campos=None):
         "ajustes": {},
     }
     mascaras = {}
-    for clave, fam in (("ajuste", "spinodoide"), ("ajuste_dual", "dual-lattice")):
+    for fam, clave in _con_sufijos("ajuste"):
         rec = res.get(clave)
         if not isinstance(rec, dict) or not rec.get("parametros"):
             continue
@@ -1941,8 +2025,8 @@ COMPARA_MORF = (
 # Metricas con signo: su diferencia relativa no significa nada (un SMI de
 # -0,97 frente a +1,01 daria «+204 %»). Se da la diferencia absoluta.
 DIF_ABSOLUTA = {"SMI"}
-FAMILIAS_INF = (("spinodoide", "", "morfometria_spin"),
-                ("dual-lattice", "_dual", "morfometria_dual"))
+FAMILIAS_INF = tuple((_f, _sufijo_fam(_f), _clave_morf(_f))
+                     for _f in _FAMILIAS)
 MARCA = {CITABLE: "", RESERVAS: "*", NO_CITABLE: "†"}
 
 
@@ -1988,7 +2072,8 @@ def seccion_comparacion(doc, items, idioma="es"):
     if not fams or not m_voi:
         return []
     nombres = {"spinodoide": T("Spinodoide", "Spinodoid"),
-               "dual-lattice": "Dual-lattice"}
+               "dual-lattice": "Dual-lattice",
+               "level-set-foam": "Level-set foam"}
 
     def num(x, espec=".4g"):
         return "—" if x is None else fmt.format_field(float(x), espec)
@@ -2172,18 +2257,22 @@ def seccion_comparacion(doc, items, idioma="es"):
                   for f, _s, _m in fams]
         L.append("> " + T(
             f"**En palabras sencillas.** De las {n_comparadas} métricas "
-            "morfométricas medidas en las dos familias, "
+            "morfométricas medidas en las familias comparadas, "
             + " y ".join(partes) + ". Parecerse en la morfometría no "
             "garantiza parecerse en la rigidez: compárese la tabla de "
-            "mecánica. El error de cada ajuste no se compara entre familias "
-            "porque el del dual-lattice incluye un término de anisotropía "
-            "(DA2) que el del spinodoide no tiene.",
+            "mecánica. El error de cada ajuste no se compara entre familias: "
+            "el del dual-lattice incluye un término de anisotropía (DA2) que "
+            "el del spinodoide no tiene, y el del level-set foam añade "
+            "además cuatro términos de forma (tamaño de poro, variación del "
+            "espesor, curvatura y Conn.D).",
             f"**In plain words.** Of the {n_comparadas} morphometric metrics "
-            "measured in both families, " + " and ".join(partes) + ". "
+            "measured in the compared families, " + " and ".join(partes) + ". "
             "Resembling the VOI in morphometry does not guarantee resembling "
             "it in stiffness: see the mechanics table. The fit errors are "
-            "not compared across families because the dual-lattice one "
-            "includes an anisotropy term (DA2) that the spinodoid one lacks."))
+            "not compared across families: the dual-lattice one includes an "
+            "anisotropy term (DA2) that the spinodoid one lacks, and the "
+            "level-set foam one adds four shape terms (pore size, thickness "
+            "variation, curvature and Conn.D)."))
         L.append("")
     return L
 
@@ -2250,10 +2339,13 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
     # Siempre presente, aunque vacia: la numeracion de las secciones es fija
     # porque los pies de figura remiten a «la sección 3».
     comp = seccion_comparacion(doc, items, idioma)
-    dos = bool(doc.get("morfometria_spin")) and bool(
-        doc.get("morfometria_dual"))
-    L.append("## 2. " + (T("Comparación VOI / Spinodoide / Dual-lattice",
-                           "Comparison VOI / Spinodoid / Dual-lattice")
+    con_morf = [f for f in _FAMILIAS if doc.get(_clave_morf(f))]
+    dos = len(con_morf) > 1
+    nombres_cab = {"spinodoide": T("Spinodoide", "Spinodoid"),
+                   "dual-lattice": "Dual-lattice",
+                   "level-set-foam": "Level-set foam"}
+    L.append("## 2. " + (T("Comparación VOI / ", "Comparison VOI / ")
+                         + " / ".join(nombres_cab[f] for f in con_morf)
                          if dos else T("Comparación con el VOI",
                                        "Comparison with the VOI")))
     L.append("")
@@ -2923,7 +3015,7 @@ def _figuras_estudios(prep, d, idioma):
               deriva=fm.format_field(100.0 * CONV_DERIVA_RHO_MAX, "g")))
 
     Ks = [_i(((res.get(c) or {}).get("incertidumbre") or {}).get("K"))
-          for c in ("ajuste", "ajuste_dual")]
+          for c in ("ajuste" + _s for _s in SUF_FAM)]
     Ks = [k for k in Ks if k]
     K = min(Ks) if Ks else K_MIN
     poner(F.fig_incertidumbre(doc, items, d / ("fig10_incertidumbre",
@@ -2933,8 +3025,9 @@ def _figuras_estudios(prep, d, idioma):
               K=K, err_sd=fm.format_field(
                   100.0 / np.sqrt(2.0 * max(K - 1, 1)), ".0f")))
 
-    carga = _f(res.get("analisis_comparado")
-               or res.get("analisis_comparado_dual") or {}, "carga_N") or 100.0
+    carga = _f(next((res.get("analisis_comparado" + _s) for _s in SUF_FAM
+                     if res.get("analisis_comparado" + _s)), None) or {},
+               "carga_N") or 100.0
     poner(F.fig_von_mises_superficie(
               doc, items, d / ("fig11_von_mises_superficie",
                                "fig11_von_mises_surface")[i], idioma),
@@ -3058,10 +3151,11 @@ def figuras_3d(prep):
                                                  o["vista_principal"])
             if rutas_vm:
                 prep["archivos_figuras"] += list(rutas_vm.values())
-                carga = _f((prep["doc"].get("resultados") or {}).get(
-                    "analisis_comparado") or (prep["doc"].get("resultados")
-                                              or {}).get(
-                    "analisis_comparado_dual") or {}, "carga_N") or 100.0
+                _res_p = prep["doc"].get("resultados") or {}
+                carga = _f(next((_res_p.get("analisis_comparado" + _s)
+                                 for _s in SUF_FAM
+                                 if _res_p.get("analisis_comparado" + _s)),
+                                None) or {}, "carga_N") or 100.0
                 for idioma, nombre in (("es", "fig8_von_mises"),
                                        ("en", "fig8_von_mises_en")):
                     i = _idx(idioma)
@@ -3088,7 +3182,7 @@ def pie_metodo(prep, idioma="es"):
     i = _idx(idioma)
     fm = _Formateador(idioma)
     ctx = prep.get("contexto_voi")
-    fams = [f for f in ("spinodoide", "dual-lattice")
+    fams = [f for f in ("spinodoide", "dual-lattice")   # figura 0: sin level-set
             if f in (prep.get("generados") or {})]
     hay_voi = any(e[0] == "voi" for e in prep["estructuras"])
     partes = [PIES_METODO["cabecera"][i]]
@@ -3136,7 +3230,11 @@ def _figura_metodo(prep):
         for (fam, BW, _sp) in prep["estructuras"]:
             if fam == "voi" or fam not in gen:
                 continue
-            clave = "ajuste" if fam == "spinodoide" else "ajuste_dual"
+            if fam == "level-set-foam":
+                # La figura 0 dibuja los conos del campo y el esqueleto de la
+                # red; esta familia no tiene ninguno de los dos.
+                continue
+            clave = "ajuste" + _sufijo_fam(fam)
             par = dict((res.get(clave) or {}).get("parametros") or {})
             par.setdefault("familia", fam)
             campo, info = gen[fam]

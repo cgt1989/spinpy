@@ -1,6 +1,6 @@
 spinpy
 ======
-Ajuste de microestructuras espinodales a VOIs de hueso trabecular.
+Ajuste de microestructuras sinteticas a VOIs de hueso trabecular.
 Carlos Gonzalez-Torres - Universidad de Valparaiso
 
 

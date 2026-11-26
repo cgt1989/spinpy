@@ -176,8 +176,9 @@ def main():
     partes = [
         "# Manual de referencia de spinpy",
         "",
-        "Ajuste de microestructuras espinodales a volumenes de hueso "
-        "trabecular obtenidos por microtomografia.",
+        "Ajuste de microestructuras sinteticas (espinodoide, dual-lattice y "
+        "level-set foam) a volumenes de hueso trabecular obtenidos por "
+        "microtomografia.",
         "",
         "Version V%s." % _version(),
         "",

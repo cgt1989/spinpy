@@ -71,8 +71,24 @@ GOBIERNA_DUAL = {
 }
 
 
+# Lo mismo para level-set-foam. La densidad NO es un parametro libre del ajuste
+# (se fija al BV/TV medido) pero si se puede perturbar en las replicas con
+# variacion: la controla directamente, igual que en las otras dos.
+GOBIERNA_LS = {
+    "BVTV": ("densidad", "fraccion de solido: la controla directamente"),
+    "TbTh": ("n_celdas", "grosor: lo fija el numero de celdas; mas celdas, "
+                         "puntal mas fino"),
+    "TbSp": ("n_celdas", "separacion: misma escala que el grosor, asi que no "
+                         "se pueden variar por separado"),
+    "DA":   ("estiramiento", "anisotropia: la fija el estiramiento de las "
+                             "semillas"),
+}
+
+
 def gobierna_de(familia):
     """Mapa metrica -> parametro del generador, segun la familia."""
+    if familia == "level-set-foam":
+        return GOBIERNA_LS
     return GOBIERNA_DUAL if familia == "dual-lattice" else GOBIERNA
 
 
@@ -166,9 +182,52 @@ REGISTRO_DUAL = {
         {"modo": "completo", "_n_eval": 62}),
 }
 
+# --- Level-set-foam ---------------------------------------------------------
+# Dos metodos, como el dual-lattice. No tiene `mecanico` (se puede pedir con
+# `peso_mecanico`) ni `equitativo` (no hay conos). `_n_eval` alimenta la barra
+# de progreso y sale de `fit_levelset` (15 y 60 evaluaciones).
+
+def _envolver_ls(nombre, etiqueta, descripcion, kw):
+    def correr(VOI, spacing, m_voi=None, semilla=20260720, progreso=None,
+               **extra):
+        from .fit_levelset import ajustar_level_set
+        args = dict(kw)
+        args.update(extra)
+        args.pop("_n_eval", None)
+        # La interfaz pasa a todos los metodos los argumentos del spinodoide;
+        # aqui no significan nada y el ajuste no los acepta.
+        for k in ("num_waves", "esquema", "precision"):
+            args.pop(k, None)
+        t0 = time.time()
+        r = ajustar_level_set(VOI, spacing, m_voi=m_voi, seed=semilla,
+                              progreso=progreso, **args)
+        r["metodo"] = nombre
+        r["etiqueta"] = etiqueta
+        r["tiempo_s"] = time.time() - t0
+        return r
+    return {"nombre": nombre, "etiqueta": etiqueta,
+            "descripcion": descripcion, "correr": correr,
+            "n_eval": kw.get("_n_eval", 60), "familia": "level-set-foam"}
+
+
+REGISTRO_LS = {
+    "rapido": _envolver_ls(
+        "rapido", "Rapido (A+B+D)",
+        "Cuatro tamanos de celda, 7 presets de estiramiento y una rejilla "
+        "reducida de forma (curvatura y nodos). Sin refinado.",
+        {"modo": "rapido", "_n_eval": 15}),
+    "completo": _envolver_ls(
+        "completo", "Completo (A-F)",
+        "Seis tamanos, 23 presets de estiramiento, rejilla de forma de 5 "
+        "curvaturas por 4 engrosamientos de nodo, reajuste del tamano y "
+        "afinado de la forma. La densidad queda fija al BV/TV medido.",
+        {"modo": "completo", "_n_eval": 60}),
+}
+
 # Metodos por familia. `REGISTRO` se mantiene con su nombre porque la interfaz
 # y `lote.py` lo usan asi para el spinodoide.
-REGISTROS = {"spinodoide": REGISTRO, "dual-lattice": REGISTRO_DUAL}
+REGISTROS = {"spinodoide": REGISTRO, "dual-lattice": REGISTRO_DUAL,
+             "level-set-foam": REGISTRO_LS}
 
 
 def comparar_resultados(resultados, m_voi):
@@ -243,6 +302,9 @@ def generar_replicas(parametros, spacing, n=10, semilla_base=None,
     if par.get("familia") == "dual-lattice":
         return _replicas_dual(par, spacing, n, int(semilla_base), variar,
                               amplitud, medir, progreso)
+    if par.get("familia") == "level-set-foam":
+        return _replicas_ls(par, spacing, n, int(semilla_base), variar,
+                            amplitud, medir, progreso)
 
     variar = list(variar or [])
     avisos = []
@@ -400,3 +462,74 @@ def _replicas_dual(par, spacing, n, semilla_base, variar, amplitud, medir,
             "amplitud": float(amplitud), "tecnicas": not variar,
             "avisos": avisos, "semilla_base": int(semilla_base),
             "familia": "dual-lattice"}
+
+
+def _replicas_ls(par, spacing, n, semilla_base, variar, amplitud, medir,
+                 progreso):
+    """`generar_replicas` para un ajuste de level-set-foam.
+
+    Mismo contrato y la misma distincion entre replicas tecnicas y familia
+    sintetica; cambian los parametros que se perturban (`GOBIERNA_LS`). El
+    numero de celdas se perturba sin bajar de lo que el empaquetado admite
+    (`level_set.es_viable`), y el estiramiento se deja positivo.
+    """
+    from .level_set import es_viable, generar_level_set
+
+    variar = list(variar or [])
+    avisos = []
+    if "TbTh" in variar and "TbSp" in variar:
+        avisos.append(
+            "Tb.Th y Tb.Sp las gobierna el mismo parametro (el numero de "
+            "celdas), asi que se perturban juntas: pedir las dos no varia dos "
+            "cosas independientes.")
+    sin_mapa = [v for v in variar if v not in GOBIERNA_LS]
+    if sin_mapa:
+        avisos.append(
+            "Sin parametro que las gobierne, no se varian: "
+            + ", ".join(sin_mapa) + ". El generador toma densidad, celdas, "
+            "estiramiento y forma del puntal; el resto de metricas son "
+            "consecuencia.")
+    objetivos = {GOBIERNA_LS[v][0] for v in variar if v in GOBIERNA_LS}
+    rng = np.random.default_rng(int(semilla_base))
+
+    filas, mascaras = [], []
+    for k in range(int(n)):
+        if progreso:
+            progreso(k, int(n), f"Replica {k+1} de {n}")
+        rho = float(par["densidad"])
+        celdas = float(par["n_celdas"])
+        est = np.asarray(par["estiramiento"], float)
+        if "densidad" in objetivos:
+            rho = float(np.clip(rho * (1 + amplitud * rng.normal()), 0.05, 0.95))
+        if "n_celdas" in objetivos:
+            celdas = float(max(24.0, celdas * (1 + amplitud * rng.normal())))
+        if "estiramiento" in objetivos:
+            est = np.maximum(est * (1 + amplitud * rng.normal(size=3)), 0.1)
+        # Una perturbacion que deja el empaquetado sin sitio vuelve al valor
+        # ajustado en vez de abortar la serie.
+        if not es_viable(celdas, est):
+            celdas, est = float(par["n_celdas"]), np.asarray(par["estiramiento"], float)
+        semilla = int(semilla_base) + k
+        BW, _, info = generar_level_set(
+            int(par["resolucion"]), celdas, rho, estiramiento=est,
+            curvatura=float(par.get("curvatura", 0.0)),
+            c1=float(par.get("c1", 0.0)), c2=float(par.get("c2", 0.0)),
+            seed=semilla)
+        fila = {"replica": k + 1, "semilla": semilla, "densidad": rho,
+                "n_celdas": celdas,
+                "estiramiento": [float(x) for x in est],
+                "rho_obtenida": float(info["rho_obtenida"])}
+        if medir:
+            m = morfometria(BW, spacing)
+            fila.update({k2: float(m[k2]) for k2 in COMPARADAS
+                         if k2 in m and np.isscalar(m[k2])})
+        filas.append(fila)
+        mascaras.append(BW)
+    if progreso:
+        progreso(int(n), int(n), "listo")
+
+    return {"filas": filas, "mascaras": mascaras,
+            "logrado": _logrado(filas, medir), "variar": variar,
+            "amplitud": float(amplitud), "tecnicas": not variar,
+            "avisos": avisos, "semilla_base": int(semilla_base),
+            "familia": "level-set-foam"}

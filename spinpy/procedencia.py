@@ -59,6 +59,9 @@ VERSION_FORMATO = 2
 # la primera.
 TOL_ONDA = 1e-9
 
+# Familias sin esquema de muestreo ni numero de onda (no son un campo de ondas).
+FAMILIAS_SIN_ONDA = ("dual-lattice", "level-set-foam")
+
 # Columnas de procedencia de una fila de CSV, en este orden.
 COLUMNAS = ("spinpy_version", "formato_version", "familia", "esquema",
             "semilla", "wave_number_pi", "wave_number_rad")
@@ -120,8 +123,8 @@ def bloque(familia, esquema=None, semilla=None, wave_number_pi=None,
            wave_number_rad=None, **extra):
     """Bloque `procedencia` de un resultado.
 
-    En el dual-lattice no hay esquema de muestreo ni numero de onda: se
-    escriben como "no_aplica" y None, no se omiten, para que todas las filas de
+    En el dual-lattice y en level-set-foam no hay esquema de muestreo ni
+    numero de onda: se escriben como "no_aplica" y None, no se omiten, para que todas las filas de
     una tabla mezclada tengan las mismas columnas y un hueco no se lea como un
     dato perdido.
     """
@@ -136,7 +139,7 @@ def bloque(familia, esquema=None, semilla=None, wave_number_pi=None,
         "familia": fam,
         "semilla": None if semilla is None else int(semilla),
     }
-    if fam == "dual-lattice":
+    if fam in FAMILIAS_SIN_ONDA:
         d.update(esquema="no_aplica", wave_number_pi=None, wave_number_rad=None)
     else:
         d["esquema"] = esquema if esquema is not None else "rechazo"
@@ -151,6 +154,11 @@ def bloque(familia, esquema=None, semilla=None, wave_number_pi=None,
 def desde_parametros(par):
     """Bloque de procedencia a partir del dict `parametros` de un ajuste."""
     fam = par.get("familia", "spinodoide")
+    if fam == "level-set-foam":
+        # La version de morphoGen forma parte de la procedencia: la estructura
+        # se regenera con SU generador, no con codigo de spinpy.
+        return bloque(fam, semilla=par.get("semilla"),
+                      morphogen=par.get("morphogen"))
     if fam == "dual-lattice":
         return bloque(fam, semilla=par.get("semilla"))
     return bloque(fam, esquema=par.get("esquema", "rechazo"),
@@ -187,6 +195,14 @@ def kwargs_generador(par, semilla=None):
     """
     fam = par.get("familia", "spinodoide")
     s = int(par["semilla"] if semilla is None else semilla)
+    if fam == "level-set-foam":
+        # Sin R: la familia no admite rotacion (ver `level_set.py`).
+        return dict(resolution=int(par["resolucion"]),
+                    n_celdas=float(par["n_celdas"]), rho=float(par["densidad"]),
+                    estiramiento=tuple(float(x) for x in par["estiramiento"]),
+                    curvatura=float(par.get("curvatura", 0.0)),
+                    c1=float(par.get("c1", 0.0)), c2=float(par.get("c2", 0.0)),
+                    seed=s)
     R = np.asarray(par["R"], float)
     if fam == "dual-lattice":
         return dict(resolution=int(par["resolucion"]),

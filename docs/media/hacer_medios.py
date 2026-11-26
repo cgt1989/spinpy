@@ -52,7 +52,8 @@ AQUI = Path(__file__).resolve().parent
 RAIZ = AQUI.parents[1]
 sys.path.insert(0, str(RAIZ))
 
-from spinpy import generar_mascara, generar_dual_lattice, leer_voi  # noqa: E402
+from spinpy import (generar_dual_lattice, generar_level_set,  # noqa: E402
+                    generar_mascara, leer_voi)
 from visor import malla_de_mascara                                  # noqa: E402
 
 VOI_DEFECTO = RAIZ.parent / "H4" / "Segmentadas" / "VOI_proximal_cubico.vtk"
@@ -69,10 +70,11 @@ _FUENTES = Path("C:/Windows/Fonts")
 # Todo texto que se dibuja sobre una imagen, por idioma.
 TEXTOS = {
     "es": {
-        "lema1": "Microestructuras espinodales ajustadas",
+        "lema1": "Microestructuras sintéticas ajustadas",
         "lema2": "a hueso trabecular de micro-CT",
         "etapas": "morfometría  ·  ajuste  ·  homogeneización  ·  ensayo FE",
         "voi": "VOI micro-CT", "spin": "Spinodoide", "dual": "Dual-lattice",
+        "ls": "Level-set foam",
         "isotropo": "Isótropo", "columnar": "Columnar", "lamelar": "Lamelar",
         "cubico": "Cúbico", "ajustado": "Ajustado al hueso",
         "menos": "Menos densidad",
@@ -93,10 +95,11 @@ TEXTOS = {
         "r_fin": "10 · VOI recortado",
     },
     "en": {
-        "lema1": "Spinodal microstructures fitted",
+        "lema1": "Synthetic microstructures fitted",
         "lema2": "to micro-CT trabecular bone",
         "etapas": "morphometry  ·  fitting  ·  homogenization  ·  FE testing",
         "voi": "micro-CT VOI", "spin": "Spinodoid", "dual": "Dual-lattice",
+        "ls": "Level-set foam",
         "isotropo": "Isotropic", "columnar": "Columnar", "lamelar": "Lamellar",
         "cubico": "Cubic", "ajustado": "Fitted to bone",
         "menos": "Lower density",
@@ -188,7 +191,7 @@ def _encajar(im, alto):
 
 
 def _cubos(voi, T):
-    """Las tres estructuras del banner: el hueso y las dos familias."""
+    """Las cuatro estructuras del banner: el hueso y las tres familias."""
     out = []
     if voi is not None and Path(voi).exists():
         VOI, sp = leer_voi(str(voi))
@@ -202,6 +205,14 @@ def _cubos(voi, T):
                                       estiramiento=(1.0, 1.0, 1.6), seed=7)
     out.append((T["dual"], _render_cubo(BW, np.full(3, 1 / 96),
                                              color="#b9c7d6")))
+    # Level-set foam (morphoGen): la forma que el ajuste encontro para los VOI
+    # porcinos (celdas moderadas, un eje alargado, secciones convexas y nodos
+    # algo engrosados).
+    BW, _c, _i = generar_level_set(96, 134, rho=0.32,
+                                   estiramiento=(1.0, 1.0, 1.5),
+                                   curvatura=-0.5, c1=10.0, c2=0.5, seed=7)
+    out.append((T["ls"], _render_cubo(BW, np.full(3, 1 / 96),
+                                          color="#e6cf9a")))
     return out
 
 
@@ -237,7 +248,8 @@ def _banner(cubos, ancho, alto, titulo_px, destino, T, vertical=False):
     else:
         zx0, zx1 = int(ancho * 0.50), ancho - int(alto * 0.06)
         zy0, zy1 = int(alto * 0.10), alto - int(alto * 0.16)
-    n, sol = len(cubos), 0.06
+    n = len(cubos)
+    sol = 0.06 if n <= 3 else -0.03      # con cuatro, un hueco en vez de solape
     hueco = (zx1 - zx0) / (n - (n - 1) * sol)
     fe = _fuente(max(14, int(titulo_px * 0.15)))
     ims = []

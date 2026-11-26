@@ -60,6 +60,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[elastico,fem,malla,lote,test,informe]" tifffile
+          # Tercera familia (level-set foam), opcional: morphoGen exige Python
+          # >= 3.12. En 3.11 sus pruebas se saltan, que es lo que debe pasar
+          # con la familia ausente.
+          if python -c "import sys; sys.exit(sys.version_info < (3, 12))"; then
+            pip install "morphogen>=1.1"
+          fi
           pip freeze > entorno_congelado.txt
 
       # Errores reales del codigo (importaciones y variables sin uso, nombres

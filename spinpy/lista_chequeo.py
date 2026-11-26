@@ -44,6 +44,7 @@ su idioma); `seccion` los compone en Markdown.
 from __future__ import annotations
 
 import numpy as np
+from .familias import FAMILIAS, clave_morfometria, sufijo
 
 CUMPLE, PARCIAL, NO_CUMPLE, NO_APLICA = ("cumple", "parcial", "no_cumple",
                                          "no_aplica")
@@ -91,8 +92,8 @@ def _entero(x, idioma):
 
 
 def _recs(res, base):
-    """Registros de las dos familias (`base` y `base_dual`) que existan."""
-    return [x for x in (res.get(base), res.get(base + "_dual"))
+    """Registros de las familias (`base`, `base_dual`, `base_ls`) que existan."""
+    return [x for x in (res.get(base + sufijo(f)) for f in FAMILIAS)
             if isinstance(x, dict)]
 
 
@@ -145,7 +146,7 @@ def evaluar(doc, idioma="es", r=None, secciones=None):
     res = doc.get("resultados") or {}
     voi = doc.get("voi") or {}
     m_voi = doc.get("morfometria_voi") or {}
-    hay_cand = bool(doc.get("morfometria_spin") or doc.get("morfometria_dual"))
+    hay_cand = any(doc.get(clave_morfometria(f)) for f in FAMILIAS)
     forma, sp = voi.get("forma"), voi.get("spacing_mm")
     um = None
     try:

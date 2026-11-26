@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: >-
-  spinpy: ajuste de microestructuras espinodales a VOIs de hueso trabecular
+  spinpy: ajuste de microestructuras sinteticas a VOIs de hueso trabecular
 message: >-
   Si usas este software en una publicacion, citalo con estos metadatos.
 type: software
@@ -25,9 +25,11 @@ repository-code: 'https://github.com/cgt1989/spinpy'
 # sea rompe el boton "Cite this repository" de GitHub.
 # `spinpy/informe.py` lo escribe como [PENDIENTE] en la cita del software.
 abstract: >-
-  Nucleo voxel-primero para ajustar microestructuras espinodales (campo
-  aleatorio gaussiano, Kumar et al. 2020) a volumenes de interes de hueso
-  trabecular obtenidos por microtomografia. Cubre morfometria (BV/TV, BS/BV,
+  Nucleo voxel-primero para ajustar microestructuras sinteticas de tres
+  familias (espinodoide por campo aleatorio gaussiano, Kumar et al. 2020;
+  dual-lattice, Vafaeefar et al. 2022; y level-set foam, Sonon et al. 2015 y
+  Kilingar et al. 2019, con la libreria opcional morphoGen) a volumenes de
+  interes de hueso trabecular obtenidos por microtomografia. Cubre morfometria (BV/TV, BS/BV,
   Tb.Th, Tb.Sp, Tb.N, tensor MIL y grado de anisotropia, Conn.D, SMI),
   homogeneizacion elastica periodica sobre la rejilla de voxeles, ensayo de
   compresion con criterio de fallo de Pistoia, y exportacion a Abaqus, ANSYS

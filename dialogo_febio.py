@@ -56,7 +56,8 @@ def textos_analisis():
 def etiqueta_estructura(codigo):
     return {"voi": _("VOI de referencia"),
             "spinodoide": _("Spinodoide ajustado"),
-            "dual-lattice": _("Dual-lattice ajustado")}[codigo]
+            "dual-lattice": _("Dual-lattice ajustado"),
+            "level-set-foam": _("Level-set foam ajustado")}[codigo]
 
 
 def etiqueta_malla(tipo):
@@ -514,7 +515,7 @@ class DialogoFEMAuto(_BaseFEBio):
         g = QtWidgets.QGroupBox(_("Estructuras"))
         gl = QtWidgets.QVBoxLayout(g)
         self.chk_est = {}
-        for cod in ("voi", "spinodoide", "dual-lattice"):
+        for cod in ("voi", "spinodoide", "dual-lattice", "level-set-foam"):
             c = QtWidgets.QCheckBox(etiqueta_estructura(cod))
             self.chk_est[cod] = c
             gl.addWidget(c)
@@ -708,6 +709,10 @@ class DialogoFEMAuto(_BaseFEBio):
             ok = self._disponible(cod)
             puede = ok or (cod != "voi" and self.chk_ajustar.isChecked()
                            and v.VOI is not None)
+            if cod == "level-set-foam" and not ok:
+                # Sin morphoGen la familia no se puede ajustar aqui.
+                from spinpy.level_set import disponible
+                puede = puede and disponible()
             w.setEnabled(puede)
             w.setText(etiqueta_estructura(cod) + (
                 f"  —  {v.VOI_nombre}" if cod == "voi" and ok else

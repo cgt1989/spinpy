@@ -53,6 +53,7 @@ import time
 import numpy as np
 
 from .resistencia import E_S_DEF, NU_S_DEF
+from .familias import FAMILIAS, sufijo
 
 # Desplazamientos de la superficie, en voxeles DEL VOI (el del escaner). Un
 # cambio de umbral mueve la superficie una fraccion de ese voxel, y el mismo
@@ -312,7 +313,7 @@ ESTUDIOS = ("forma", "superficie", "contorno", "perdida", "fallo")
 def _tensor_de_sesion(res, codigo):
     """(C en Pa, n, E_s, nu_s) del tensor que la sesion homogeneizo para la
     estructura `codigo`, o (None,)*4 si no hay."""
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in ((f, sufijo(f)) for f in FAMILIAS):
         rec = res.get("elastico" + suf)
         if not isinstance(rec, dict):
             continue

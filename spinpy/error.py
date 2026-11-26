@@ -87,6 +87,11 @@ TERMINOS_OPCIONALES = {
     "TbTh_CV":       {"tipo": "escalar", "medida": "tbth", "coste": "forma"},
     "H_desv":        {"tipo": "escalar", "medida": "curvatura",
                       "coste": "forma"},
+    # Densidad de conectividad (Odgaard y Gundersen 1993): la unica medida
+    # TOPOLOGICA entre los terminos. Es barata (numero de Euler) y separa
+    # redes de islas con el mismo BV/TV. La anadio la familia level-set-foam.
+    "ConnD":         {"tipo": "escalar", "medida": "conectividad",
+                      "coste": "forma"},
     "EF_frac_placa": {"tipo": "escalar", "medida": "ef", "coste": "caro"},
     "dist_TbTh":     {"tipo": "distribucion", "medida": "tbth",
                       "coste": "forma", "cuantiles": "TbTh"},
@@ -108,6 +113,13 @@ TERMINOS_OPCIONALES = {
 # dentro los tres baratos que mas separan. El EF queda fuera por coste.
 PESOS_DISCRIMINANTES = {"TbSp": 0.0, "PoDm": 1.0, "TbTh_CV": 1.0,
                         "H_desv": 1.0}
+
+# El objetivo con el que se ajusta level-set-foam: los discriminantes mas
+# Conn.D. Se eligio midiendo, no a priori (docs/familias/LEVEL_SET_FOAM.md): con
+# el objetivo base (el de las otras dos familias) la densidad y el tamano del
+# puntal quedan casi saturados y el error no separa las familias; con estos
+# terminos si.
+PESOS_LEVEL_SET = dict(PESOS_DISCRIMINANTES, ConnD=1.0)
 
 DISTANCIAS = ("wasserstein", "hellinger")
 

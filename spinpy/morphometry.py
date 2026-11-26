@@ -468,7 +468,7 @@ def curvatura_de_mascara(BW, spacing, sigma=SIGMA_CURVATURA, margen=2):
 
 
 def metricas_forma(BW, spacing, tbth=False, poro=False, curvatura=False,
-                   ef=False, n_cuantiles=N_CUANTILES):
+                   ef=False, n_cuantiles=N_CUANTILES, conectividad=False):
     """Metricas de forma que puede usar la funcion objetivo, a demanda.
 
     Cada una tiene su compuerta porque su coste es muy distinto (medido):
@@ -482,6 +482,9 @@ def metricas_forma(BW, spacing, tbth=False, poro=False, curvatura=False,
       ef         Ellipsoid Factor (`elipsoide.factor_elipsoide`). 373 s a
                  48^3: NUNCA dentro de un bucle de ajuste; el ajuste lo deja
                  para los finalistas.
+      conectividad  Conn.D (`conectividad`), por el numero de Euler. Es casi
+                 gratis (centesimas de segundo a 96^3) y es la unica medida
+                 topologica entre las de forma.
 
     Las cifras de espesor local NO son citables como Tb.Th (sesgo de ~30 % a
     3-4 voxeles, ver `espesor.py`); sirven para comparar VOI y candidato
@@ -534,6 +537,9 @@ def metricas_forma(BW, spacing, tbth=False, poro=False, curvatura=False,
     if ef:
         from .elipsoide import factor_elipsoide
         out.update(factor_elipsoide(BW, sp))
+
+    if conectividad:
+        out["ConnD"] = _conectividad(BW, sp)["ConnD"]
 
     return out
 
@@ -978,6 +984,12 @@ def conectividad(BW, spacing):
     conn = 1.0 - chi
     return {"euler": chi, "Conn": conn, "ConnD": conn / TV}
 
+
+
+# Alias: `metricas_forma` recibe un argumento llamado `conectividad` (la
+# compuerta, que debe llamarse asi para encajar con `error.TERMINOS_OPCIONALES`)
+# y sombrea a la funcion.
+_conectividad = conectividad
 
 def indice_smi(BW, spacing, dr_rel=0.05, metodo="lorensen"):
     """Structure Model Index (Hildebrand & Ruegsegger 1997).

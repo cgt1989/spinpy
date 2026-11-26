@@ -26,7 +26,8 @@ from pathlib import Path
 def main_lote(argv=None):
     p = argparse.ArgumentParser(
         prog="spinpy-lote",
-        description="Ajusta un spinodoide a cada VOI, genera replicas "
+        description="Ajusta una microestructura sintetica (spinodoide, "
+                    "dual-lattice o level-set foam) a cada VOI, genera replicas "
                     "sinteticas y descompone la varianza.",
         epilog="AVISO: el numero de filas de la tabla NO es el N del estudio. "
                "Las replicas son tecnicas: reducen la incertidumbre de cada "
@@ -42,7 +43,7 @@ def main_lote(argv=None):
     p.add_argument("--jobs", type=int, default=-1)
     p.add_argument("--salida", type=Path, default=Path("resultados"))
     p.add_argument("--familia", default="spinodoide",
-                   choices=["spinodoide", "dual-lattice"])
+                   choices=["spinodoide", "dual-lattice", "level-set-foam"])
     p.add_argument("--objetivo", type=Path, default=None,
                    help="JSON con opciones del ajuste: pesos, distancia, "
                         "replicas, seleccion, k_robusto, alineacion, "
