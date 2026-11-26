@@ -25,7 +25,7 @@ paquete por historia: `pantalla.py` (diálogos que se ajustan a la pantalla) e
                                    flujos: ajustar, lote, simular, ensayar
  ─────────────────────────────────────────────────────────────
  morphometry.py, curvatura.py, espesor.py, elipsoide.py, elastic.py,
- resistencia.py, error.py, estadistica.py, incertidumbre.py
+ resistencia.py, cargas.py, error.py, estadistica.py, incertidumbre.py
                                    medir y resolver (numérico puro)
  ─────────────────────────────────────────────────────────────
  grf.py, dual_lattice.py           generadores de microestructura
@@ -60,6 +60,7 @@ paquete por historia: `pantalla.py` (diálogos que se ajustan a la pantalla) e
 | Espesor local, curvatura, Ellipsoid Factor | `espesor.py`, `curvatura.py`, `elipsoide.py` | 04, 09, 11 |
 | Homogeneización elástica | `elastic.py` | 05, 17 |
 | Ensayo de compresión, von Mises, Pistoia | `resistencia.py` | 05, 06, 20, 26 |
+| Cargas y apoyos a elegir, barrido de ángulo | `cargas.py` (solver y regiones), `escena_cargas.py` (3D y clic), `dialogo_cargas.py` (ventana), `informe_cargas.py` (sección del informe) | 37 |
 | **Motores FEM** (NGSolve, scikit-fem…) | `motores/` | 29, 36 |
 | Mallado TET10, exportar a Abaqus/ANSYS/FEBio | `fem.py`, `solido.py`, `escribe.py` | 07, 25, 27 |
 | Ajuste de parámetros a un VOI | `fit.py`, `fit_dual.py`, `error.py` | 13, 17 |

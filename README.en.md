@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  <img alt="version V2.4.0" src="https://img.shields.io/badge/version-V2.4.0-e8a33d">
+  <img alt="version V2.5.0" src="https://img.shields.io/badge/version-V2.5.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/executable-Windows%2064--bit-0078d6?logo=windows&logoColor=white">
   <img alt="Code MIT" src="https://img.shields.io/badge/code-MIT-2ea44f">
   <img alt="Executable GPL-3.0" src="https://img.shields.io/badge/executable-GPL--3.0-8a8a8a">
-  <img alt="Verification: 35 blocks" src="https://img.shields.io/badge/verification-35%20blocks-5b6b7f">
+  <img alt="Verification: 35 blocks" src="https://img.shields.io/badge/verification-36%20blocks-5b6b7f">
   <img alt="Interface ES/EN" src="https://img.shields.io/badge/interface-ES%20%7C%20EN-5b6b7f">
   <img alt="Built with Claude (vibecoding)" src="https://img.shields.io/badge/built%20with-Claude%20(vibecoding)-d97757?logo=claude&logoColor=white">
 </p>
@@ -122,6 +122,30 @@ candidate**, and failure load by the Pistoia criterion.
 
 <p align="center"><img src="docs/media/03_mecanica_en.gif" alt="Von Mises field of the compression test" width="100%"></p>
 
+### 5 · Choosing the loads with the mouse
+
+**Loads with the mouse…** (mechanical analysis section) opens the bone cube
+and lets you decide how it is loaded. A click on the cube or on the bone
+surface picks the region where a support or a load acts: a cube face, a
+spherical patch (with a normal filter, so it does not collect the other side
+of a trabecula) or individual nodes. The direction is set with a vector, with
+azimuth and elevation, with the normal of the faces, or by dragging a sphere
+at the tip of the arrow. There are forces, pressures, moments and prescribed
+displacements, as many as you like at once; fixed, sliding or custom
+degree-of-freedom supports; starting templates (compression, tension, shear,
+bending, torsion, point load); and undo and redo.
+
+The same case is solved on the bone VOI, the spinodoid or the dual-lattice, as
+you choose, or on all three with a comparison table. The chosen field (von
+Mises, effective strain, displacements, principal stresses, shear, components)
+is shown on the surface and in three slices, with an amplified deformed shape
+and an optional cut, and you get the reactions, the force and moment
+equilibrium, the stiffness in N/mm and the Pistoia factor. The **angle sweep**
+rotates a load in a plane and plots stiffness and stress against direction,
+with two solves instead of one per angle. Results export to an image, VTK
+(ParaView), CSV and JSON, and the case can be added to the publication report,
+which declares it in full.
+
 ---
 
 ## What it does
@@ -133,7 +157,7 @@ candidate**, and failure load by the Pistoia criterion.
 | **Measures** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, MIL tensor and DA, Conn.D, SMI, local thickness, pore size, **Ellipsoid Factor** and principal curvatures of the interface. |
 | **Fits** | The parameters that best reproduce a real VOI: staged search, replicas with fresh seeds, self-consistent noise floor and optional mechanical tie-break. |
 | **Homogenizes** | The elastic tensor by periodic unit cell on the voxel grid, with algebraic multigrid and a residual check. |
-| **Tests** | Compression along X, Y or Z with von Mises, effective-strain and displacement fields; Pistoia failure; mesh-convergence study. On bricks or on a smooth mesh of quadratic tetrahedra, linear or nonlinear, with built-in FE engines (the app, NGSolve and, if installed, FEniCSx, scikit-fem and SfePy), one or several at once. E and p99 **corrected for boundary artefacts** (rigid platen and measurement in the VOI core), validated against the same bone embedded in bone. |
+| **Tests** | Loads and supports chosen with the mouse (forces, pressures, moments, displacements; angle sweep; the same case on the VOI, the spinodoid and the dual-lattice). Compression along X, Y or Z with von Mises, effective-strain and displacement fields; Pistoia failure; mesh-convergence study. On bricks or on a smooth mesh of quadratic tetrahedra, linear or nonlinear, with built-in FE engines (the app, NGSolve and, if installed, FEniCSx, scikit-fem and SfePy), one or several at once. E and p99 **corrected for boundary artefacts** (rigid platen and measurement in the VOI core), validated against the same bone embedded in bone. |
 | **Simulates** | *In silico* bone loss (thinning, thin-trabeculae loss, disuse, recovery) and progressive failure on the VOI's digital twin. |
 | **Reports** | A publication report in Spanish and English (Markdown and PDF): methods written from the values actually used, 600 dpi figures, a citability table, a reporting checklist (Bouxsein et al. 2010 for micro-CT, Erdemir et al. 2012 for finite elements) and a SHA-256 fingerprint to reproduce each mask. |
 | **Exports** | Hexahedral or TET10 solid to Abaqus, ANSYS APDL, VTU and STL, and the full compression test to FEBio 4 (`.feb`). |
@@ -365,10 +389,10 @@ macOS with 3.13), and building the installer requires it to pass. Each run
 stores as an artifact the tolerance log and the exact environment
 (`pip freeze`) it was measured with.
 
-35 blocks with tolerances **declared before measuring**: topology, SMI,
+36 blocks with tolerances **declared before measuring**: topology, SMI,
 thickness, mechanics, Pistoia, TIFF stacks, curvature, Ellipsoid Factor,
 *dual-lattice*, provenance, objective function, MIL sampling, report, von
-Mises surface layer… A failure here is a finding, not a bug in the suite.
+Mises surface layer, user-chosen loads and supports… A failure here is a finding, not a bug in the suite.
 The two findings already documented (the slab of block 04 comes out one voxel
 thicker, and the Gibson-Ashby exponent of block 05 comes out ≈ 3.9) are
 marked as strict `xfail`: the suite stays green, the log still records them
@@ -808,6 +832,16 @@ cannot support a claim of equivalence. The template is at
 
 - **No experimental validation of the absolute mechanical values** (see the
   previous section).
+- **Loads with the mouse.** The solver is checked against closed-form
+  solutions (compression, lateral expansion, torsion and bending of a bar),
+  against the application's compression test and by force and moment
+  equilibrium; not against physical tests. The Pistoia factor was calibrated
+  with distal radius compression: with a concentrated force or a prescribed
+  displacement it is a relative index, not a failure load, and the maximum von
+  Mises under a point load depends on the mesh (the 99th percentile is more
+  stable). The supports of the angle sweep do not rotate with the load. Regions
+  chosen with the mouse are solved on the voxel mesh; the cropped cylinder is
+  not accepted, as in the rest of the mechanical analysis.
 - **Mesh-based measurement on Apple Silicon macOS.** In the automated
   verification, `tests/test_07_malla.py::test_losa_tapas_excluidas` fails on
   macOS (BS +2.34 % against the 1 % tolerance) and passes on Linux and Windows.
