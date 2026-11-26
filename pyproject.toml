@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spinpy"
-version = "2.5.0"
+version = "2.6.0"
 description = "Ajuste de microestructuras sinteticas (espinodoide, dual-lattice, level-set foam) a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
 readme = "README.md"
 requires-python = ">=3.10"
