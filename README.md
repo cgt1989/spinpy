@@ -3,22 +3,23 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/banner.png" alt="spinpy — microestructuras espinodales ajustadas a hueso trabecular de micro-CT" width="100%">
+  <img src="docs/media/banner.png" alt="spinpy — microestructuras sintéticas ajustadas a hueso trabecular de micro-CT" width="100%">
 </p>
 
 <p align="center">
-  <img alt="versión V2.5.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.5.0-e8a33d">
+  <img alt="versión V2.6.0" src="https://img.shields.io/badge/versi%C3%B3n-V2.6.0-e8a33d">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 35 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-36%20bloques-5b6b7f">
+  <img alt="Verificación: 37 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-37%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
   <img alt="Desarrollado con Claude (vibecoding)" src="https://img.shields.io/badge/desarrollado%20con-Claude%20(vibecoding)-d97757?logo=claude&logoColor=white">
 </p>
 
 <p align="center">
   <b>Del micro-CT al modelo mecánico, diciendo cuánto vale cada número.</b><br>
+  <a href="#familias-de-microestructura">Familias</a> ·
   <a href="#qué-hace">Qué hace</a> ·
   <a href="#la-aplicación-en-movimiento">Demo</a> ·
   <a href="#instalación">Instalación</a> ·
@@ -29,7 +30,8 @@
 
 ---
 
-**spinpy** ajusta microestructuras **espinodales** (y *dual-lattice*) a
+**spinpy** ajusta microestructuras sintéticas de tres familias
+(**espinodoide**, *dual-lattice* y *level-set foam*) a
 volúmenes de interés de **hueso trabecular** obtenidos por microtomografía, y
 después los mide y los ensaya: morfometría, homogeneización elástica, ensayo
 de compresión por elementos finitos e informe listo para publicación. Es el
@@ -48,8 +50,8 @@ soporte también para volúmenes porcinos, de vértebra de ratón y de fémur.
 > posterior; con el cilindro se obtiene la morfometría básica restringida a su
 > dominio. Se ve en funcionamiento en [La aplicación en movimiento](#la-aplicación-en-movimiento).
 
-> *In English:* spinpy fits spinodoid and dual-lattice surrogate
-> microstructures to trabecular-bone VOIs from micro-CT, then measures them
+> *In English:* spinpy fits surrogate microstructures of three families
+> (spinodoid, dual-lattice and level-set foam) to trabecular-bone VOIs from micro-CT, then measures them
 > (BV/TV, Tb.Th, DA, Conn.D, SMI, Ellipsoid Factor…), homogenizes their
 > elastic tensor and runs FE compression tests. The GUI is available in
 > Spanish and English. **[Read this README in English →](README.en.md)**
@@ -66,8 +68,8 @@ carpeta de TIFF de micro-CT
  → morfometría
      BV/TV, Tb.Th, DA, Conn.D,
      SMI, Ellipsoid Factor
- → ajuste: spinodoide
-     o dual-lattice
+ → ajuste: spinodoide,
+     dual-lattice o level-set foam
  → homogeneización elástica
  → ensayo de compresión FE
      von Mises, Pistoia
@@ -81,6 +83,73 @@ carpeta de TIFF de micro-CT
 </td>
 </tr>
 </table>
+
+---
+
+## Familias de microestructura
+
+spinpy ajusta a un VOI real microestructuras sintéticas de **tres familias**.
+No hay una que sirva para todo: con el mismo BV/TV, el mismo Tb.Th y la misma
+anisotropía, cada una reproduce mejor unos aspectos del hueso que otros. Por
+eso la aplicación las ajusta con una misma búsqueda escalonada y las compara
+con el VOI en una sola tabla, con el mismo material y la misma resolución. El
+selector de la barra de herramientas trabaja con una familia o con **Todas**,
+que muestra a la vez el VOI y las tres candidatas, en cuatro vistas.
+
+| Familia | Qué es | Referencia | Librería |
+|---|---|---|---|
+| **Spinodoide** | Conjunto de nivel de un campo aleatorio gaussiano | Kumar et al. 2020 | spinpy, a partir de `spinodoid.m` de GIBBON |
+| **Dual-lattice** | Red dual de una teselación de Delaunay, con cuatro puntales por nudo | Vafaeefar et al. 2022 | spinpy (`scipy.spatial`) |
+| **Level-set foam** | Espuma de celda abierta como conjunto de nivel de campos de distancia de elipsoides empaquetados | Sonon et al. 2015; Kilingar et al. 2019 | **morphoGen** (Dirrenberger 2026), opcional |
+
+**Spinodoide.** Es una suma de ondas planas cuyas direcciones se restringen a
+conos alrededor de los ejes; los semiángulos de cono fijan la anisotropía y el
+umbral fija la densidad. Está porque es la familia con la que nació el
+proyecto (los metamateriales espinodoides de diseño inverso de Kumar et al.)
+y la que tiene la verificación más amplia contra MATLAB y la literatura. Su
+límite conocido es que una sola longitud característica da un espesor
+trabecular uniforme: ajustado a BV/TV, Tb.Th y DA puede quedar bastante más
+blando que el hueso (véase [Limitaciones](#limitaciones-que-conviene-conocer)).
+
+**Dual-lattice.** El centroide de cada tetraedro de la teselación se une a los
+de sus cuatro caras y el esqueleto resultante se engrosa hasta la densidad
+pedida; un estiramiento por eje da la anisotropía. Está porque Vafaeefar et
+al. la propusieron como modelo de hueso trabecular y, según ese trabajo,
+reproduce la rigidez del hueso al que se calibra mejor que el giroide y el
+espinodoide con los que la compararon. Su espesor es casi uniforme, lo que
+limita lo que puede igualar de la forma de la trabécula.
+
+**Level-set foam.** Los puntales siguen las aristas de la teselación de las
+semillas elipsoidales y su sección se controla con la curvatura (convexa o
+cóncava, como los bordes de Plateau) y con el engrosamiento hacia los nodos;
+el espesor se resuelve para la densidad pedida, que es por tanto exacta. Está
+porque, sobre cuatro VOI porcinos, con la densidad fijada al BV/TV medido y un
+objetivo que incluye tamaño de poro, variación del espesor, curvatura y
+Conn.D, reproduce mejor que el dual-lattice lo que el ajuste **no** optimiza
+(SMI y número de poros en los cuatro VOI, rigidez elástica periódica en los
+cuatro a 32³) y tiene el menor error ampliado. La evidencia completa, con sus
+límites (un solo tipo de hueso, mecánica poco resuelta), está en
+[`docs/familias/LEVEL_SET_FOAM.md`](docs/familias/LEVEL_SET_FOAM.md). No
+admite rotación: la orientación la da el estiramiento por eje, y el ajuste la
+resuelve permutando los ejes hasta parecerse a la fábrica del VOI.
+
+> **Level-set foam es opcional.** Necesita la librería
+> [morphoGen](https://github.com/jdirr/morphoGen) (Python ≥ 3.12, licencia
+> GPL-3.0-or-later): `pip install "spinpy[level-set]"`. Sin ella, la
+> aplicación funciona igual con las otras dos familias y esta aparece
+> desactivada. El núcleo de spinpy sigue siendo MIT porque no la importa salvo
+> que se elija la familia; quien redistribuya spinpy junto con morphoGen queda
+> sujeto a la GPL sobre la obra combinada, como ya ocurre con PyQt5. Los
+> ejecutables publicados todavía no la incluyen. En macOS con procesador Intel
+> su instalación falló en la integración continua (el `numba` más reciente
+> exige `llvmlite` 0.50, que no tiene rueda para esa plataforma), así que allí
+> la familia queda sin probar.
+>
+> De las referencias de morphoGen se comprobaron (con registro completo y DOI)
+> Sonon, François y Massart (2015) y Kilingar et al. (2019). La documentación de
+> morphoGen cita además a Sonon et al. (2012) y a Degdeg y Dirrenberger (2026),
+> que no se localizaron en ninguna base bibliográfica consultada y por eso no se
+> citan aquí.
 
 ---
 
@@ -140,8 +209,9 @@ impuestos, tantos como se quiera a la vez, apoyos empotrados, deslizantes o
 con los grados de libertad que se elijan, plantillas de partida (compresión,
 tracción, cizalla, flexión, torsión, carga puntual) y deshacer y rehacer.
 
-El mismo caso se resuelve sobre el VOI del hueso, el espinodoide o el
-*dual-lattice*, a elección, o sobre los tres con una tabla comparativa. Se ve
+El mismo caso se resuelve sobre el VOI del hueso, el espinodoide, el
+*dual-lattice* o el *level-set foam*, a elección, o sobre las tres familias a
+la vez con una tabla comparativa. Se ve
 el campo elegido (von Mises, deformación efectiva, desplazamientos, tensiones
 principales, cortante, componentes) sobre la superficie y en tres cortes, con
 deformada amplificada y corte opcional, y se obtienen las reacciones, el
@@ -158,11 +228,11 @@ caso al informe de publicación, que lo declara completo.
 | Etapa | Qué incluye |
 |---|---|
 | **Lee** | VOIs `.vtk` y `.mat`, y pilas TIFF de micro-CT (carpeta de rebanadas o multipágina) con la escala leída del *log* SkyScan. Umbraliza, encuadra por PCA y recorta sobre una vista 3D del hueso un **cubo** (por su lado o por su volumen absoluto, µm, µm³) o un **cilindro** (por su radio y su altura, con el eje a lo largo de PC1, PC2 o PC3). La forma se desplaza por el hueso con mandos o arrastrándola, y se ve su BV/TV, tres cortes con escala y el perfil de BV/TV a lo largo del eje antes de confirmar. Con un cilindro la medida se restringe a su dominio (el exterior de su caja no cuenta como poro) y solo se calcula la morfometría básica; el ajuste y el ensayo FE necesitan un cubo. |
-| **Genera** | Espinodales por campo aleatorio gaussiano (Kumar et al. 2020), con las dos convenciones de muestreo de ondas de la literatura, y *dual-lattice* (Vafaeefar et al. 2022). |
+| **Genera** | Espinodales por campo aleatorio gaussiano (Kumar et al. 2020), con las dos convenciones de muestreo de ondas de la literatura, *dual-lattice* (Vafaeefar et al. 2022) y *level-set foam* (Sonon et al. 2015; Kilingar et al. 2019, con la librería opcional morphoGen). Véase [Familias de microestructura](#familias-de-microestructura). |
 | **Mide** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, tensor MIL y DA, Conn.D, SMI, espesor local, tamaño de poro, **Ellipsoid Factor** y curvaturas principales de la interfaz. |
 | **Ajusta** | Los parámetros que mejor reproducen un VOI real: búsqueda escalonada, réplicas con semillas nuevas, suelo de ruido autoconsistente y desempate mecánico opcional. |
 | **Homogeneiza** | El tensor elástico por celda unidad periódica sobre la rejilla de vóxeles, con multigrid algebraico y comprobación del residuo. |
-| **Ensaya** | Cargas y apoyos elegidos con el ratón (fuerzas, presiones, momentos, desplazamientos; barrido de ángulo; mismo caso sobre el VOI, el espinodoide y el *dual-lattice*). Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. E y p99 **corregidos de los artefactos de borde** (plato rígido y medida en el núcleo del VOI), validados frente al mismo hueso embebido en hueso. |
+| **Ensaya** | Cargas y apoyos elegidos con el ratón (fuerzas, presiones, momentos, desplazamientos; barrido de ángulo; mismo caso sobre el VOI y sobre cada familia). Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. E y p99 **corregidos de los artefactos de borde** (plato rígido y medida en el núcleo del VOI), validados frente al mismo hueso embebido en hueso. |
 | **Simula** | Pérdida ósea *in silico* (adelgazamiento, trabéculas finas, desuso, recuperación) y fallo progresivo sobre el gemelo digital del VOI. |
 | **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad, lista de chequeo de reporte (Bouxsein et al. 2010 para micro-TC, Erdemir et al. 2012 para elementos finitos) y huella SHA-256 para reproducir cada máscara. |
 | **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL, y el ensayo de compresión completo a FEBio 4 (`.feb`). |
@@ -195,8 +265,9 @@ además dice **cuánto vale ese número**:
   y lo pone por delante del número de filas, porque tratar K réplicas como K
   especímenes es pseudorreplicación.
 - **Cada número guardado lleva su procedencia**: versión, familia, esquema,
-  semilla y el número de onda con sus dos lecturas, para que un resultado
-  exportado se pueda regenerar bit a bit.
+  semilla y el número de onda con sus dos lecturas (y, en *level-set foam*, la
+  versión de morphoGen), para que un resultado exportado se pueda regenerar bit
+  a bit.
 
 ---
 
@@ -268,6 +339,7 @@ pip install -e ".[malla]"      # mallado TET10
 pip install -e ".[lote]"       # lote y estadística
 pip install -e ".[gui]"        # interfaz gráfica
 pip install -e ".[informe]"    # PDF y figuras del informe
+pip install -e ".[level-set]"  # tercera familia (morphoGen: Python >= 3.12, GPL)
 pip install -e ".[todo]"       # todo
 ```
 
@@ -387,9 +459,9 @@ macOS con 3.13), y la construcción del instalador exige que pase. Cada
 ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
 (`pip freeze`) con que se midió.
 
-36 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+37 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
-*dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
+*dual-lattice*, *level-set foam*, procedencia, función objetivo, muestreo MIL, informe, capa de
 superficie de von Mises, cargas y apoyos a elegir… Un fallo aquí es un hallazgo, no un error de la
 suite. Los dos hallazgos ya documentados (la losa del bloque 04 sale un vóxel
 más gruesa y el exponente de Gibson-Ashby del bloque 05 sale ≈ 3,9) están
@@ -766,6 +838,11 @@ del propio código (`python docs/generar_manual.py`). Los docstrings de este
 proyecto no son un resumen: llevan las decisiones de diseño, los sesgos
 medidos y las trampas que costó encontrar.
 
+La evidencia con la que se incorporó la familia *level-set foam* (protocolo,
+resultados y límites) está en
+[`docs/familias/LEVEL_SET_FOAM.md`](docs/familias/LEVEL_SET_FOAM.md), con los
+scripts para repetirla en [`docs/familias/experimento/`](docs/familias/experimento/LEEME.md).
+
 ---
 
 ## Probar el código y contribuir
@@ -858,6 +935,11 @@ los intervalos no permiten concluir equivalencia. La plantilla está en
   característica da un espesor trabecular uniforme, y el hueso no lo es. Un
   spinodoide que iguala BV/TV, Tb.Th y DA puede ser bastante más blando que el
   hueso al que se ajustó; spinpy lo mide y lo dice.
+- **Level-set foam está validado solo sobre hueso subcondral porcino.** Cuatro
+  VOI del mismo conjunto de datos, una sola realización mecánica por VOI y sin
+  una referencia mecánica externa: no dice nada todavía sobre el sesamoideo
+  equino. Su ajuste es una primera pasada, menos calibrada que el de las otras
+  dos familias, y los parámetros de forma ganadores cambian de un VOI a otro.
 - Los optimizadores de Pareto, bayesiano y MOBO siguen solo en MATLAB.
 - Por debajo de ρ ≈ 0,25 (clase isótropa) la homogeneización periódica no
   alcanza la tolerancia declarada: es una propiedad del régimen cercano al
@@ -876,7 +958,8 @@ Sarabia-Vallejos ([ORCID](https://orcid.org/0000-0001-5128-796X)) —
 Universidad de Valparaíso.
 
 Métodos implementados: Kumar et al. 2020 (generador espinodal), Vafaeefar et
-al. 2022 (*dual-lattice*), Andreassen & Andreasen 2014 (homogeneización),
+al. 2022 (*dual-lattice*), Sonon et al. 2015 y Kilingar et al. 2019 (*level-set
+foam*, con la librería morphoGen de Dirrenberger, 2026), Andreassen & Andreasen 2014 (homogeneización),
 Harrigan & Mann 1984 (tensor MIL), Pistoia et al. 2002 (criterio de fallo),
 Odgaard & Gundersen 1993 (Conn.D), Hildebrand & Rüegsegger 1997 (espesor local
 y SMI), Doube 2015 (Ellipsoid Factor), Parfitt (modelo de placas).
@@ -895,3 +978,8 @@ detalle, con la lista de componentes de terceros, está en
 
 Migrar la interfaz a PySide6 (LGPL) no bastaría por sí solo para tener un
 binario sin copyleft: `pymeshfix` es GPL v3 y `tetgen` deriva de código AGPL.
+
+**morphoGen (familia *level-set foam*) es GPL-3.0-or-later** y es una
+dependencia opcional (`spinpy[level-set]`): el núcleo MIT no la importa salvo que
+se elija esa familia. Quien redistribuya spinpy junto con ella queda sujeto a la
+GPL sobre la obra combinada.

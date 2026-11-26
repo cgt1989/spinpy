@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spinpy"
-version = "2.5.0"
-description = "Ajuste de microestructuras espinodales a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
+version = "2.6.0"
+description = "Ajuste de microestructuras sinteticas (espinodoide, dual-lattice, level-set foam) a VOIs de hueso trabecular: morfometria, homogeneizacion elastica y ensayo de compresion"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -56,6 +56,18 @@ fem = ["ngsolve>=6.2.2601", "scikit-fem>=11"]
 # Mallado TET10 para exportar solidos con superficie lisa.
 malla = ["pymeshfix>=0.16", "tetgen>=0.6"]
 
+# Tercera familia de microestructura, level-set foam (`spinpy.level_set`): la
+# genera la libreria morphoGen (Dirrenberger, https://github.com/jdirr/morphoGen).
+# OPCIONAL y con dos condiciones que el resto de spinpy no tiene:
+#   * Python >= 3.12 (spinpy admite 3.10): de ahi el marcador de entorno, que
+#     deja la instalacion en 3.10/3.11 sin la familia en vez de romperla.
+#   * licencia GPL-3.0-or-later. El nucleo de spinpy sigue siendo MIT porque
+#     NO la importa (se carga perezosamente y solo si se elige la familia);
+#     quien redistribuya spinpy junto con morphoGen queda sujeto a la GPL sobre
+#     la obra combinada, como ya ocurre con PyQt5 (extra `gui`) y pymeshfix y
+#     tetgen (extra `malla`). Ver README, seccion «Familias de microestructura».
+level-set = ["morphogen>=1.1; python_version >= '3.12'"]
+
 # Lote y estadistica: descomposicion de varianza, ICC, TOST.
 lote = ["pandas>=2.0", "joblib>=1.3"]
 
@@ -75,7 +87,7 @@ test = ["pytest>=7.4"]
 # informe se escribe igual en Markdown y avisa de lo que falta.
 informe = ["reportlab>=4.0", "matplotlib>=3.7"]
 
-todo = ["spinpy[elastico,fem,malla,lote,gui,test,informe]"]
+todo = ["spinpy[elastico,fem,malla,lote,gui,test,informe,level-set]"]
 
 [project.urls]
 Repositorio = "https://github.com/cgt1989/spinpy"

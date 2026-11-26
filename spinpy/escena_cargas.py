@@ -17,7 +17,7 @@ hueso: aqui el VOI ya es un cubo recortado y sus ejes son los del ensayo.)
 
 QUE SE VE
 ---------
-* la estructura (hueso, espinodoide o dual-lattice), traslucida si se quiere;
+* la estructura (hueso, espinodoide, dual-lattice o level-set foam), traslucida si se quiere;
 * el cubo como caja, con el nombre de cada cara (+x ... -z) para pinchar por
   cara;
 * cada CARGA como una flecha de su color, con su region resaltada: la flecha

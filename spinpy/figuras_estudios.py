@@ -26,9 +26,14 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from .familias import FAMILIAS as _FAMILIAS
+from .familias import sufijo as _sufijo_fam
 from .figuras import (COLOR, EJE, FONDO, NOMBRES, ORDEN, REJILLA, TINTA,
                       TINTA_2, _estilo, _f, _figura, _guardar, _i, _n,
                       modulo_direccional)
+
+# Familias y sufijos de sus claves de resultados (`spinpy.familias`).
+FAM_SUF = tuple((_f, _sufijo_fam(_f)) for _f in _FAMILIAS)
 
 
 def _titulo(ax, txt):
@@ -196,7 +201,7 @@ def rigideces(doc):
     """{estructura: C en MPa} de los tensores homogeneizados validos."""
     res = doc.get("resultados") or {}
     rig = {}
-    for fam, suf in (("spinodoide", ""), ("dual-lattice", "_dual")):
+    for fam, suf in FAM_SUF:
         pe = (res.get("elastico" + suf) or {}).get("por_estructura") or {}
         for k, v in pe.items():
             est = "voi" if k == "voi" else fam
@@ -257,7 +262,7 @@ def fig_superficie_E(doc, destino, idioma="es", n=60):
             eje.pane.set_facecolor(FONDO)
             eje.pane.set_edgecolor(REJILLA)
         ax.view_init(elev=22, azim=-58)
-        ax.set_title(f"({'abc'[k]}) {NOMBRES[e][i]}\nEmax/Emin = "
+        ax.set_title(f"({'abcd'[k]}) {NOMBRES[e][i]}\nEmax/Emin = "
                      f"{_n(E.max() / E.min(), idioma)}", fontsize=7.5,
                      color=TINTA, pad=-2)
     sm = cm.ScalarMappable(norm=norma, cmap=mapa)
@@ -340,7 +345,7 @@ def fig_curvaturas(doc, destino, idioma="es"):
         t.set_color(COLOR[e])
     ax.set_ylim(0, 100)
     ax.set_ylabel(("área [%]", "area [%]")[i], fontsize=7, color=TINTA_2)
-    _titulo(ax, f"({'abcd'[len(pe)]}) " + ("tipo de superficie",
+    _titulo(ax, f"({'abcde'[len(pe)]}) " + ("tipo de superficie",
                                            "surface type")[i])
     ax.legend(frameon=False, fontsize=6, labelcolor=TINTA,
               loc="upper center", bbox_to_anchor=(0.5, -0.28), ncol=3)

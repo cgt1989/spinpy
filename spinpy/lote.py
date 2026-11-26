@@ -43,6 +43,7 @@ import numpy as np
 
 from . import procedencia
 from .dual_lattice import generar_dual_lattice
+from .level_set import generar_level_set
 from .elastic import constantes_ingenieria, homogeneizar, remuestrear_bw
 from .fit import ajustar_spinodoide, longitud_caracteristica
 from .grf import generar_mascara
@@ -109,6 +110,7 @@ def _medir(BW, spacing, mecanica=False, res_homog=16, E_s=20e9, nu_s=0.30):
 PARAMETROS_FAMILIA = {
     "spinodoide": ("densidad", "wave_number_pi", "num_waves"),
     "dual-lattice": ("densidad", "celdas", "irregularidad"),
+    "level-set-foam": ("densidad", "n_celdas", "curvatura"),
 }
 
 
@@ -123,6 +125,9 @@ def generar_desde_parametros(par, semilla):
     kw = procedencia.kwargs_generador(par, semilla)
     if par.get("familia") == "dual-lattice":
         BW, _, _ = generar_dual_lattice(**kw)
+        return BW
+    if par.get("familia") == "level-set-foam":
+        BW, _, _ = generar_level_set(**kw)
         return BW
     BW, _, _ = generar_mascara(**kw)
     return BW
@@ -165,8 +170,9 @@ def dispersion_semillas(parametros, spacing, n_semillas=8, semilla_base=None,
     # `parametros` es el dict de llamada al generador, no el de un ajuste: la
     # familia viaja como clave aparte porque las dos firmas no se parecen.
     familia = par.pop("familia", "spinodoide")
-    generador = (generar_dual_lattice if familia == "dual-lattice"
-                 else generar_mascara)
+    generador = {"dual-lattice": generar_dual_lattice,
+                 "level-set-foam": generar_level_set}.get(familia,
+                                                          generar_mascara)
 
     filas = []
     for k in range(int(n_semillas)):
@@ -256,9 +262,9 @@ def correr_lote(vois, n_replicas=10, modo="completo", mecanica=False,
                 opciones_ajuste=None):
     """Ajusta cada VOI y genera `n_replicas` sinteticas de cada ajuste.
 
-    familia : "spinodoide" (por omision, el comportamiento de siempre) o
-        "dual-lattice". Las dos se ajustan con la misma busqueda escalonada y
-        el mismo modo; la tabla lleva una columna `familia` para que dos lotes
+    familia : "spinodoide" (por omision, el comportamiento de siempre),
+        "dual-lattice" o "level-set-foam". Se ajustan con la busqueda
+        escalonada de cada una y el mismo modo; la tabla lleva una columna `familia` para que dos lotes
         de familias distintas se puedan concatenar sin mezclarse.
 
     opciones_ajuste : dict que se pasa tal cual al ajuste (`pesos`,
@@ -312,7 +318,15 @@ def correr_lote(vois, n_replicas=10, modo="completo", mecanica=False,
 
         # --- ajuste ---
         kw = {"modo": modo, "m_voi": m_voi}
-        if familia == "dual-lattice":
+        if familia == "level-set-foam":
+            from .fit_levelset import ajustar_level_set
+            kw.update(opciones_ajuste or {})
+            r = ajustar_level_set(VOI, spacing, **kw)
+            par = r["parametros"]
+            propios = {k: par[k] for k in ("densidad", "n_celdas", "curvatura",
+                                           "c1", "c2", "resolucion")}
+            propios["estiramiento"] = par["estiramiento"]
+        elif familia == "dual-lattice":
             from .fit_dual import ajustar_dual_lattice
             kw.update(opciones_ajuste or {})
             r = ajustar_dual_lattice(VOI, spacing, **kw)

@@ -2,10 +2,11 @@ spinpy - antes de instalar
 ==========================
 
 QUE ES
-  Una aplicacion para ajustar microestructuras espinodales (spinodoides) a
-  volumenes de hueso trabecular obtenidos por microtomografia: mide la
-  morfometria (BV/TV, BS/BV, Tb.Th, Tb.Sp, Tb.N, DA), busca el spinodoide que
-  la reproduce, homogeneiza sus propiedades elasticas, hace un ensayo de
+  Una aplicacion para ajustar microestructuras sinteticas (spinodoide y
+  dual-lattice; el level-set foam necesita ademas la libreria opcional
+  morphoGen, que este ejecutable no incluye todavia) a volumenes de hueso
+  trabecular obtenidos por microtomografia: mide la morfometria (BV/TV,
+  BS/BV, Tb.Th, Tb.Sp, Tb.N, DA), busca la estructura que la reproduce, homogeneiza sus propiedades elasticas, hace un ensayo de
   compresion por elementos finitos y exporta el solido para Abaqus, ANSYS o
   impresion 3D.
 

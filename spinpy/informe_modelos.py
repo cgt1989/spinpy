@@ -35,11 +35,17 @@ import inspect
 import numpy as np
 
 from . import avisos, error as err_mod, incertidumbre
+from .familias import FAMILIAS as _FAMILIAS
+from .familias import sufijo as _sufijo_fam
 from .elastic import UMBRAL_DIRECTO, VOID_SCALE, homogeneizar
 from .espesor import espesor_local  # noqa: F401  (referencia del texto)
 from .morphometry import indice_smi, tensor_mil
 from .resistencia import (EPS_CRITICA, FRAC_CRITICA, SIGMA0_DEF,
                           ensayo_compresion)
+
+# Familias y sufijos de sus claves de resultados (`spinpy.familias`).
+FAM_SUF = tuple((_f, _sufijo_fam(_f)) for _f in _FAMILIAS)
+SUF_FAM = tuple(_s for _f, _s in FAM_SUF)
 
 
 # Numeros de onda (beta/pi) de las etapas A del ajuste del spinodoide. Son las
@@ -83,14 +89,13 @@ def seccion_modelos(doc, idioma, r, numero):
 
     res = doc.get("resultados") or {}
     m_voi = doc.get("morfometria_voi") or {}
-    fams = [(f, suf) for f, suf in (("spinodoide", ""), ("dual-lattice",
-                                                         "_dual"))
+    fams = [(f, suf) for f, suf in FAM_SUF
             if isinstance(res.get("ajuste" + suf), dict)]
-    ela = [res.get("elastico" + s) for _f, s in (("", ""), ("", "_dual"))]
+    ela = [res.get("elastico" + s) for s in SUF_FAM]
     ela = [x for x in ela if isinstance(x, dict)]
-    fe = [res.get("resistencia" + s) for s in ("", "_dual")]
+    fe = [res.get("resistencia" + s) for s in SUF_FAM]
     fe = [x for x in fe if isinstance(x, dict)]
-    comp = [res.get("analisis_comparado" + s) for s in ("", "_dual")]
+    comp = [res.get("analisis_comparado" + s) for s in SUF_FAM]
     comp = [x for x in comp if isinstance(x, dict)]
     if not (m_voi or fams or ela or fe or comp
             or (res.get("febio") or {}).get("registros")):
@@ -387,6 +392,40 @@ def seccion_modelos(doc, idioma, r, numero):
               r"+\frac{L}{2},\qquad \Omega=\left\lbrace\mathbf{x}:\ D(\mathbf{x}"
               r")\leq r\right\rbrace,\qquad r=D_{(k)},\ \ k=\mathrm{round}("
               r"\rho\,n^{3})")
+    if "level-set-foam" in nombres:
+        par(f"El level-set foam {r.c('sonon2015', 'kilingar2019')}, "
+            f"implementado en morphoGen {r.c('dirrenberger2026')}, parte de "
+            "un empaquetado denso de elipsoides alineados con los ejes, de "
+            "semieje corto a y factores de forma b/a y c/a (el estiramiento). "
+            "Cada semilla i define una distancia algebraica normalizada "
+            "D_i(x) = Σ_m (x_m − x_im)² / r_im² − 1, y D_N1 ≤ D_N2 ≤ D_N3 ≤ "
+            "D_N4 son las cuatro menores en x. La espuma abierta es la región "
+            "Φ ≤ 0 de:",
+            f"The level-set foam {r.c('sonon2015', 'kilingar2019')}, "
+            f"implemented in morphoGen {r.c('dirrenberger2026')}, starts from "
+            "a dense packing of axis-aligned ellipsoids of short semi-axis a "
+            "and shape factors b/a and c/a (the stretch). Each seed i defines "
+            "a normalised algebraic distance D_i(x) = Σ_m (x_m − x_im)² / "
+            "r_im² − 1, and D_N1 ≤ D_N2 ≤ D_N3 ≤ D_N4 are the four smallest "
+            "at x. The open foam is the region Φ ≤ 0 of:")
+        eq(L, r"\Phi=O_p-t\,O_s-K_c\,O_k,\qquad O_p=\tfrac{1}{2}\left("
+              r"D_{N3}+D_{N2}\right)-D_{N1},\qquad O_s=\sqrt{c_1\xi^{4}+"
+              r"c_2\xi^{2}+1}")
+        par("O_p se anula sobre las aristas de la teselación (los puntales), "
+            "t es el espesor del puntal, que se resuelve para la fracción "
+            "volumétrica pedida (por eso la densidad es exacta), K_c la "
+            "curvatura de su sección (K_c < 0 convexa, 0 < K_c < 1 cóncava, "
+            "como los bordes de Plateau), O_k el término que la aplica y ξ la "
+            "posición a lo largo del puntal, de modo que c₁ y c₂ gobiernan el "
+            "engrosamiento hacia los nodos. La máscara se escala al lado del "
+            "VOI con vóxel h = L/n.",
+            "O_p vanishes on the edges of the tessellation (the struts), t is "
+            "the strut thickness, solved for the requested volume fraction "
+            "(hence the density is exact), K_c the curvature of its section "
+            "(K_c < 0 convex, 0 < K_c < 1 concave, like Plateau borders), O_k "
+            "the term that applies it and ξ the position along the strut, so "
+            "that c₁ and c₂ govern the thickening towards the nodes. The mask "
+            "is scaled to the VOI side with voxel h = L/n.")
 
     # ------------------------------------------------------------------
     if fams:
@@ -414,10 +453,13 @@ def seccion_modelos(doc, idioma, r, numero):
                  + T("Peso w", "Weight w") + " |")
         L.append("|---|---|")
         L += filas
-        if "dual-lattice" in nombres:
+        if "dual-lattice" in nombres or "level-set-foam" in nombres:
             from .fit_dual import PESO_DA2
-            L.append(f"| DA₂ ({T('solo dual-lattice', 'dual-lattice only')})"
-                     f" | {n(PESO_DA2, '.3g')} |")
+            solo = (T("dual-lattice y level-set foam",
+                      "dual-lattice and level-set foam")
+                    if "level-set-foam" in nombres
+                    else T("solo dual-lattice", "dual-lattice only"))
+            L.append(f"| DA₂ ({solo}) | {n(PESO_DA2, '.3g')} |")
         L.append("")
         objetivos = [(res["ajuste" + s].get("objetivo") or {})
                      for _f, s in fams]
@@ -464,6 +506,29 @@ def seccion_modelos(doc, idioma, r, numero):
             "\"equitable\" is the full method with the other wave allocation. "
             "The dual-lattice uses density × cells around the scale estimated "
             "from the VOI Tb.N and axial and triaxial stretch sets.")
+        if "level-set-foam" in nombres:
+            par("El level-set foam fija la densidad al BV/TV medido del VOI "
+                "(el espesor del puntal se resuelve para esa fracción) y "
+                "busca, en este orden: (A) el número de celdas, (B) 23 juegos "
+                "de estiramiento, (C) el refinado del tamaño, (D) una rejilla "
+                "de forma de 5 curvaturas de sección por 4 niveles de "
+                "engrosamiento de nodos, (E) el reajuste del tamaño y (F) el "
+                "afinado de la curvatura y los nodos. Su objetivo incluye, "
+                "además de los términos de la tabla, el tamaño de poro, la "
+                "variación del espesor local, la desviación de la curvatura y "
+                "la densidad de conectividad, medidos en el VOI al mismo "
+                "tamaño de vóxel que el candidato.",
+                "The level-set foam fixes the density to the VOI's measured "
+                "BV/TV (the strut thickness is solved for that fraction) and "
+                "searches, in this order: (A) the number of cells, (B) 23 "
+                "stretch sets, (C) the refinement of the size, (D) a shape "
+                "grid of 5 section curvatures by 4 node-thickening levels, "
+                "(E) the readjustment of the size and (F) the fine-tuning of "
+                "the curvature and the nodes. Its objective includes, besides "
+                "the terms in the table, the pore size, the local thickness "
+                "variation, the curvature deviation and the connectivity "
+                "density, measured on the VOI at the same voxel size as the "
+                "candidate.")
         if any(isinstance(res.get("ajuste_comparado" + s), dict)
                for _f, s in fams):
             par("De los métodos que comparten la definición de error de la "

@@ -212,9 +212,12 @@ from pyvistaqt import QtInteractor
 
 sys.path.insert(0, str(Path(__file__).parent))
 from spinpy import procedencia  # noqa: E402
-from spinpy import (ajustar_dual_lattice, ajustar_spinodoide,  # noqa: E402
-                    constantes_ingenieria, euler_R, generar_dual_lattice,
-                    generar_mascara, homogeneizar, leer_voi, morfometria)
+from spinpy import (ajustar_dual_lattice, ajustar_level_set,  # noqa: E402
+                    ajustar_spinodoide, constantes_ingenieria, euler_R,
+                    generar_dual_lattice, generar_level_set, generar_mascara,
+                    homogeneizar, leer_voi, morfometria)
+from spinpy.familias import FAMILIAS, MODOS_FAMILIA        # noqa: E402
+from spinpy.level_set import disponible as _ls_disponible  # noqa: E402
 from spinpy.elastic import remuestrear_bw   # noqa: E402
 from spinpy.estadistica import informe      # noqa: E402
 from spinpy.lote import (METRICAS, correr_lote,  # noqa: E402
@@ -645,9 +648,24 @@ PAPER_REF = ("Tapia, Gonzalez, Vidal &amp; Salinas, <i>Biology</i> 2026;15:722 "
 # dar por hecho el ganador.
 METODOS_COMPARABLES = ("rapido", "completo", "equitativo")
 
-# Familias de microestructura y modos del selector de la barra de herramientas.
-FAMILIAS = ("spinodoide", "dual-lattice")
-MODOS_FAMILIA = ("spinodoide", "dual-lattice", "ambas")
+# Familias de microestructura y modos del selector de la barra de herramientas
+# (`spinpy.familias`: cada familia sola, o «todas»). Level-set foam necesita
+# morphoGen (opcional): sin el, la familia sale en el selector pero desactivada
+# y «Todas» se queda con las otras dos.
+LS_DISPONIBLE = _ls_disponible()
+
+
+def _version_morphogen():
+    from spinpy.level_set import version_morphogen
+    return version_morphogen()
+
+
+def familias_disponibles():
+    return [f for f in FAMILIAS if f != "level-set-foam" or LS_DISPONIBLE]
+
+
+# Prefijo de las claves de `Visor.sl` (deslizadores) de cada familia.
+PREFIJO_SL = {"spinodoide": "", "dual-lattice": "d_", "level-set-foam": "l_"}
 
 # Ancho del texto de las filas que necesitan aviso al leerse
 AVISO_SMI = ("El SMI esta confundido por la CONCAVIDAD (Salmon et al. 2015):\n"
@@ -2984,7 +3002,7 @@ class DialogoBienvenida(QtWidgets.QDialog):
         v.setSpacing(10)
 
         v.addWidget(self._txt(
-            _("Ajuste de microestructuras espinodales a VOIs de hueso "
+            _("Ajuste de microestructuras sinteticas a VOIs de hueso "
               "trabecular"),
             "color:#16324a; font-size:13pt; font-weight:bold;"))
         ln = QtWidgets.QFrame()
@@ -2999,10 +3017,10 @@ class DialogoBienvenida(QtWidgets.QDialog):
         # constante las volveria invisibles para el comprobador y sus
         # traducciones se darian por sobrantes.
         for clave, texto in (
-            (_("Dos familias"),
-             _("Spinodoide (campo aleatorio gaussiano) y dual-lattice, sobre "
-               "la misma rejilla de vóxeles. Se ajustan y se comparan a la "
-               "vez.")),
+            (_("Tres familias"),
+             _("Spinodoide (campo aleatorio gaussiano), dual-lattice y "
+               "level-set foam (morphoGen, opcional), sobre la misma rejilla "
+               "de vóxeles. Se ajustan y se comparan a la vez.")),
             (_("Morfometría"),
              _("BV/TV, BS/BV, Tb.Th, Tb.Sp, Tb.N, anisotropía por tensor MIL, "
                "Conn.D, SMI, tamaño de poro y factor de elipsoide.")),
@@ -3164,21 +3182,27 @@ class DialogoInformeAuto(DialogoAjustable):
         raiz.addWidget(self.intro)
 
         # Familia: la misma eleccion que el selector de la barra, y al aceptar
-        # se escribe en el. «Ambas» corre cada etapa para las dos familias y
+        # se escribe en el. «Todas» corre cada etapa para las tres familias y
         # el informe las compara con el VOI en una sola tabla.
         f = QtWidgets.QHBoxLayout()
         f.addWidget(QtWidgets.QLabel(_("Familia:")))
         self.cmb_fam = QtWidgets.QComboBox()
         for modo, etq in zip(MODOS_FAMILIA, (_("Spinodoide"),
                                              _("Dual-lattice"),
-                                             _("Ambas (VOI / Spinodoide / "
-                                               "Dual-lattice)"))):
+                                             _("Level-set foam"),
+                                             _("Todas (VOI / Spinodoide / "
+                                               "Dual-lattice / Level-set "
+                                               "foam)"))):
             self.cmb_fam.addItem(etq, modo)
-        self.cmb_fam.setCurrentIndex(MODOS_FAMILIA.index(padre._modo_fam))
+            if modo == "level-set-foam" and not LS_DISPONIBLE:
+                self.cmb_fam.model().item(self.cmb_fam.count() - 1).setEnabled(False)
+        modo0 = "todas" if padre._modo_fam == "ambas" else padre._modo_fam
+        self.cmb_fam.setCurrentIndex(MODOS_FAMILIA.index(modo0))
         self.cmb_fam.setToolTip(_(
-            "Con «Ambas» cada etapa se corre para las dos familias, las "
+            "Con «Todas» cada etapa se corre para las tres familias, las "
             "figuras las muestran lado a lado y el informe añade una tabla "
-            "VOI / Spinodoide / Dual-lattice. El tiempo casi se duplica."))
+            "VOI / Spinodoide / Dual-lattice / Level-set foam. El tiempo se "
+            "multiplica por el numero de familias."))
         f.addWidget(self.cmb_fam, 1)
         f.addStretch(2)
         raiz.addLayout(f)
@@ -3502,11 +3526,11 @@ class DialogoInformeAuto(DialogoAjustable):
 
     def familias(self):
         modo = self.cmb_fam.currentData()
-        return list(FAMILIAS) if modo == "ambas" else [modo]
+        return familias_disponibles() if modo in ("todas", "ambas") else [modo]
 
     def _hay_ajuste(self):
-        return all((self.v._res.get("ajuste" if f == "spinodoide"
-                                    else "ajuste_dual") or {})
+        from spinpy.familias import clave as _clave_fam
+        return all((self.v._res.get(_clave_fam("ajuste", f)) or {})
                    .get("parametros") for f in self.familias())
 
     def plan(self):
@@ -3732,7 +3756,7 @@ class Visor(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("spinpy — visor de spinodoides y VOIs")
+        self.setWindowTitle("spinpy — visor de microestructuras y VOIs")
         _r = area_util()
         self.resize(min(1500, int(_r.width() * 0.96)),
                     min(900, int(_r.height() * 0.94)))
@@ -3821,11 +3845,17 @@ class Visor(QtWidgets.QMainWindow):
         lay.addWidget(scroll, 0)
 
         div = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        vistas = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        # Una rejilla y no un splitter horizontal: con «Todas» son cuatro
+        # vistas (VOI y tres familias) y en fila cada una quedaria demasiado
+        # estrecha junto al panel de controles. `_disponer_vistas` las coloca.
+        vistas = QtWidgets.QWidget()
+        self._rejilla_vistas = QtWidgets.QGridLayout(vistas)
+        self._rejilla_vistas.setContentsMargins(0, 0, 0, 0)
+        self._rejilla_vistas.setSpacing(4)
 
         self.vis_voi = QtInteractor(self)
         # Un panel por familia. Solo se ven los de las familias activas: con
-        # «Ambas» son tres paneles, VOI y los dos candidatos.
+        # «Todas» son cuatro paneles, el VOI y los tres candidatos.
         self._vis = {f: QtInteractor(self) for f in FAMILIAS}
         self.vis_spin = self._vis["spinodoide"]
         self._caja = {}
@@ -3833,7 +3863,9 @@ class Visor(QtWidgets.QMainWindow):
                             ("spinodoide", self._vis["spinodoide"],
                              _("Spinodoide")),
                             ("dual-lattice", self._vis["dual-lattice"],
-                             _("Dual-lattice"))):
+                             _("Dual-lattice")),
+                            ("level-set-foam", self._vis["level-set-foam"],
+                             _("Level-set foam"))):
             self._estilo_render(v)
             v.add_text(t, font_size=11, color="black")
             # Triada de orientacion: sin ella no se sabe que eje es cual, y la
@@ -3846,10 +3878,8 @@ class Visor(QtWidgets.QMainWindow):
             cl = QtWidgets.QVBoxLayout(caja)
             cl.setContentsMargins(0, 0, 0, 0)
             cl.addWidget(v.interactor)
-            vistas.addWidget(caja)
             self._caja[clave] = caja
-        self._caja["dual-lattice"].setVisible(False)
-        vistas.setSizes([600, 600, 600])
+        self._disponer_vistas()
 
         div.addWidget(vistas)
         div.addWidget(self._tabla())
@@ -4151,6 +4181,47 @@ class Visor(QtWidgets.QMainWindow):
             "estirado es el eje rigido. Con 2.5 en un eje el DA ronda 1.5, el "
             "del VOI proximal equino. El grosor de las barras no se elige: "
             "sale de la densidad.")
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color:#666; font-size:10px;")
+        gl.addWidget(nota)
+        g.setVisible(False)
+        sec.addWidget(g)
+
+        # --- level-set foam (morphoGen) ---
+        g = QtWidgets.QGroupBox("Parametros del level-set foam")
+        g.setToolTip(
+            "Espuma de celda abierta como conjunto de nivel de campos de\n"
+            "distancia de elipsoides empaquetados (Sonon et al. 2015; Kilingar\n"
+            "et al. 2019), implementada en morphoGen. Los puntales siguen las\n"
+            "aristas de la teselacion de las semillas.")
+        self.grp_ls = g
+        gl = QtWidgets.QVBoxLayout(g)
+        for clave, texto, lo, hi, val, dec, suf in [
+            ("l_dens",   "Densidad relativa",          5, 95, 36, 2, " %"),
+            ("l_celdas", "Numero de celdas",          24, 800, 134, 0, ""),
+            ("l_ex",     "Estiramiento X",          0.5, 4, 1, 2, ""),
+            ("l_ey",     "Estiramiento Y",          0.5, 4, 1, 2, ""),
+            ("l_ez",     "Estiramiento Z",          0.5, 4, 1, 2, ""),
+            ("l_kc",     "Curvatura de la seccion", -1.0, 0.9, 0.0, 2, ""),
+            ("l_c1",     "Engrosamiento de nodos c1", 0, 200, 0, 0, ""),
+            ("l_c2",     "Engrosamiento de nodos c2", 0, 3, 0, 1, ""),
+        ]:
+            d = Deslizador(texto, lo, hi, val, dec, suf)
+            d.cambiado.connect(self._pedir_vista)
+            self.sl[clave] = d
+            gl.addWidget(d)
+        self.lab_R_ls = QtWidgets.QLabel("")
+        self.lab_R_ls.setProperty("i18n_dinamico", True)
+        self.lab_R_ls.setWordWrap(True)
+        self.lab_R_ls.setStyleSheet("color:#b06000; font-size:10px;")
+        gl.addWidget(self.lab_R_ls)
+        self._lab_R["level-set-foam"] = self.lab_R_ls
+        nota = QtWidgets.QLabel(
+            "No hay rotacion: la orientacion la da el estiramiento por eje "
+            "(el eje alargado es el de las trabeculas). La densidad es exacta "
+            "y el espesor del puntal sale de ella. Con pocas celdas y mucho "
+            "estiramiento el empaquetado no cabe y no se genera. Generar tarda "
+            "unos segundos aunque la resolucion sea baja.")
         nota.setWordWrap(True)
         nota.setStyleSheet("color:#666; font-size:10px;")
         gl.addWidget(nota)
@@ -4846,6 +4917,20 @@ class Visor(QtWidgets.QMainWindow):
         # deslizadores hasta que el usuario mueva uno, que es el momento en que
         # expresa que quiere controlar la orientacion a mano.
         dual = self._fam == "dual-lattice"
+        if self._fam == "level-set-foam":
+            # Sin rotacion: la orientacion la da el estiramiento por eje.
+            return dict(
+                familia="level-set-foam",
+                resolution=int(resolucion),
+                n_celdas=float(self.sl["l_celdas"].valor()),
+                rho=self.sl["l_dens"].valor() / 100.0,
+                estiramiento=(self.sl["l_ex"].valor(), self.sl["l_ey"].valor(),
+                              self.sl["l_ez"].valor()),
+                curvatura=float(self.sl["l_kc"].valor()),
+                c1=float(self.sl["l_c1"].valor()),
+                c2=float(self.sl["l_c2"].valor()),
+                seed=int(self.spin_semilla.value()),
+            )
         if self.R_forzada is not None:
             R = self.R_forzada
         else:
@@ -4943,20 +5028,48 @@ class Visor(QtWidgets.QMainWindow):
         return self._cand[f][clave]
 
     def _familias(self):
-        return list(FAMILIAS) if self._modo_fam == "ambas" else [self._modo_fam]
+        # «ambas» es el nombre que tenia el modo antes de la tercera familia:
+        # las sesiones guardadas lo siguen usando.
+        if self._modo_fam in ("todas", "ambas"):
+            return familias_disponibles()
+        return [self._modo_fam]
 
     def _etq_fam(self, f=None):
         f = f or self._fam
+        if f == "level-set-foam":
+            return _("Level-set foam")
         return _("Dual-lattice") if f == "dual-lattice" else _("Spinodoide")
 
     def _clave_res(self, nombre):
         """Clave de `_res` de la familia activa. La del spinodoide conserva el
         nombre de siempre, para que un JSON exportado antes se siga leyendo."""
-        return nombre if self._fam == "spinodoide" else f"{nombre}_dual"
+        from spinpy.familias import clave
+        return clave(nombre, self._fam)
 
     def _densidad_actual(self):
-        return self.sl["d_dens" if self._fam == "dual-lattice"
-                       else "dens"].valor()
+        return self.sl[PREFIJO_SL[self._fam] + "dens"].valor()
+
+    def _disponer_vistas(self):
+        """Coloca los paneles 3D visibles: el VOI y las familias activas.
+
+        Hasta tres van en una fila; con cuatro («Todas») en una rejilla de
+        2 x 2, para que cada vista conserve un ancho util con el panel de
+        controles fijo a la izquierda.
+        """
+        g = self._rejilla_vistas
+        cajas = ["voi"] + self._familias()
+        while g.count():
+            g.takeAt(0)
+        for clave, caja in self._caja.items():
+            caja.setVisible(clave in cajas)
+        dos_filas = len(cajas) > 3
+        for j, clave in enumerate(cajas):
+            fila, col = divmod(j, 2) if dos_filas else (0, j)
+            g.addWidget(self._caja[clave], fila, col)
+        for k in range(4):
+            g.setRowStretch(k, 1 if k < (2 if dos_filas else 1) else 0)
+            g.setColumnStretch(k, 1 if k < (2 if dos_filas else len(cajas))
+                               else 0)
 
     def _para_cada(self, fn):
         """Ejecuta `fn` con cada familia activa, sin hilos de por medio."""
@@ -5072,7 +5185,10 @@ class Visor(QtWidgets.QMainWindow):
         """Mascara de cualquier familia a partir de `_params`. Sin Qt: corre
         dentro de los hilos de trabajo."""
         p = dict(p)
-        if p.pop("familia", "spinodoide") == "dual-lattice":
+        fam = p.pop("familia", "spinodoide")
+        if fam == "level-set-foam":
+            return generar_level_set(**p)
+        if fam == "dual-lattice":
             BW, campo, info = generar_dual_lattice(**p)
             info.setdefault("esquema", "dual-lattice")
             return BW, campo, info
@@ -5092,16 +5208,29 @@ class Visor(QtWidgets.QMainWindow):
         lab.setContentsMargins(6, 0, 6, 0)
         tb.addWidget(lab)
         self.cmb_familia = QtWidgets.QComboBox()
-        self.cmb_familia.addItems(["Spinodoide", "Dual-lattice", "Ambas"])
+        self.cmb_familia.addItems(["Spinodoide", "Dual-lattice",
+                                   "Level-set foam", "Todas"])
         self.cmb_familia.setToolTip(
             "Spinodoide: conjunto de nivel de un campo aleatorio gaussiano\n"
             "(Kumar et al. 2020).\n"
             "Dual-lattice: red dual de una teselacion de Delaunay, con cuatro\n"
-            "barras por nudo (Vafaeefar et al. 2022).\n\n"
-            "Ambas: se generan, miden y ajustan las DOS a la vez, con un panel\n"
-            "3D y una columna de la tabla por familia. Las acciones pesadas\n"
-            "(tensor, ensayo, exportacion, lote) se hacen una familia detras\n"
-            "de otra, con el mismo material y la misma resolucion.")
+            "barras por nudo (Vafaeefar et al. 2022).\n"
+            "Level-set foam: espuma de celda abierta como conjunto de nivel de\n"
+            "campos de distancia de elipsoides empaquetados (Sonon et al. 2015;\n"
+            "Kilingar et al. 2019), de la libreria morphoGen (opcional).\n\n"
+            "Todas: se generan, miden y ajustan las TRES a la vez, con un panel\n"
+            "3D y una columna de la tabla por familia (el VOI y tres candidatos:\n"
+            "cuatro vistas). Las acciones pesadas (tensor, ensayo, exportacion,\n"
+            "lote) se hacen una familia detras de otra, con el mismo material y\n"
+            "la misma resolucion.")
+        if not LS_DISPONIBLE:
+            # Sin morphoGen la familia no se puede generar: se deja visible, para
+            # que se sepa que existe, pero no se puede elegir.
+            it = self.cmb_familia.model().item(MODOS_FAMILIA.index("level-set-foam"))
+            it.setEnabled(False)
+            it.setToolTip(
+                "Necesita morphoGen (Python >= 3.12, GPL-3.0-or-later):\n"
+                "pip install \"spinpy[level-set]\"")
         self.cmb_familia.currentIndexChanged.connect(self._cambiar_familia)
         tb.addWidget(self.cmb_familia)
 
@@ -5165,6 +5294,8 @@ class Visor(QtWidgets.QMainWindow):
 
     def _cambiar_familia(self, i):
         modo = MODOS_FAMILIA[int(i)]
+        if modo == "level-set-foam" and not LS_DISPONIBLE:
+            return
         if modo == self._modo_fam:
             return
         self._modo_fam = modo
@@ -5172,8 +5303,8 @@ class Visor(QtWidgets.QMainWindow):
         self._activar(fams[0])
         self.grp_spin.setVisible("spinodoide" in fams)
         self.grp_dual.setVisible("dual-lattice" in fams)
-        for f in FAMILIAS:
-            self._caja[f].setVisible(f in fams)
+        self.grp_ls.setVisible("level-set-foam" in fams)
+        self._disponer_vistas()
         self._reconstruir_tabla()
         self._rellenar_tabla()
         faltan = [f for f in fams if self._de(f, "BW") is None]
@@ -5540,8 +5671,10 @@ class Visor(QtWidgets.QMainWindow):
     def _redibujar_spin(self, reset=False):
         self._vaciar(self.vis_spin)
         self.vis_spin.add_text(
-            _("Dual-lattice (vista)") if self._fam == "dual-lattice"
-            else _("Spinodoide (vista)"), font_size=11, color="black")
+            {"dual-lattice": _("Dual-lattice (vista)"),
+             "level-set-foam": _("Level-set foam (vista)")}.get(
+                self._fam, _("Spinodoide (vista)")),
+            font_size=11, color="black")
         m = self._recortar(self.malla_spin)
         if m is not None and m.n_points:
             self._pintar(self.vis_spin, m, self._campo(m, "spin"),
@@ -6258,8 +6391,8 @@ class Visor(QtWidgets.QMainWindow):
         self._activar(fams[0])
         if mascaras:
             res = int(next(iter(mascaras.values())).shape[0])
-        esquemas = {f: ((self._res.get("ajuste" if f == "spinodoide"
-                                       else "ajuste_dual") or {})
+        from spinpy.familias import clave as _clave_fam
+        esquemas = {f: ((self._res.get(_clave_fam("ajuste", f)) or {})
                         .get("parametros") or {}).get("esquema")
                     for f in mascaras}
         sps = {f: self._spacing(BW.shape[0]) for f, BW in mascaras.items()}
@@ -6465,7 +6598,7 @@ class Visor(QtWidgets.QMainWindow):
         res_mec = int(self.spin_res_mec.value())
 
         fams = self._familias()
-        N_EVAL = {"spinodoide": 53, "dual-lattice": 54}
+        N_EVAL = {"spinodoide": 53, "dual-lattice": 54, "level-set-foam": 60}
         total = sum(N_EVAL[f] for f in fams)
         self._ocupado(True, _("Ajustando…")
                       + (_(" (con desempate mecanico a {r}³)").format(r=res_mec)
@@ -6483,7 +6616,12 @@ class Visor(QtWidgets.QMainWindow):
             for f in fams:
                 def pr(i, n, etapa, _b=base, _f=f):
                     hilo.informar(_b + int(i), total, f"{_f} · {etapa}")
-                if f == "dual-lattice":
+                if f == "level-set-foam":
+                    out[f] = ajustar_level_set(
+                        VOI, sp, modo="completo", m_voi=m_voi, seed=semilla,
+                        peso_mecanico=peso_mec, res_mec=res_mec,
+                        E_s=E_S_PA, nu_s=NU_S, progreso=pr)
+                elif f == "dual-lattice":
                     out[f] = ajustar_dual_lattice(
                         VOI, sp, modo="completo", m_voi=m_voi, seed=semilla,
                         peso_mecanico=peso_mec, res_mec=res_mec,
@@ -6519,7 +6657,15 @@ class Visor(QtWidgets.QMainWindow):
         # daria otra realizacion, con otras metricas que las de la tabla.
         self._aplicando = True
         try:
-            if fam == "dual-lattice":
+            if fam == "level-set-foam":
+                self.sl["l_dens"].fijar(p["densidad"] * 100.0)
+                self.sl["l_celdas"].fijar(p["n_celdas"])
+                for k, clave in zip(range(3), ("l_ex", "l_ey", "l_ez")):
+                    self.sl[clave].fijar(p["estiramiento"][k])
+                self.sl["l_kc"].fijar(p["curvatura"])
+                self.sl["l_c1"].fijar(p["c1"])
+                self.sl["l_c2"].fijar(p["c2"])
+            elif fam == "dual-lattice":
                 self.sl["d_dens"].fijar(p["densidad"] * 100.0)
                 self.sl["d_celdas"].fijar(p["celdas"])
                 for k, clave in zip(range(3), ("d_ex", "d_ey", "d_ez")):
@@ -6536,11 +6682,22 @@ class Visor(QtWidgets.QMainWindow):
         finally:
             self._aplicando = False
 
-        rx, ry, rz = p["euler_deg"]
-        self.lab_R.setText(_(
-            "Orientacion tomada del eje principal del VOI (Euler {e}°). "
-            "Manda sobre los deslizadores de rotacion hasta que muevas uno."
-        ).format(e=f"{rx:.0f}/{ry:.0f}/{rz:.0f}"))
+        if fam == "level-set-foam":
+            # No hay rotacion: el ajuste eligio el eje alargado permutando el
+            # estiramiento hasta que la fabrica se pareciera a la del VOI.
+            al = r.get("alineacion") or {}
+            ang = al.get("angulo_despues_deg")
+            self.lab_R.setText(
+                _("Orientacion por permutacion de ejes del estiramiento "
+                  "(eje principal a {ang}° del VOI).").format(
+                    ang="—" if ang is None else f"{ang:.0f}")
+                if al.get("aplicada") is not None and ang is not None else "")
+        else:
+            rx, ry, rz = p["euler_deg"]
+            self.lab_R.setText(_(
+                "Orientacion tomada del eje principal del VOI (Euler {e}°). "
+                "Manda sobre los deslizadores de rotacion hasta que muevas uno."
+            ).format(e=f"{rx:.0f}/{ry:.0f}/{rz:.0f}"))
 
         self.m_voi = r["metricas_voi"]
         self.m_spin = r["metricas_spin"]
@@ -6656,10 +6813,14 @@ class Visor(QtWidgets.QMainWindow):
         SAL = DATOS / "resultados"
         SAL.mkdir(parents=True, exist_ok=True)
         sello = time.strftime("%Y%m%d_%H%M%S")
-        dual = (elegido.get("parametros") or {}).get("familia") == "dual-lattice"
-        prefijo = "replicas_dual" if dual else "replicas"
+        fam = (elegido.get("parametros") or {}).get("familia", "spinodoide")
+        dual = fam in ("dual-lattice", "level-set-foam")   # estiramiento, no thetas
+        prefijo = {"dual-lattice": "replicas_dual",
+                   "level-set-foam": "replicas_ls"}.get(fam, "replicas")
         destino = SAL / f"{prefijo}_{elegido['metodo']}_{sello}.csv"
-        propios = (["replica", "semilla", "densidad", "celdas", "rho_obtenida"]
+        propios = (["replica", "semilla", "densidad",
+                    "n_celdas" if fam == "level-set-foam" else "celdas",
+                    "rho_obtenida"]
                    if dual else
                    ["replica", "semilla", "densidad", "wave_number_pi",
                     "wave_number_rad", "rho_obtenida"])
@@ -7326,7 +7487,11 @@ class Visor(QtWidgets.QMainWindow):
                 "metodos": ajuste.get("_todos", {}),
             }
 
-        if self._fam == "dual-lattice":
+        if self._fam == "level-set-foam":
+            nom_spin = (_("Level-set foam ajustado ({m})").format(
+                            m=ajuste["etiqueta"])
+                        if ajuste is not None else _("Level-set foam"))
+        elif self._fam == "dual-lattice":
             nom_spin = (_("Dual-lattice ajustado ({m})").format(
                             m=ajuste["etiqueta"])
                         if ajuste is not None else _("Dual-lattice"))
@@ -7391,8 +7556,9 @@ class Visor(QtWidgets.QMainWindow):
                 return "—" if x == 0 else f"{100.0 * (y / x - 1.0):+.1f} %"
             t.append(
                 "<tr><td><i>"
-                + (_("dual-lattice vs VOI") if self._fam == "dual-lattice"
-                   else _("spin vs VOI"))
+                + {"dual-lattice": _("dual-lattice vs VOI"),
+                   "level-set-foam": _("level-set foam vs VOI")}.get(
+                       self._fam, _("spin vs VOI"))
                 + "</i></td>"
                 f"<td align=right><i>{dif(a['rho'], b['rho'])}</i></td>"
                 f"<td align=right><i>{dif(a['vm_media'], b['vm_media'])}</i></td>"
@@ -7421,7 +7587,13 @@ class Visor(QtWidgets.QMainWindow):
                 "dir_voi": a["dir_ppal"], "dir_spin": b["dir_ppal"],
                 "DA_voi": a["DA"], "DA_spin": b["DA"],
             }
-            if self._fam == "dual-lattice":
+            if self._fam == "level-set-foam":
+                plantilla = _(
+                    "<p><b>Orientacion del eje principal</b> (MIL, medido "
+                    "sobre la malla que se ensaya): VOI a {av}° del eje Z (DA "
+                    "{dav}), level-set foam a {as_}° (DA {das}). "
+                    "<b>Angulo entre ambos: {ang}°.</b></p>")
+            elif self._fam == "dual-lattice":
                 plantilla = _(
                     "<p><b>Orientacion del eje principal</b> (MIL, medido "
                     "sobre la malla que se ensaya): VOI a {av}° del eje Z (DA "
@@ -7496,7 +7668,16 @@ class Visor(QtWidgets.QMainWindow):
                     "criterio de Pistoia.").format(
                         e=f"{100.0 * eps_grande:.1f}")
                 + "</p>")
-        if out.get("sin_ajuste") and self._fam == "dual-lattice":
+        if out.get("sin_ajuste") and self._fam == "level-set-foam":
+            t.append(
+                "<p style='color:#b06000'>"
+                + _("<b>Aviso:</b> el level-set foam actual no procede de un "
+                    "ajuste al VOI. A densidad igual, el estiramiento por eje "
+                    "decide en que eje es rigido: ajusta al VOI antes de "
+                    "comparar, o estaras midiendo la orientacion que dejaron "
+                    "los deslizadores.")
+                + "</p>")
+        elif out.get("sin_ajuste") and self._fam == "dual-lattice":
             t.append(
                 "<p style='color:#b06000'>"
                 + _("<b>Aviso:</b> el dual-lattice actual no procede de un "
@@ -7824,12 +8005,15 @@ class Visor(QtWidgets.QMainWindow):
                 self, _("Ningun formato marcado"),
                 _("Marca al menos un formato que exportar."))
             return
-        dual = self._fam == "dual-lattice"
+        titulo_sol = {"dual-lattice": _("Exportar el dual-lattice como solido"),
+                      "level-set-foam": _("Exportar el level-set foam como "
+                                          "solido")}.get(
+            self._fam, _("Exportar el spinodoide como solido"))
+        nombre_sol = {"dual-lattice": "dual_lattice",
+                      "level-set-foam": "level_set_foam"}.get(
+            self._fam, "spinodoide")
         base, _x = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            _("Exportar el dual-lattice como solido") if dual
-            else _("Exportar el spinodoide como solido"),
-            str(DATOS / ("dual_lattice" if dual else "spinodoide")),
+            self, titulo_sol, str(DATOS / nombre_sol),
             _("Nombre base (sin extension) (*)"))
         if not base:
             return
@@ -8173,6 +8357,9 @@ class Visor(QtWidgets.QMainWindow):
                 "spinodoide", esquema=esq, semilla=sem,
                 wave_number_pi=float(self.sl["wave"].valor())),
             "dual-lattice": procedencia.bloque("dual-lattice", semilla=sem),
+            "level-set-foam": procedencia.bloque(
+                "level-set-foam", semilla=sem,
+                morphogen=_version_morphogen()),
         }
 
     def _estado(self):
@@ -8278,7 +8465,10 @@ class Visor(QtWidgets.QMainWindow):
             if d.get("res_mec"):
                 self.spin_res_mec.setValue(int(d["res_mec"]))
             fam = d.get("familia", "spinodoide")
-            if fam in MODOS_FAMILIA:
+            if fam == "ambas":      # nombre del modo antes de la tercera familia
+                fam = "todas"
+            if fam in MODOS_FAMILIA and (fam != "level-set-foam"
+                                         or LS_DISPONIBLE):
                 self.cmb_familia.setCurrentIndex(MODOS_FAMILIA.index(fam))
             for f_, clave in (("spinodoide", "R_forzada"),
                               ("dual-lattice", "R_forzada_dual")):
@@ -8466,11 +8656,11 @@ class Visor(QtWidgets.QMainWindow):
 
     def _lote_listo(self, r):
         df, aj, inf, meta = r
-        dual = meta.get("familia") == "dual-lattice"
-        prefijo = "lote_dual" if dual else "lote"
+        from spinpy.familias import clave as _clave_fam
+        prefijo = _clave_fam("lote", meta.get("familia", "spinodoide"))
         self._ocupado(False)
         self._lote = (df, aj, inf)
-        self._res["lote_dual" if dual else "lote"] = {
+        self._res[prefijo] = {
             "meta": meta, "varianza": inf.to_dict(orient="records")}
 
         # Se guarda SIEMPRE y sin preguntar: el lote acaba de costar minutos u
@@ -8522,46 +8712,48 @@ class Visor(QtWidgets.QMainWindow):
         base = Path(str(base).rsplit(".", 1)[0])
 
         doc = self._documento_resultados()
-        m_spin = self._de("spinodoide", "m")
-        m_dual = self._de("dual-lattice", "m")
+        from spinpy.familias import clave as _clave_fam
+        ms = {f: self._de(f, "m") for f in FAMILIAS}
         ctrl = doc["procedencia"]["controles"]
 
-        # La columna del dual-lattice solo aparece si hay algo suyo: el CSV de
-        # una sesion solo de spinodoide conserva exactamente el formato de
-        # antes, que es el que ya leen las hojas de calculo hechas.
-        hay_dual = (m_dual is not None
-                    or any(str(k).endswith("_dual") for k in self._res))
+        # Una columna por familia, pero solo aparecen las que tienen algo: el
+        # CSV de una sesion solo de spinodoide conserva exactamente el formato
+        # de antes, que es el que ya leen las hojas de calculo hechas.
+        def hay(f):
+            if f == "spinodoide":
+                return True
+            suf = _clave_fam("", f)
+            return (ms[f] is not None
+                    or any(str(k).endswith(suf) for k in self._res))
 
-        def fila(bloque, mag, v, s, dl, uni):
-            return ((bloque, mag, v, s, dl, uni) if hay_dual
-                    else (bloque, mag, v, s, uni))
+        fams_csv = [f for f in FAMILIAS if hay(f)]
 
-        filas = [fila("bloque", "magnitud", "VOI", "spinodoide",
-                      "dual-lattice", "unidad")]
+        def fila(bloque, mag, v, vals, uni):
+            return (bloque, mag, v, *[vals.get(f, "") for f in fams_csv], uni)
+
+        filas = [("bloque", "magnitud", "VOI", *fams_csv, "unidad")]
         for clave, etq, _x, uni in TABLA:
             v = (self.m_voi or {}).get(clave)
-            s = (m_spin or {}).get(clave)
-            dl = (m_dual or {}).get(clave)
-            if v is None and s is None and dl is None:
+            vals = {f: (ms[f] or {}).get(clave) for f in fams_csv}
+            if v is None and all(x is None for x in vals.values()):
                 continue
-            filas.append(fila("morfometria", etq, self._num(v), self._num(s),
-                              self._num(dl), uni))
+            filas.append(fila("morfometria", etq, self._num(v),
+                              {f: self._num(x) for f, x in vals.items()}, uni))
 
-        ela = self._res.get("elastico", {}).get("por_estructura", {})
-        ela_d = self._res.get("elastico_dual", {}).get("por_estructura", {})
-        voi_ela = ela.get("voi") or ela_d.get("voi") or {}
+        ela = {f: self._res.get(_clave_fam("elastico", f), {}).get(
+                   "por_estructura", {}) for f in FAMILIAS}
+        voi_ela = next((e["voi"] for e in ela.values() if e.get("voi")), {})
         for k in ("Ex", "Ey", "Ez", "Gyz", "Gxz", "Gxy", "anisotropia_E"):
-            if any(k in d for d in list(ela.values()) + list(ela_d.values())):
-                filas.append(fila("elastico", k,
-                                  self._num(voi_ela.get(k)),
-                                  self._num(ela.get("spin", {}).get(k)),
-                                  self._num(ela_d.get("spin", {}).get(k)),
-                                  "Pa" if k[0] in "EG" else ""))
+            if any(k in d for e in ela.values() for d in e.values()):
+                filas.append(fila(
+                    "elastico", k, self._num(voi_ela.get(k)),
+                    {f: self._num(ela[f].get("spin", {}).get(k))
+                     for f in fams_csv}, "Pa" if k[0] in "EG" else ""))
 
-        res = self._res.get("resistencia", {}).get("por_estructura", {})
-        res_d = self._res.get("resistencia_dual", {}).get("por_estructura", {})
-        voi_r = res.get("voi") or res_d.get("voi") or {}
-        ejes = sorted({n for d in list(res.values()) + list(res_d.values())
+        res = {f: self._res.get(_clave_fam("resistencia", f), {}).get(
+                   "por_estructura", {}) for f in FAMILIAS}
+        voi_r = next((e["voi"] for e in res.values() if e.get("voi")), {})
+        ejes = sorted({n for e in res.values() for d in e.values()
                        for n in d["ejes"]})
         for eje in ejes:
             for k, uni in (("E_app", "Pa"), ("sigma_fallo", "Pa"),
@@ -8572,10 +8764,8 @@ class Visor(QtWidgets.QMainWindow):
                 filas.append(fila(
                     "resistencia", f"{k} [{eje}]",
                     self._num(voi_r.get("ejes", {}).get(eje, {}).get(k)),
-                    self._num(res.get("spin", {}).get("ejes", {})
-                              .get(eje, {}).get(k)),
-                    self._num(res_d.get("spin", {}).get("ejes", {})
-                              .get(eje, {}).get(k)),
+                    {f: self._num(res[f].get("spin", {}).get("ejes", {})
+                                  .get(eje, {}).get(k)) for f in fams_csv},
                     uni))
 
         # Procedencia al FINAL: las hojas ya hechas leen las filas de arriba por
@@ -8584,8 +8774,8 @@ class Visor(QtWidgets.QMainWindow):
                        ("esquema", ""), ("semilla", ""),
                        ("wave_number_pi", "x pi"), ("wave_number_rad", "rad")):
             filas.append(fila("procedencia", k, "",
-                              self._txt(ctrl["spinodoide"].get(k)),
-                              self._txt(ctrl["dual-lattice"].get(k)), uni))
+                              {f: self._txt(ctrl[f].get(k)) for f in fams_csv},
+                              uni))
 
         # Separador ';' y coma decimal: es lo que Excel en configuracion
         # espanola abre sin pasar por el asistente de importacion. Con ','
@@ -8643,7 +8833,8 @@ class Visor(QtWidgets.QMainWindow):
                 "voi": voi,
                 "morfometria_voi": self._limpiar(self.m_voi),
                 "morfometria_spin": self._limpiar(self._de("spinodoide", "m")),
-                "morfometria_dual": self._limpiar(self._de("dual-lattice", "m"))}
+                "morfometria_dual": self._limpiar(self._de("dual-lattice", "m")),
+                "morfometria_ls": self._limpiar(self._de("level-set-foam", "m"))}
 
     def informe_publicacion(self):
         """Metodos en ES/EN, citabilidad de cada resultado y reproduccion.
@@ -9225,7 +9416,8 @@ class Visor(QtWidgets.QMainWindow):
         los controles. El VOI no tiene generador."""
         if est == "voi":
             return procedencia.bloque("voi")
-        rec = self._res.get("ajuste" if est == "spinodoide" else "ajuste_dual")
+        from spinpy.familias import clave as _clave_fam
+        rec = self._res.get(_clave_fam("ajuste", est))
         if isinstance(rec, dict) and rec.get("procedencia"):
             return rec["procedencia"]
         return self._procedencia_controles()[est]
@@ -9749,6 +9941,16 @@ def autocomprobacion():
         return (f"BV/TV pedido 0.30, obtenido {info['rho_obtenida']:.3f}, "
                 f"{info['n_nodos']} nodos")
     prueba("generar dual-lattice 32^3 (Qhull)", _dual)
+
+    def _ls():
+        # morphoGen es opcional: sin el la familia no esta disponible y no es
+        # un fallo de la instalacion.
+        if not LS_DISPONIBLE:
+            return "morphoGen no instalado: level-set foam desactivado"
+        _BW, _, info = generar_level_set(32, 80, 0.3, seed=1)
+        return (f"BV/TV pedido 0.30, obtenido {info['rho_obtenida']:.3f}, "
+                f"morphoGen {info['morphogen']}")
+    prueba("generar level-set foam 32^3 (morphoGen)", _ls)
 
     def _morfo():
         m = morfometria(estado["BW"], estado["sp"])

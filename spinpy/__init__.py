@@ -8,7 +8,11 @@ Cubre la parte de AppFinal_V2.m que va del generador a la morfometria:
 Lee VOIs en VTK legacy (.vtk) y en .mat de MATLAB.
 
 Ajusta un spinodoide a un VOI con la busqueda escalonada de fitSpinodoidToVOI
-(etapas A/B/C, correcciones G1/G2/K2) mediante ajustar_spinodoide.
+(etapas A/B/C, correcciones G1/G2/K2) mediante ajustar_spinodoide. Hay otras
+dos familias con el mismo contrato: el dual-lattice (ajustar_dual_lattice) y el
+level-set foam (ajustar_level_set), esta ultima con la libreria opcional
+morphoGen (`spinpy.level_set`; GPL-3.0-or-later, Python >= 3.12). La lista y
+los sufijos de sus claves de resultados estan en `spinpy.familias`.
 
 Homogeneiza elasticamente sobre la rejilla de voxeles (homogeneizar).
 
@@ -30,7 +34,7 @@ Lo que NO cubre (sigue solo en MATLAB): los otros cuatro optimizadores
 # Una sola fuente de la version dentro del paquete; `tests/test_16` comprueba
 # que coincide con `pyproject.toml`. Viaja en el bloque de procedencia de cada
 # resultado (`spinpy.procedencia`).
-__version__ = "2.5.0"
+__version__ = "2.6.0"
 
 # En Windows, antes que nada: el runtime de C++ mas reciente, para que PyQt5
 # no fije el suyo (viejo) y netgen/NGSolve no revienten. Ver `_msvc.py`.
@@ -49,6 +53,7 @@ from .curvatura import perfil as perfil_curvaturas
 from .curvatura import resumen as resumen_curvaturas
 from .avisos import desalineacion, voi_no_trabecular
 from .dual_lattice import campo_dual, generar_dual_lattice
+from .level_set import generar_level_set
 from .elipsoide import factor_elipsoide
 from .elastic import (backus_laminado, clase_anisotropia,
                       constantes_ingenieria, constantes_principales,
@@ -59,6 +64,7 @@ from . import incertidumbre, procedencia
 from .fit import (ajustar_spinodoide, dir_a_euler, longitud_caracteristica,
                   metricas_mecanicas)
 from .fit_dual import ajustar_dual_lattice
+from .fit_levelset import ajustar_level_set
 from .io import leer_mat_voi, leer_voi, leer_vtk_voi
 from .lote import METRICAS, correr_lote, dispersion_semillas
 from .voi import (apilar, escribir_vtk_voi, extraer_cilindro, extraer_cubo,
@@ -84,6 +90,7 @@ __all__ = [
     "perfil_curvaturas", "resumen_curvaturas",
     "desalineacion", "voi_no_trabecular",
     "campo_dual", "generar_dual_lattice", "ajustar_dual_lattice",
+    "generar_level_set", "ajustar_level_set",
     "factor_elipsoide",
     "backus_laminado", "constantes_ingenieria", "hex8_ke", "homogeneizar",
     "error_morfometrico", "fabric_cos", "peso_alineacion",
