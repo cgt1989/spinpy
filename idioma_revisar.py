@@ -151,14 +151,18 @@ def main():
     # porque el comprobador ni siquiera sabia que existian. Un comprobador con
     # puntos ciegos es peor que no tenerlo: da tranquilidad falsa.
     for ruta in (RAIZ / "visor.py", RAIZ / "dialogo_metodos.py",
-                 RAIZ / "dialogo_validacion.py", RAIZ / "dialogo_febio.py"):
+                 RAIZ / "dialogo_validacion.py", RAIZ / "dialogo_febio.py",
+                 RAIZ / "dialogo_cargas.py",
+                 # las descripciones de las listas de cargas y apoyos
+                 # se traducen con `_t(...)` desde el nucleo
+                 RAIZ / "spinpy" / "cargas.py"):
         if not ruta.exists():
             continue
         arbol = ast.parse(ruta.read_text(encoding="utf-8"))
         for nodo in ast.walk(arbol):
             if (isinstance(nodo, ast.Call)
                     and isinstance(nodo.func, ast.Name)
-                    and nodo.func.id == "_"
+                    and nodo.func.id in ("_", "_t")
                     and len(nodo.args) == 1
                     and isinstance(nodo.args[0], ast.Constant)
                     and isinstance(nodo.args[0].value, str)):
@@ -180,6 +184,13 @@ def main():
 
     usadas |= DINAMICAS
     usadas |= _textos_de_replicas()
+    # Las etiquetas de los campos del analisis con cargas llegan a `_()` como
+    # variable (`_(C.ETIQUETA_CAMPO[k])`): se leen de su tabla.
+    try:
+        from spinpy.cargas import ETIQUETA_CAMPO
+        usadas |= set(ETIQUETA_CAMPO.values())
+    except Exception:
+        pass
 
     sin, sobra = revisar(usadas)
 

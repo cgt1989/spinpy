@@ -2203,10 +2203,17 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
     sec_modelos = 5 if figuras else 4
     from .informe_modelos import seccion_modelos
     modelos = seccion_modelos(doc, idioma, red, sec_modelos)
+    # Los casos de «Cargas con el raton…» van a continuacion de los modelos:
+    # declaran lo que eligio quien uso la ventana, que ningun protocolo fijo
+    # describe. Sin casos en la sesion no hay seccion y la numeracion no se
+    # mueve.
+    from .informe_cargas import seccion_cargas
+    sec_cargas = sec_modelos + (1 if modelos else 0)
+    cargas = seccion_cargas(doc, idioma, red, sec_cargas)
     # La lista de chequeo va la ultima, pero cita guias: se redacta ahora para
     # que sus referencias entren en la lista numerada.
     from .lista_chequeo import seccion as seccion_chequeo
-    sec_refs = sec_modelos + (1 if modelos else 0)
+    sec_refs = sec_cargas + (1 if cargas else 0)
     chequeo = seccion_chequeo(doc, idioma, red, sec_refs + 3, {
         "modelos": sec_modelos if modelos else None,
         "cita": sec_refs + 1, "reproduccion": sec_refs + 2})
@@ -2317,6 +2324,10 @@ def informe_markdown(doc, items, paq, idioma="es", nombre_paquete=None,
 
     if modelos:
         L += modelos
+        sec += 1
+
+    if cargas:
+        L += cargas
         sec += 1
 
     L.append(f"## {sec}. " + T("Referencias", "References"))

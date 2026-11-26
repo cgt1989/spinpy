@@ -253,6 +253,7 @@ from spinpy.solido import (malla_hex, malla_tet10,           # noqa: E402
 from dialogo_febio import (DialogoFEBio, DialogoFEMAuto,     # noqa: E402
                            DialogoResultadosFEBio, escribir_csv,
                            figura_validacion)
+from dialogo_cargas import DialogoCargas                     # noqa: E402
 
 RAIZ = Path(__file__).parent
 
@@ -3780,6 +3781,9 @@ class Visor(QtWidgets.QMainWindow):
         # volcar EXACTAMENTE los numeros que el usuario vio, y como el
         # generador es estocastico, recalcular daria otros.
         self._res = {}
+        # Ultimo caso de carga de «Cargas con el raton…»: se recuerda para
+        # reabrir la ventana donde se dejo y viaja en la sesion.
+        self._caso_cargas = None
         # Estado del informe automatico mientras recorre sus etapas; None
         # fuera de el. Mientras no es None, los dialogos de resultados no se
         # abren y los errores se anotan en vez de interrumpir.
@@ -4553,6 +4557,18 @@ class Visor(QtWidgets.QMainWindow):
         self.btn_febio.clicked.connect(self.analizar_febio)
         gl.addWidget(self.btn_febio)
 
+        self.btn_cargas = QtWidgets.QPushButton("Cargas con el ratón…")
+        self.btn_cargas.setToolTip(
+            "Otras cargas que la compresión axial: eliges con el ratón dónde\n"
+            "se apoya y dónde se empuja o se tira, con qué fuerza y en qué\n"
+            "dirección (fuerzas, presiones, momentos, desplazamientos), sobre\n"
+            "el VOI, el spinodoide o el dual-lattice. Resuelve en hexaedros\n"
+            "con el mismo material y calcula reacciones, rigidez y el factor\n"
+            "de Pistoia. Incluye barrido de ángulo y comparación entre\n"
+            "estructuras.")
+        self.btn_cargas.clicked.connect(self.analisis_cargas)
+        gl.addWidget(self.btn_cargas)
+
         f = QtWidgets.QHBoxLayout()
         self.btn_dist = QtWidgets.QPushButton("Distribuciones…")
         self.btn_dist.setToolTip(
@@ -5196,14 +5212,14 @@ class Visor(QtWidgets.QMainWindow):
                       self.btn_disp, self.btn_todos, self.btn_paper,
                       self.btn_sim, self.btn_fallo, self.act_informe,
                       self.act_informe_auto, self.btn_febio,
-                      self.act_fem_auto}
+                      self.act_fem_auto, self.btn_cargas}
                      if self.VOI_dominio is not None else set())
         for b in (self.btn_gen, self.btn_med, self.btn_fit, self.btn_ela,
                   self.btn_exp, self.btn_fe, self.btn_hist, self.btn_dist,
                   self.btn_conv, self.btn_disp, self.btn_lote, self.btn_todos,
                   self.btn_paper, self.cmb_familia, self.btn_sim,
                   self.btn_fallo, self.act_informe, self.act_informe_auto,
-                  self.btn_febio, self.act_fem_auto):
+                  self.btn_febio, self.act_fem_auto, self.btn_cargas):
             b.setEnabled(not bloquear and b not in solo_cubo)
         if si and determinada:
             self.barra.setRange(0, max(1, int(total)))
@@ -7065,6 +7081,48 @@ class Visor(QtWidgets.QMainWindow):
                                   t=f"{transcurrido:.0f}", eje=pintado))
         self._mostrar(d)
 
+    def analisis_cargas(self):
+        """«Cargas con el ratón…»: la ventana de cargas y apoyos a elegir.
+
+        Se ofrecen las estructuras que hay: el VOI cargado y cada candidato
+        generado o ajustado. El caso (cargas y apoyos, en mm sobre el marco de
+        la estructura) se recuerda y viaja en la sesion; cada caso que se
+        añade al informe queda en `_res["cargas_casos"]`.
+        """
+        if self.hilo is not None and self.hilo.isRunning():
+            return
+        est = {}
+        if self.VOI is not None and self.VOI_dominio is None:
+            est["voi"] = {"etq": _("VOI de referencia"), "BW": self.VOI,
+                          "spacing": self.VOI_spacing}
+        for f in FAMILIAS:
+            BW = self._de(f, "BW")
+            if BW is not None:
+                est[f] = {"etq": self._etq_fam(f), "BW": BW,
+                          "spacing": self._spacing(BW.shape[0])}
+        if not est:
+            self._avisar(
+                _("Sin estructura"),
+                _("Carga un VOI o genera un spinodoide."))
+            return
+        clave = "voi" if "voi" in est else (
+            self._fam if self._fam in est else next(iter(est)))
+        caso = json.loads(json.dumps(self._caso_cargas)) \
+            if self._caso_cargas else None
+        dlg = DialogoCargas(self, est, clave=clave, caso=caso,
+                            n_calculo=int(self.spin_res_fe.value()),
+                            E_s=E_S_PA, nu_s=NU_S, carpeta=DATOS)
+        dlg.registrado.connect(self._cargas_registrado)
+        self._mostrar(dlg)
+        self._caso_cargas = json.loads(json.dumps(dlg.caso))
+
+    def _cargas_registrado(self, reg):
+        """Un caso de carga resuelto, añadido al informe de publicación."""
+        self._res.setdefault("cargas_casos", []).append(reg)
+        self.statusBar().showMessage(
+            _("Caso de carga añadido al informe ({n} en la sesión).").format(
+                n=len(self._res["cargas_casos"])))
+
     def analisis_comparado(self):
         """Analisis comparado del VOI frente a cada familia activa."""
         self._en_cada_familia(self._analisis_comparado_una)
@@ -8147,6 +8205,9 @@ class Visor(QtWidgets.QMainWindow):
             # spinodoide conserva su clave de siempre: una sesion guardada
             # antes de que hubiera familias se sigue cargando igual.
             "familia": self._modo_fam,
+            # Ultimo caso de carga de «Cargas con el raton…» (cargas y apoyos
+            # en mm): se reabre donde se dejo.
+            "caso_cargas": self._caso_cargas,
             "R_forzada_dual": (None if self._de("dual-lattice", "R") is None
                                else np.asarray(self._de("dual-lattice", "R"),
                                                float).tolist()),
@@ -8213,6 +8274,7 @@ class Visor(QtWidgets.QMainWindow):
                 self.spin_res_fe.setValue(int(d["res_fe"]))
             if d.get("peso_mecanico"):
                 self.spin_peso_mec.setValue(float(d["peso_mecanico"]))
+            self._caso_cargas = d.get("caso_cargas")
             if d.get("res_mec"):
                 self.spin_res_mec.setValue(int(d["res_mec"]))
             fam = d.get("familia", "spinodoide")

@@ -12,7 +12,7 @@
   <img alt="Windows" src="https://img.shields.io/badge/ejecutable-Windows%2064%20bits-0078d6?logo=windows&logoColor=white">
   <img alt="Código MIT" src="https://img.shields.io/badge/c%C3%B3digo-MIT-2ea44f">
   <img alt="Ejecutable GPL-3.0" src="https://img.shields.io/badge/ejecutable-GPL--3.0-8a8a8a">
-  <img alt="Verificación: 35 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-35%20bloques-5b6b7f">
+  <img alt="Verificación: 35 bloques" src="https://img.shields.io/badge/verificaci%C3%B3n-36%20bloques-5b6b7f">
   <img alt="Interfaz ES/EN" src="https://img.shields.io/badge/interfaz-ES%20%7C%20EN-5b6b7f">
   <img alt="Desarrollado con Claude (vibecoding)" src="https://img.shields.io/badge/desarrollado%20con-Claude%20(vibecoding)-d97757?logo=claude&logoColor=white">
 </p>
@@ -127,6 +127,30 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 
 <p align="center"><img src="docs/media/03_mecanica.gif" alt="Campo de von Mises del ensayo de compresión" width="100%"></p>
 
+### 5 · Elegir las cargas con el ratón
+
+**Cargas con el ratón…** (sección de análisis mecánico) abre el cubo del hueso y
+deja decidir cómo se carga. Con un clic sobre el cubo o sobre la superficie del
+hueso se elige la región donde se apoya o donde actúa una carga: una cara del
+cubo, un parche esférico (con filtro por la normal, para no recoger el otro
+lado de una trabécula) o nodos sueltos. La dirección se fija con un vector,
+con azimut y elevación, con la normal de las caras o arrastrando una esfera
+en la punta de la flecha. Hay fuerzas, presiones, momentos y desplazamientos
+impuestos, tantos como se quiera a la vez, apoyos empotrados, deslizantes o
+con los grados de libertad que se elijan, plantillas de partida (compresión,
+tracción, cizalla, flexión, torsión, carga puntual) y deshacer y rehacer.
+
+El mismo caso se resuelve sobre el VOI del hueso, el espinodoide o el
+*dual-lattice*, a elección, o sobre los tres con una tabla comparativa. Se ve
+el campo elegido (von Mises, deformación efectiva, desplazamientos, tensiones
+principales, cortante, componentes) sobre la superficie y en tres cortes, con
+deformada amplificada y corte opcional, y se obtienen las reacciones, el
+equilibrio de fuerzas y momentos, la rigidez en N/mm y el factor de Pistoia.
+El **barrido de ángulo** gira una carga en un plano y dibuja la rigidez y la
+tensión en función de la dirección, con dos resoluciones en lugar de una por
+ángulo. Se puede exportar a imagen, VTK (ParaView), CSV y JSON, y añadir el
+caso al informe de publicación, que lo declara completo.
+
 ---
 
 ## Qué hace
@@ -138,7 +162,7 @@ para el hueso y el candidato**, y carga de fallo por el criterio de Pistoia.
 | **Mide** | BV/TV, BS/BV, BS/PV, Tb.Th, Tb.Sp, Tb.N, tensor MIL y DA, Conn.D, SMI, espesor local, tamaño de poro, **Ellipsoid Factor** y curvaturas principales de la interfaz. |
 | **Ajusta** | Los parámetros que mejor reproducen un VOI real: búsqueda escalonada, réplicas con semillas nuevas, suelo de ruido autoconsistente y desempate mecánico opcional. |
 | **Homogeneiza** | El tensor elástico por celda unidad periódica sobre la rejilla de vóxeles, con multigrid algebraico y comprobación del residuo. |
-| **Ensaya** | Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. E y p99 **corregidos de los artefactos de borde** (plato rígido y medida en el núcleo del VOI), validados frente al mismo hueso embebido en hueso. |
+| **Ensaya** | Cargas y apoyos elegidos con el ratón (fuerzas, presiones, momentos, desplazamientos; barrido de ángulo; mismo caso sobre el VOI, el espinodoide y el *dual-lattice*). Compresión en X, Y o Z con campos de von Mises, deformación efectiva y desplazamiento; fallo por Pistoia; estudio de convergencia de malla. Con ladrillos o con malla suave de tetraedros cuadráticos, en lineal o no lineal, con motores FEM internos (la app, NGSolve y, si están instalados, FEniCSx, scikit-fem y SfePy), uno o varios a la vez. E y p99 **corregidos de los artefactos de borde** (plato rígido y medida en el núcleo del VOI), validados frente al mismo hueso embebido en hueso. |
 | **Simula** | Pérdida ósea *in silico* (adelgazamiento, trabéculas finas, desuso, recuperación) y fallo progresivo sobre el gemelo digital del VOI. |
 | **Informa** | Un informe para publicación en español e inglés (Markdown y PDF): métodos redactados con los valores usados, figuras a 600 ppp, tabla de citabilidad, lista de chequeo de reporte (Bouxsein et al. 2010 para micro-TC, Erdemir et al. 2012 para elementos finitos) y huella SHA-256 para reproducir cada máscara. |
 | **Exporta** | Sólido hexaédrico o TET10 a Abaqus, ANSYS APDL, VTU y STL, y el ensayo de compresión completo a FEBio 4 (`.feb`). |
@@ -363,10 +387,10 @@ macOS con 3.13), y la construcción del instalador exige que pase. Cada
 ejecución guarda como artefacto el registro de tolerancias y el entorno exacto
 (`pip freeze`) con que se midió.
 
-35 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
+36 bloques con tolerancias **declaradas antes de medir**: topología, SMI,
 espesor, mecánica, Pistoia, pilas TIFF, curvatura, Ellipsoid Factor,
 *dual-lattice*, procedencia, función objetivo, muestreo MIL, informe, capa de
-superficie de von Mises… Un fallo aquí es un hallazgo, no un error de la
+superficie de von Mises, cargas y apoyos a elegir… Un fallo aquí es un hallazgo, no un error de la
 suite. Los dos hallazgos ya documentados (la losa del bloque 04 sale un vóxel
 más gruesa y el exponente de Gibson-Ashby del bloque 05 sale ≈ 3,9) están
 marcados como `xfail` estricto: la suite queda en verde, el registro los sigue
@@ -810,6 +834,16 @@ los intervalos no permiten concluir equivalencia. La plantilla está en
 
 - **Sin validación experimental de los valores mecánicos absolutos** (ver la
   sección anterior).
+- **Cargas con el ratón.** El solver se comprueba contra soluciones cerradas
+  (compresión, expansión lateral, torsión y flexión de una barra), contra el
+  ensayo de compresión de la aplicación y por equilibrio de fuerzas y
+  momentos; no contra ensayos físicos. El factor de Pistoia se calibró con
+  compresión de radio distal: con una fuerza concentrada o un desplazamiento
+  impuesto es un índice relativo, no una carga de rotura, y el máximo de von
+  Mises bajo una carga puntual depende de la malla (el percentil 99 es más
+  estable). Los apoyos del barrido de ángulo no giran con la carga. Las
+  regiones elegidas con el ratón se resuelven sobre la malla de vóxeles; el
+  cilindro recortado no se admite, como en el resto del análisis mecánico.
 - **Medida sobre malla en macOS con Apple Silicon.** En la verificación
   automática, `tests/test_07_malla.py::test_losa_tapas_excluidas` falla en
   macOS (BS +2,34 % frente a la tolerancia del 1 %) y pasa en Linux y Windows.

@@ -1923,4 +1923,408 @@ EN = {
         '{m} · {n} record(s) · folder {c}',
     'FEniCSx':
         'FEniCSx',
+
+    # -- cargas con el raton (dialogo_cargas, cargas.describir_*) -----------
+    '(sin campo)':
+        '(no field)',
+    '<b>Equilibrio</b>: residuo de fuerzas {f:.1e}, de momentos {m:.1e}.':
+        '<b>Equilibrium</b>: force residual {f:.1e}, moment residual {m:.1e}.',
+    '<b>Pistoia</b>: las cargas llegarían al criterio con un factor ×{f:.3g}. {nota}':
+        '<b>Pistoia</b>: the loads would reach the criterion at a factor ×{f:.3g}. {nota}',
+    '<b>Rigidez de C{n}</b>: {k:.4g} N/mm.':
+        '<b>Stiffness of C{n}</b>: {k:.4g} N/mm.',
+    '<b>von Mises</b>: máx. {a:.4g} MPa, p99 {b:.4g} MPa.':
+        '<b>von Mises</b>: max. {a:.4g} MPa, p99 {b:.4g} MPa.',
+    'Análisis mecánico con cargas':
+        'Mechanical analysis with loads',
+    'Aplicar a':
+        'Apply to',
+    'Aplicar plantilla':
+        'Apply template',
+    'Apoyos':
+        'Supports',
+    'Arrastrar la punta de la flecha con el ratón':
+        'Drag the arrow tip with the mouse',
+    'Auto':
+        'Auto',
+    'Azimut':
+        'Azimuth',
+    'Añadir al informe de publicación':
+        'Add to the publication report',
+    'Añadir ▾':
+        'Add ▾',
+    'BV/TV':
+        'BV/TV',
+    'Barrer…':
+        'Sweep…',
+    'Barrido':
+        'Sweep',
+    'Barrido de ángulo':
+        'Angle sweep',
+    'CSV…':
+        'CSV…',
+    'Caja':
+        'Box',
+    'Campo':
+        'Field',
+    'Capas':
+        'Layers',
+    'Capas de voxel desde la cara. Solo cuenta con ámbito «volumen»: los nodos a menos de esa profundidad.':
+        'Voxel layers from the face. Only used with the «volume» scope: the nodes within that depth.',
+    'Cara':
+        'Face',
+    'Cara del cubo':
+        'Cube face',
+    'Caras de voxel (valor exacto)':
+        'Voxel faces (exact value)',
+    'Carga creada.':
+        'Load created.',
+    'Carga puntual sobre la superficie':
+        'Point load on the surface',
+    'Cargar caso…':
+        'Load case…',
+    'Cargar un caso de carga':
+        'Load a load case',
+    'Cargas':
+        'Loads',
+    'Cargas con el ratón…':
+        'Loads with the mouse…',
+    'Caso añadido al informe de publicación ({n} en la sesión).':
+        'Case added to the publication report ({n} in the session).',
+    'Caso de carga añadido al informe ({n} en la sesión).':
+        'Load case added to the report ({n} in the session).',
+    'Caso no válido':
+        'Invalid case',
+    'Centro':
+        'Centre',
+    'Centro del par':
+        'Couple centre',
+    'Cizalla':
+        'Shear',
+    'Comparación de estructuras':
+        'Structure comparison',
+    'Compresión axial':
+        'Axial compression',
+    'Con apoyo empotrado. Resuelve dos veces, no una por ángulo: el problema es lineal.':
+        'With a fixed support. It solves twice, not once per angle: the problem is linear.',
+    'Con una herramienta activa, un clic (sin arrastrar) sobre el hueso o el cubo asigna la región a la carga o al apoyo activo.':
+        'With a tool active, a click (without dragging) on the bone or the cube assigns the region to the active load or support.',
+    'Cortar en':
+        'Cut at',
+    'Corte x':
+        'Slice x',
+    'Corte y':
+        'Slice y',
+    'Corte z':
+        'Slice z',
+    'Deformada ×':
+        'Deformed shape ×',
+    'Deshacer (Ctrl+Z)':
+        'Undo (Ctrl+Z)',
+    'Deslizante (solo el normal)':
+        'Sliding (normal only)',
+    'Desplazamiento impuesto (mm)':
+        'Prescribed displacement (mm)',
+    'Dibujo':
+        'Display',
+    'Dirección':
+        'Direction',
+    'Duplicar':
+        'Duplicate',
+    'Eje':
+        'Axis',
+    'El caso ha cambiado: resuelve de nuevo para ver el campo.':
+        'The case has changed: solve again to see the field.',
+    'El caso no tiene ninguna fuerza, presión ni momento.':
+        'The case has no force, pressure or moment.',
+    'El mismo caso de carga sobre cada estructura, con las regiones dadas en mm. Las diferencias son de estructura, no de carga.':
+        'The same load case on each structure, with the regions given in mm. The differences come from the structure, not from the load.',
+    'El mismo caso sobre cada estructura disponible, con una tabla comparativa.':
+        'The same case on every available structure, with a comparison table.',
+    'El próximo clic sobre la superficie crea una fuerza normal entrante sobre un parche.':
+        'The next click on the surface creates an inward normal force on a patch.',
+    'Elegir con el ratón:':
+        'Pick with the mouse:',
+    'Elevación':
+        'Elevation',
+    'Elige o crea primero una carga o un apoyo.':
+        'First choose or create a load or a support.',
+    'Empotrado (x, y, z)':
+        'Fixed (x, y, z)',
+    'Equilibrio':
+        'Equilibrium',
+    'Estabilizar automáticamente':
+        'Stabilise automatically',
+    'Estado inicial':
+        'Initial state',
+    'Estructura':
+        'Structure',
+    'Exportar':
+        'Export',
+    'Factor de Pistoia':
+        'Pistoia factor',
+    'Filtra por la normal: solo las caras cuya normal saliente forma menos del ángulo indicado con la dirección. Sobre una trabécula deja las del lado pinchado.':
+        'Filters by normal: only the faces whose outward normal makes less than the given angle with the direction. On a trabecula it keeps those on the clicked side.',
+    'Flexión':
+        'Bending',
+    'Fuerza (N)':
+        'Force (N)',
+    'Girar':
+        'Rotate',
+    'Grados de libertad fijos':
+        'Fixed degrees of freedom',
+    'Guarda este caso y su resultado en la sesión: el informe de publicación los declara en una sección propia.':
+        'Stores this case and its result in the session: the publication report declares them in a section of its own.',
+    'Guardar CSV…':
+        'Save CSV…',
+    'Guardar caso…':
+        'Save case…',
+    'Guardar el CSV':
+        'Save the CSV',
+    'Guardar el barrido':
+        'Save the sweep',
+    'Guardar el caso de carga':
+        'Save the load case',
+    'Guardar el resultado':
+        'Save the result',
+    'Guardar la imagen 3D':
+        'Save the 3D image',
+    'Guardar para ParaView':
+        'Save for ParaView',
+    'Haz clic sobre la superficie del hueso para crear la carga.':
+        'Click on the bone surface to create the load.',
+    'Imagen 3D…':
+        '3D image…',
+    'JSON…':
+        'JSON…',
+    'La vista 3D no está disponible en este equipo. Los mandos y los cortes siguen funcionando.':
+        'The 3D view is not available on this computer. The controls and the slices still work.',
+    'Magnitud':
+        'Magnitude',
+    'Momento (N·mm)':
+        'Moment (N·mm)',
+    'Muestra una esfera en la punta de la flecha de la carga activa: al arrastrarla se fija la dirección.':
+        'Shows a sphere at the tip of the active load arrow: dragging it sets the direction.',
+    'Máximo':
+        'Maximum',
+    'Mínimo':
+        'Minimum',
+    'Módulo (N)':
+        'Magnitude (N)',
+    'Nada que girar':
+        'Nothing to rotate',
+    'Nodos (Mayús quita)':
+        'Nodes (Shift removes)',
+    'Nodos elegidos':
+        'Chosen nodes',
+    'Normal entrante (empuja)':
+        'Inward normal (pushes)',
+    'Normal saliente (tira)':
+        'Outward normal (pulls)',
+    'Nueva carga con un clic':
+        'New load with a click',
+    'Otras cargas que la compresión axial: eliges con el ratón dónde\nse apoya y dónde se empuja o se tira, con qué fuerza y en qué\ndirección (fuerzas, presiones, momentos, desplazamientos), sobre\nel VOI, el spinodoide o el dual-lattice. Resuelve en hexaedros\ncon el mismo material y calcula reacciones, rigidez y el factor\nde Pistoia. Incluye barrido de ángulo y comparación entre\nestructuras.':
+        'Loads other than axial compression: you choose with the mouse where\nit is supported and where it is pushed or pulled, with what force and in\nwhich direction (forces, pressures, moments, displacements), on\nthe VOI, the spinodoid or the dual-lattice. It solves with hexahedra\nand the same material and computes reactions, stiffness and the\nPistoia factor. It includes an angle sweep and a comparison between\nstructures.',
+    'Parche en la superficie':
+        'Patch on the surface',
+    'Parche esférico':
+        'Spherical patch',
+    'Personalizado (grados de libertad)':
+        'Custom (degrees of freedom)',
+    'Plano x-y':
+        'x-y plane',
+    'Plano x-z':
+        'x-z plane',
+    'Plano y-z':
+        'y-z plane',
+    'Plantilla de partida':
+        'Starting template',
+    'Por omisión, el baricentro de la región. Fíjalo para girar alrededor de otro punto.':
+        'By default, the centroid of the region. Fix it to rotate about another point.',
+    'Presión (MPa)':
+        'Pressure (MPa)',
+    'Quitar':
+        'Remove',
+    'Radio del parche que crea un clic.':
+        'Radius of the patch a click creates.',
+    'Rango de color fijo':
+        'Fixed colour range',
+    'Región':
+        'Region',
+    'Región asignada: {r}':
+        'Region assigned: {r}',
+    'Rehacer (Ctrl+Mayús+Z)':
+        'Redo (Ctrl+Shift+Z)',
+    'Resolución':
+        'Resolution',
+    'Resolver':
+        'Solve',
+    'Resolver en todas las estructuras':
+        'Solve on all structures',
+    'Resuelve el caso primero.':
+        'Solve the case first.',
+    'Resultados':
+        'Results',
+    'Rigidez (N/mm)':
+        'Stiffness (N/mm)',
+    'Sección bruta de la cara':
+        'Gross section of the face',
+    'Si los apoyos no impiden el movimiento de sólido rígido, añade las restricciones mínimas y comprueba que sus reacciones son nulas (es decir, que las cargas están equilibradas).':
+        'If the supports do not prevent rigid-body motion, it adds the minimal constraints and checks that their reactions vanish (that is, that the loads are balanced).',
+    'Sin datos':
+        'No data',
+    'Sin resultado':
+        'No result',
+    'Sobre qué área se aplica la presión. Bruta: la sección del cubo, como la tensión aparente del ensayo de siempre.':
+        'On which area the pressure is applied. Gross: the cross-section of the cube, like the apparent stress of the usual test.',
+    'Solo caras que miran a…':
+        'Only faces facing…',
+    'Solo girar la vista':
+        'Only rotate the view',
+    'Solo los fragmentos que unen cargas y apoyos':
+        'Only the fragments that link loads to supports',
+    'Superficie (caras expuestas)':
+        'Surface (exposed faces)',
+    'Superficie suave':
+        'Smooth surface',
+    'Superficie: las caras de voxel con hueso a un lado y vacío al otro; una carga se reparte por área. Volumen: todos los nodos de hueso dentro de la región; una fuerza se reparte por nodo.':
+        'Surface: the voxel faces with bone on one side and void on the other; a load is spread by area. Volume: all the bone nodes inside the region; a force is spread per node.',
+    'Sustituye las cargas y los apoyos por los de la plantilla. Se puede deshacer.':
+        'Replaces the loads and supports with those of the template. It can be undone.',
+    'Tejido: E':
+        'Tissue: E',
+    'Tensión (MPa)':
+        'Stress (MPa)',
+    'Todavía no se ha resuelto.':
+        'Not solved yet.',
+    'Torsión':
+        'Torsion',
+    'Tracción axial':
+        'Axial tension',
+    'Traslúcido':
+        'Translucent',
+    'VTK (ParaView)…':
+        'VTK (ParaView)…',
+    'Vaciar':
+        'Clear',
+    'Vector':
+        'Vector',
+    'Volumen (todos los nodos)':
+        'Volume (all nodes)',
+    'Vóxeles por lado con que se resuelve. Más es más fino y mucho más lento. Las regiones se dan en mm y no cambian al variarlo.':
+        'Voxels per side it is solved with. More is finer and much slower. Regions are given in mm and do not change when it varies.',
+    'apoyo':
+        'support',
+    'añadir apoyo':
+        'add support',
+    'añadir carga':
+        'add load',
+    'carga':
+        'load',
+    'carga con un clic':
+        'load with a click',
+    'cargar caso':
+        'load case',
+    'duplicar apoyo':
+        'duplicate support',
+    'duplicar carga':
+        'duplicate load',
+    'flecha':
+        'arrow',
+    'material':
+        'material',
+    'pasos':
+        'steps',
+    'plano x-y':
+        'x-y plane',
+    'plano x-z':
+        'x-z plane',
+    'plano y-z':
+        'y-z plane',
+    'plantilla':
+        'template',
+    'quitar apoyo':
+        'remove support',
+    'quitar carga':
+        'remove load',
+    'región con el ratón':
+        'region with the mouse',
+    'von Mises máx. (MPa)':
+        'von Mises max. (MPa)',
+    'von Mises máximo (MPa)':
+        'von Mises maximum (MPa)',
+    'von Mises p99 (MPa)':
+        'von Mises p99 (MPa)',
+    'vóxeles por lado':
+        'voxels per side',
+    '{n} elementos, {d} grados de libertad, {s}.':
+        '{n} elements, {d} degrees of freedom, {s}.',
+    '{n} nodo(s) elegidos con el ratón':
+        '{n} node(s) chosen with the mouse',
+    '{n}×{m}×{k} vóxeles, {dx:.3g} × {dy:.3g} × {dz:.3g} mm, BV/TV {r:.3f}':
+        '{n}×{m}×{k} voxels, {dx:.3g} × {dy:.3g} × {dz:.3g} mm, BV/TV {r:.3f}',
+    'Ámbito':
+        'Scope',
+    'Ángulo medido desde el primer eje del plano hacia el segundo.':
+        'Angle measured from the first axis of the plane towards the second.',
+    'Área de hueso expuesta':
+        'Exposed bone area',
+    'Área de referencia':
+        'Reference area',
+    'von Mises (MPa)':
+        'von Mises (MPa)',
+    'Desplazamiento total (mm)':
+        'Total displacement (mm)',
+    'Desplazamiento x (mm)':
+        'Displacement x (mm)',
+    'Desplazamiento y (mm)':
+        'Displacement y (mm)',
+    'Desplazamiento z (mm)':
+        'Displacement z (mm)',
+    'Tension principal maxima (MPa)':
+        'Maximum principal stress (MPa)',
+    'Tension principal minima (MPa)':
+        'Minimum principal stress (MPa)',
+    'Cortante maximo (MPa)':
+        'Maximum shear (MPa)',
+    'Tension xx (MPa)':
+        'Stress xx (MPa)',
+    'Tension yy (MPa)':
+        'Stress yy (MPa)',
+    'Tension zz (MPa)':
+        'Stress zz (MPa)',
+    ', volumen':
+        ', volume',
+    'cara %s':
+        '%s face',
+    ', %d capas':
+        ', %d layers',
+    'parche de radio %s mm en (%s, %s, %s)':
+        'patch of radius %s mm at (%s, %s, %s)',
+    ', solo caras a %g° de la normal':
+        ', only faces within %g° of the normal',
+    'caja':
+        'box',
+    'cilindro de radio %s mm, eje %s':
+        'cylinder of radius %s mm, axis %s',
+    '%d nodo(s)':
+        '%d node(s)',
+    'normal entrante':
+        'inward normal',
+    'normal saliente':
+        'outward normal',
+    'fuerza %s N hacia %s sobre %s':
+        'force %s N towards %s on %s',
+    'presion %s MPa (%s) sobre %s':
+        'pressure %s MPa (%s) on %s',
+    'momento %s N·mm alrededor de %s sobre %s':
+        'moment %s N·mm about %s on %s',
+    'desplazamiento %s mm hacia %s sobre %s':
+        'displacement %s mm towards %s on %s',
+    'desplazamiento (%s) mm sobre %s':
+        'displacement (%s) mm on %s',
+    'personalizado':
+        'custom',
+    '%s%s sobre %s':
+        '%s%s on %s',
 }
