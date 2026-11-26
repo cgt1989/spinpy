@@ -140,7 +140,10 @@ resuelve permutando los ejes hasta parecerse a la fábrica del VOI.
 > desactivada. El núcleo de spinpy sigue siendo MIT porque no la importa salvo
 > que se elija la familia; quien redistribuya spinpy junto con morphoGen queda
 > sujeto a la GPL sobre la obra combinada, como ya ocurre con PyQt5. Los
-> ejecutables publicados todavía no la incluyen.
+> ejecutables publicados todavía no la incluyen. En macOS con procesador Intel
+> su instalación falló en la integración continua (el `numba` más reciente
+> exige `llvmlite` 0.50, que no tiene rueda para esa plataforma), así que allí
+> la familia queda sin probar.
 >
 > De las referencias de morphoGen se comprobaron (con registro completo y DOI)
 > Sonon, François y Massart (2015) y Kilingar et al. (2019). La documentación de

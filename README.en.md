@@ -136,7 +136,10 @@ VOI's fabric.
 > core stays MIT because it does not import it unless that family is chosen;
 > anyone redistributing spinpy together with morphoGen is subject to the GPL on
 > the combined work, as is already the case with PyQt5. The published
-> executables do not include it yet.
+> executables do not include it yet. On macOS with an Intel processor its
+> installation failed in continuous integration (the newest `numba` requires
+> `llvmlite` 0.50, which has no wheel for that platform), so the family is
+> untested there.
 >
 > Of morphoGen's references, Sonon, François and Massart (2015) and Kilingar et
 > al. (2019) were verified (full record with DOI). morphoGen's documentation
